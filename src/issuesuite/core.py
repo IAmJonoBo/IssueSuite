@@ -1,22 +1,26 @@
 from __future__ import annotations
+
+import asyncio
 import json
 import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import asyncio
 
-from .config import SuiteConfig
-from .project import ProjectConfig, build_project_assigner
-from .logging import configure_logging, get_logger
-from .concurrency import (
-    ConcurrencyConfig, create_async_github_client, create_concurrent_processor,
-    enable_concurrency_for_large_roadmaps, get_optimal_worker_count
-)
-from .github_auth import GitHubAppConfig, create_github_app_manager
 from .benchmarking import BenchmarkConfig, create_benchmark
+from .concurrency import (
+    ConcurrencyConfig,
+    create_async_github_client,
+    create_concurrent_processor,
+    enable_concurrency_for_large_roadmaps,
+    get_optimal_worker_count,
+)
+from .config import SuiteConfig
 from .env_auth import EnvAuthConfig, create_env_auth_manager
+from .github_auth import GitHubAppConfig, create_github_app_manager
+from .logging import configure_logging, get_logger
+from .project import ProjectConfig, build_project_assigner
 
 # Canonical label normalization map (mirrors legacy script)
 _LABEL_CANON_MAP = {
@@ -210,96 +214,110 @@ class IssueSuite:
         return specs
 
     def sync(self, *, dry_run: bool, update: bool, respect_status: bool, preflight: bool) -> Dict[str, Any]:
-        with self._benchmark.measure('sync_total', dry_run=dry_run, update=update, 
-                                   respect_status=respect_status, preflight=preflight):
-            with self._logger.timed_operation('sync', dry_run=dry_run, update=update, 
-                                             respect_status=respect_status, preflight=preflight):
-                self._log('sync:start', f'dry_run={dry_run}', f'update={update}', f'respect_status={respect_status}', f'preflight={preflight}')
-                
-                with self._benchmark.measure('parse_specs', spec_count='pending'):
-                    specs = self.parse()
-                self._log('sync:parsed', len(specs), 'specs')
-                self._logger.log_operation('parse_complete', spec_count=len(specs))
-                
-                if preflight:
-                    with self._benchmark.measure('preflight_setup'):
-                        self._preflight(specs)
-                
-                project_assigner = build_project_assigner(ProjectConfig(
-                    enabled=bool(getattr(self.cfg, 'project_enable', False)),
-                    number=getattr(self.cfg, 'project_number', None),
-                    field_mappings=getattr(self.cfg, 'project_field_mappings', {}) or {},
-                ))
-                created: List[Dict[str, Any]] = []
-                updated: List[Dict[str, Any]] = []
-                closed: List[Dict[str, Any]] = []
-                mapping: Dict[str, int] = {}
-                skipped = 0
-                
-                # When preflight is requested but all ensure flags are disabled we should
-                # avoid any GitHub CLI calls (tests assert this). We still allow issue
-                # matching later if auth succeeds in other scenarios.
-                with self._benchmark.measure('fetch_existing_issues'):
-                    if preflight and not (self.cfg.ensure_labels_enabled or self.cfg.ensure_milestones_enabled):
-                        existing = []
-                    else:
-                        existing = self._existing_issues() if self._gh_auth() else []
-                self._log('sync:existing_issues', len(existing))
-                self._logger.log_operation('fetch_existing_issues', issue_count=len(existing))
-                
-                prev_hashes = self._load_hash_state()
-                
-                # Process specs with benchmarking
-                with self._benchmark.measure('process_specs', spec_count=len(specs)):
-                    for spec in specs:
-                        result = self._process_spec(
-                            spec=spec,
-                            existing=existing,
-                            prev_hashes=prev_hashes,
-                            dry_run=dry_run,
-                            update=update,
-                            respect_status=respect_status,
-                            project_assigner=project_assigner,
-                        )
-                        if result.get('created'):
-                            created.append({'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash})
-                        if mapped := result.get('mapped'):
-                            mapping[spec.external_id] = mapped
-                        if closed_entry := result.get('closed'):
-                            closed.append(closed_entry)
-                        if updated_entry := result.get('updated'):
-                            updated.append(updated_entry)
-                        if result.get('skipped'):
-                            skipped += 1
-                
-                if not dry_run:
-                    with self._benchmark.measure('save_hash_state'):
-                        self._save_hash_state(specs)
-                    
-                summary = {
-                    'totals': {
-                        'specs': len(specs),
-                        'created': len(created),
-                        'updated': len(updated),
-                        'closed': len(closed),
-                        'skipped': skipped
-                    },
-                    'changes': {'created': created, 'updated': updated, 'closed': closed},
-                    'mapping': mapping,
-                }
-                self._log('sync:done', summary['totals'])
-                self._logger.log_operation('sync_complete', 
-                                          issues_created=summary['totals']['created'],
-                                          issues_updated=summary['totals']['updated'],
-                                          issues_closed=summary['totals']['closed'],
-                                          specs=summary['totals']['specs'],
-                                          skipped=summary['totals']['skipped'])
-                
-                # Generate performance report if benchmarking is enabled
-                if self._benchmark_config.enabled:
-                    self._benchmark.generate_report()
-                
-                return summary
+        with self._benchmark.measure('sync_total', dry_run=dry_run, update=update,
+                                     respect_status=respect_status, preflight=preflight), \
+             self._logger.timed_operation('sync', dry_run=dry_run, update=update,
+                                          respect_status=respect_status, preflight=preflight):
+            self._log('sync:start', f'dry_run={dry_run}', f'update={update}', f'respect_status={respect_status}', f'preflight={preflight}')
+
+            specs = self._sync_parse_and_preflight(preflight)
+            project_assigner = self._build_project_assigner()
+            existing = self._sync_fetch_existing(preflight)
+            prev_hashes = self._load_hash_state()
+            results = self._sync_process_specs(specs, existing, prev_hashes, dry_run, update, respect_status, project_assigner)
+            summary = self._sync_build_summary(specs, results)
+
+            if not dry_run:
+                with self._benchmark.measure('save_hash_state'):
+                    self._save_hash_state(specs)
+
+            self._log('sync:done', summary['totals'])
+            self._logger.log_operation('sync_complete',
+                                       issues_created=summary['totals']['created'],
+                                       issues_updated=summary['totals']['updated'],
+                                       issues_closed=summary['totals']['closed'],
+                                       specs=summary['totals']['specs'],
+                                       skipped=summary['totals']['skipped'])
+
+            if self._benchmark_config.enabled:
+                self._benchmark.generate_report()
+            return summary
+
+    # --- sync refactor helpers ---
+    def _sync_parse_and_preflight(self, preflight: bool) -> List[IssueSpec]:
+        with self._benchmark.measure('parse_specs', spec_count='pending'):
+            specs = self.parse()
+        self._log('sync:parsed', len(specs), 'specs')
+        self._logger.log_operation('parse_complete', spec_count=len(specs))
+        if preflight:
+            with self._benchmark.measure('preflight_setup'):
+                self._preflight(specs)
+        return specs
+
+    def _build_project_assigner(self):
+        return build_project_assigner(ProjectConfig(
+            enabled=bool(getattr(self.cfg, 'project_enable', False)),
+            number=getattr(self.cfg, 'project_number', None),
+            field_mappings=getattr(self.cfg, 'project_field_mappings', {}) or {},
+        ))
+
+    def _sync_fetch_existing(self, preflight: bool) -> List[Dict[str, Any]]:
+        with self._benchmark.measure('fetch_existing_issues'):
+            if preflight and not (self.cfg.ensure_labels_enabled or self.cfg.ensure_milestones_enabled):
+                existing: List[Dict[str, Any]] = []
+            else:
+                existing = self._existing_issues() if self._gh_auth() else []
+        self._log('sync:existing_issues', len(existing))
+        self._logger.log_operation('fetch_existing_issues', issue_count=len(existing))
+        return existing
+
+    def _sync_process_specs(self, specs: List[IssueSpec], existing: List[Dict[str, Any]], prev_hashes: Dict[str, str],
+                            dry_run: bool, update: bool, respect_status: bool, project_assigner) -> List[Dict[str, Any]]:
+        results: List[Dict[str, Any]] = []
+        with self._benchmark.measure('process_specs', spec_count=len(specs)):
+            for spec in specs:
+                result = self._process_spec(
+                    spec=spec,
+                    existing=existing,
+                    prev_hashes=prev_hashes,
+                    dry_run=dry_run,
+                    update=update,
+                    respect_status=respect_status,
+                    project_assigner=project_assigner,
+                )
+                results.append({'spec': spec, 'result': result})
+        return results
+
+    def _sync_build_summary(self, specs: List[IssueSpec], processed: List[Dict[str, Any]]) -> Dict[str, Any]:
+        created: List[Dict[str, Any]] = []
+        updated: List[Dict[str, Any]] = []
+        closed: List[Dict[str, Any]] = []
+        mapping: Dict[str, int] = {}
+        skipped = 0
+        for entry in processed:
+            spec: IssueSpec = entry['spec']
+            result: Dict[str, Any] = entry['result']
+            if result.get('created'):
+                created.append({'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash})
+            if mapped := result.get('mapped'):
+                mapping[spec.external_id] = mapped
+            if closed_entry := result.get('closed'):
+                closed.append(closed_entry)
+            if updated_entry := result.get('updated'):
+                updated.append(updated_entry)
+            if result.get('skipped'):
+                skipped += 1
+        return {
+            'totals': {
+                'specs': len(specs),
+                'created': len(created),
+                'updated': len(updated),
+                'closed': len(closed),
+                'skipped': skipped
+            },
+            'changes': {'created': created, 'updated': updated, 'closed': closed},
+            'mapping': mapping,
+        }
 
     def _process_spec(self, *, spec: IssueSpec, existing: List[Dict[str, Any]], prev_hashes: Dict[str, str],
                       dry_run: bool, update: bool, respect_status: bool, project_assigner) -> Dict[str, Any]:

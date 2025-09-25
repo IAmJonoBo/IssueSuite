@@ -1,6 +1,7 @@
 # Changelog
 
-All notable changes to StratMaster will be documented in this file.
+All notable changes to IssueSuite are documented here. A legacy section for the previous
+"StratMaster" project follows after the `--- Legacy (StratMaster) ---` marker.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -11,28 +12,24 @@ _No unreleased changes yet._
 
 ## [0.1.5] - 2025-09-26
 
-### Fixed
+### Added
+- 0.1.1: Optional preflight auto-create flags (`ensure_labels_enabled`, `ensure_milestones_enabled`), parser equivalence & project stub tests.
+- 0.1.2: Debug logging via `ISSUESUITE_DEBUG=1` environment variable.
+- 0.1.3: Native argparse CLI (`issuesuite`), JSON schema exports, initial CLI tests, packaging workflows.
+- 0.1.4: Mock mode (`ISSUES_SUITE_MOCK=1`) skipping all GitHub CLI calls while printing `MOCK` actions.
 
-- Stabilized test suite: introduced snapshot-based VS Code secret detection to avoid false positives.
-- Added module-level `load_dotenv` shim enabling reliable patching in dotenv tests.
-- Gated GitHub CLI calls during preflight when label/milestone ensure flags are disabled (prevents unnecessary subprocess usage in dry-run scenarios).
+### Fixed
+- Snapshot-based VS Code secret detection to avoid false positives.
+- Module-level `load_dotenv` shim for reliable patching in tests.
+- Gated GitHub CLI calls during preflight when label/milestone ensures are disabled (prevents unnecessary subprocess usage in dry-run scenarios).
 
 ### Internal
+- Modernized type hints in env auth module & minor sync gating adjustments.
+- Refactored `sync` method to helper functions (maintains behavior, lowers complexity).
 
-- Modernized type hints (PEP 604 unions & built-in generics) in env auth module.
-- Minor gating logic adjustments in core sync path to honor test expectations.
+--- Legacy (StratMaster) ---
 
-### Added - Phase 3 & 4 Features
-
-### Added
-
-- IssueSuite 0.1.1: optional preflight auto-create flags (`ensure_labels_enabled`, `ensure_milestones_enabled`), README section, parser equivalence & project stub tests.
-- IssueSuite 0.1.2: debug logging via `ISSUESUITE_DEBUG=1` environment variable.
-- IssueSuite 0.1.3: native argparse CLI (`issuesuite`), JSON Schemas helper (`issuesuite.schemas.get_schemas()`), pyproject & publish workflow templates, initial CLI tests.
-- IssueSuite 0.1.4: add true mock mode (`ISSUES_SUITE_MOCK=1`) skipping all GitHub CLI invocations and printing `MOCK` actions.
-
-
-### Enhanced
+### Enhanced (Legacy)
 
 - **Analytics Router** with new HEART and product forecasting endpoints
 - **Strategy Generation** with industry-specific template selection
@@ -99,6 +96,7 @@ _No unreleased changes yet._
 - Configuration reference for all system components
 
 ### Infrastructure
+
 - Local development environment with Docker Compose
 - Kubernetes manifests for production deployment
 - ArgoCD GitOps configuration
@@ -107,6 +105,7 @@ _No unreleased changes yet._
 - Backup and disaster recovery procedures
 
 ### Security
+
 - End-to-end encryption with TLS 1.3
 - Data encryption at rest with AES-256-GCM
 - Comprehensive audit logging
@@ -115,6 +114,7 @@ _No unreleased changes yet._
 - OWASP security best practices implementation
 
 ### Quality Assurance
+
 - Comprehensive test suite with unit, integration, and e2e tests
 - Code quality tools: Ruff, mypy, bandit, pre-commit hooks
 - Documentation validation with markdownlint, cspell, Vale, lychee
@@ -122,6 +122,7 @@ _No unreleased changes yet._
 - Automated dependency updates with Renovate
 
 ### Performance
+
 - Horizontal pod autoscaling based on CPU and memory
 - Connection pooling and query optimization
 - Multi-level caching (Redis, application, CDN)
@@ -131,6 +132,7 @@ _No unreleased changes yet._
 ## [0.0.1] - 2023-12-01
 
 ### Added
+
 - Initial project structure and repository setup
 - Basic FastAPI application scaffold
 - Docker development environment
@@ -171,6 +173,7 @@ _No unreleased changes yet._
 **Migration Guide**: Not applicable (initial release)
 
 **Known Issues**:
+
 - Vector search performance may degrade with very large document collections (>1M documents)
 - Real-time notifications require WebSocket connection, fallback to polling available
 - Some AI providers may have rate limits that affect high-volume usage
@@ -178,6 +181,7 @@ _No unreleased changes yet._
 **Deprecations**: None
 
 **Coming in v0.2.0**:
+
 - Real-time collaboration features
 - Advanced visualization capabilities  
 - Enhanced mobile support
@@ -218,6 +222,7 @@ StratMaster follows [Semantic Versioning](https://semver.org/):
 - **PATCH** version for backwards-compatible bug fixes
 
 Examples:
+
 - `0.1.0 → 0.1.1`: Bug fixes only
 - `0.1.1 → 0.2.0`: New features, backwards compatible
 - `0.2.0 → 1.0.0`: Breaking API changes or major milestone
@@ -225,6 +230,7 @@ Examples:
 ---
 
 For detailed technical changes, see:
+
 - [GitHub Releases](https://github.com/IAmJonoBo/StratMaster/releases)
 - [Commit History](https://github.com/IAmJonoBo/StratMaster/commits/main)
 - [Pull Requests](https://github.com/IAmJonoBo/StratMaster/pulls?q=is%3Apr+is%3Aclosed)
