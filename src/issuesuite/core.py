@@ -15,6 +15,7 @@ from .concurrency import (
     enable_concurrency_for_large_roadmaps, get_optimal_worker_count
 )
 from .github_auth import GitHubAppConfig, create_github_app_manager
+from .benchmarking import BenchmarkConfig, create_benchmark
 
 # Canonical label normalization map (mirrors legacy script)
 _LABEL_CANON_MAP = {
@@ -113,6 +114,16 @@ class IssueSuite:
         )
         self._github_app_manager = None
         
+        # Configure performance benchmarking
+        self._benchmark_config = BenchmarkConfig(
+            enabled=cfg.performance_benchmarking,
+            output_file='performance_report.json',
+            collect_system_metrics=True,
+            track_memory=True,
+            track_cpu=True
+        )
+        self._benchmark = create_benchmark(self._benchmark_config, self._mock)
+        
         # Setup GitHub App authentication if enabled
         if self._github_app_config.enabled:
             self._setup_github_app_auth()
@@ -164,74 +175,90 @@ class IssueSuite:
         return specs
 
     def sync(self, *, dry_run: bool, update: bool, respect_status: bool, preflight: bool) -> Dict[str, Any]:
-        with self._logger.timed_operation('sync', dry_run=dry_run, update=update, 
-                                         respect_status=respect_status, preflight=preflight):
-            self._log('sync:start', f'dry_run={dry_run}', f'update={update}', f'respect_status={respect_status}', f'preflight={preflight}')
-            specs = self.parse()
-            self._log('sync:parsed', len(specs), 'specs')
-            self._logger.log_operation('parse_complete', spec_count=len(specs))
-            
-            if preflight:
-                self._preflight(specs)
-            
-            project_assigner = build_project_assigner(ProjectConfig(
-                enabled=bool(getattr(self.cfg, 'project_enable', False)),
-                number=getattr(self.cfg, 'project_number', None),
-                field_mappings=getattr(self.cfg, 'project_field_mappings', {}) or {},
-            ))
-            created: List[Dict[str, Any]] = []
-            updated: List[Dict[str, Any]] = []
-            closed: List[Dict[str, Any]] = []
-            mapping: Dict[str, int] = {}
-            skipped = 0
-            existing = self._existing_issues() if self._gh_auth() else []
-            self._log('sync:existing_issues', len(existing))
-            self._logger.log_operation('fetch_existing_issues', issue_count=len(existing))
-            
-            prev_hashes = self._load_hash_state()
-            for spec in specs:
-                result = self._process_spec(
-                    spec=spec,
-                    existing=existing,
-                    prev_hashes=prev_hashes,
-                    dry_run=dry_run,
-                    update=update,
-                    respect_status=respect_status,
-                    project_assigner=project_assigner,
-                )
-                if result.get('created'):
-                    created.append({'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash})
-                if mapped := result.get('mapped'):
-                    mapping[spec.external_id] = mapped
-                if closed_entry := result.get('closed'):
-                    closed.append(closed_entry)
-                if updated_entry := result.get('updated'):
-                    updated.append(updated_entry)
-                if result.get('skipped'):
-                    skipped += 1
-            
-            if not dry_run:
-                self._save_hash_state(specs)
+        with self._benchmark.measure('sync_total', dry_run=dry_run, update=update, 
+                                   respect_status=respect_status, preflight=preflight):
+            with self._logger.timed_operation('sync', dry_run=dry_run, update=update, 
+                                             respect_status=respect_status, preflight=preflight):
+                self._log('sync:start', f'dry_run={dry_run}', f'update={update}', f'respect_status={respect_status}', f'preflight={preflight}')
                 
-            summary = {
-                'totals': {
-                    'specs': len(specs),
-                    'created': len(created),
-                    'updated': len(updated),
-                    'closed': len(closed),
-                    'skipped': skipped
-                },
-                'changes': {'created': created, 'updated': updated, 'closed': closed},
-                'mapping': mapping,
-            }
-            self._log('sync:done', summary['totals'])
-            self._logger.log_operation('sync_complete', 
-                                      issues_created=summary['totals']['created'],
-                                      issues_updated=summary['totals']['updated'],
-                                      issues_closed=summary['totals']['closed'],
-                                      specs=summary['totals']['specs'],
-                                      skipped=summary['totals']['skipped'])
-            return summary
+                with self._benchmark.measure('parse_specs', spec_count='pending'):
+                    specs = self.parse()
+                self._log('sync:parsed', len(specs), 'specs')
+                self._logger.log_operation('parse_complete', spec_count=len(specs))
+                
+                if preflight:
+                    with self._benchmark.measure('preflight_setup'):
+                        self._preflight(specs)
+                
+                project_assigner = build_project_assigner(ProjectConfig(
+                    enabled=bool(getattr(self.cfg, 'project_enable', False)),
+                    number=getattr(self.cfg, 'project_number', None),
+                    field_mappings=getattr(self.cfg, 'project_field_mappings', {}) or {},
+                ))
+                created: List[Dict[str, Any]] = []
+                updated: List[Dict[str, Any]] = []
+                closed: List[Dict[str, Any]] = []
+                mapping: Dict[str, int] = {}
+                skipped = 0
+                
+                with self._benchmark.measure('fetch_existing_issues'):
+                    existing = self._existing_issues() if self._gh_auth() else []
+                self._log('sync:existing_issues', len(existing))
+                self._logger.log_operation('fetch_existing_issues', issue_count=len(existing))
+                
+                prev_hashes = self._load_hash_state()
+                
+                # Process specs with benchmarking
+                with self._benchmark.measure('process_specs', spec_count=len(specs)):
+                    for spec in specs:
+                        result = self._process_spec(
+                            spec=spec,
+                            existing=existing,
+                            prev_hashes=prev_hashes,
+                            dry_run=dry_run,
+                            update=update,
+                            respect_status=respect_status,
+                            project_assigner=project_assigner,
+                        )
+                        if result.get('created'):
+                            created.append({'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash})
+                        if mapped := result.get('mapped'):
+                            mapping[spec.external_id] = mapped
+                        if closed_entry := result.get('closed'):
+                            closed.append(closed_entry)
+                        if updated_entry := result.get('updated'):
+                            updated.append(updated_entry)
+                        if result.get('skipped'):
+                            skipped += 1
+                
+                if not dry_run:
+                    with self._benchmark.measure('save_hash_state'):
+                        self._save_hash_state(specs)
+                    
+                summary = {
+                    'totals': {
+                        'specs': len(specs),
+                        'created': len(created),
+                        'updated': len(updated),
+                        'closed': len(closed),
+                        'skipped': skipped
+                    },
+                    'changes': {'created': created, 'updated': updated, 'closed': closed},
+                    'mapping': mapping,
+                }
+                self._log('sync:done', summary['totals'])
+                self._logger.log_operation('sync_complete', 
+                                          issues_created=summary['totals']['created'],
+                                          issues_updated=summary['totals']['updated'],
+                                          issues_closed=summary['totals']['closed'],
+                                          specs=summary['totals']['specs'],
+                                          skipped=summary['totals']['skipped'])
+                
+                # Generate performance report if benchmarking is enabled
+                if self._benchmark_config.enabled:
+                    self._benchmark.generate_report()
+                
+                return summary
 
     def _process_spec(self, *, spec: IssueSpec, existing: List[Dict[str, Any]], prev_hashes: Dict[str, str],
                       dry_run: bool, update: bool, respect_status: bool, project_assigner) -> Dict[str, Any]:
