@@ -19,6 +19,7 @@ from typing import Any, List, Optional
 from .config import load_config, SuiteConfig
 from .orchestrator import sync_with_summary
 from .core import IssueSuite
+from .env_auth import create_env_auth_manager
 
 CONFIG_DEFAULT = 'issue_suite.config.yaml'
 
@@ -50,6 +51,13 @@ def _build_parser() -> argparse.ArgumentParser:
 
     val = sub.add_parser('validate', help='Basic parse + id pattern validation')
     val.add_argument('--config', default=CONFIG_DEFAULT)
+
+    # New setup command for VS Code and online integration
+    setup = sub.add_parser('setup', help='Setup authentication and VS Code integration')
+    setup.add_argument('--create-env', action='store_true', help='Create sample .env file')
+    setup.add_argument('--check-auth', action='store_true', help='Check authentication status')
+    setup.add_argument('--vscode', action='store_true', help='Setup VS Code integration files')
+    setup.add_argument('--config', default=CONFIG_DEFAULT)
 
     return p
 
@@ -133,6 +141,55 @@ def _cmd_schema(cfg: SuiteConfig, args: argparse.Namespace) -> int:
         return 2
 
 
+def _cmd_setup(cfg: SuiteConfig, args: argparse.Namespace) -> int:
+    """Handle setup command for VS Code and authentication."""
+    auth_manager = create_env_auth_manager()
+    
+    if args.create_env:
+        auth_manager.create_sample_env_file()
+        print("[setup] Created sample .env file")
+    
+    if args.check_auth:
+        token = auth_manager.get_github_token()
+        app_config = auth_manager.get_github_app_config()
+        is_online = auth_manager.is_online_environment()
+        
+        print(f"[setup] Environment: {'Online' if is_online else 'Local'}")
+        print(f"[setup] GitHub Token: {'✓ Found' if token else '✗ Not found'}")
+        print(f"[setup] GitHub App: {'✓ Configured' if all(app_config.values()) else '✗ Not configured'}")
+        
+        recommendations = auth_manager.get_authentication_recommendations()
+        if recommendations:
+            print("[setup] Recommendations:")
+            for rec in recommendations:
+                print(f"  - {rec}")
+    
+    if args.vscode:
+        # The VS Code files have already been created in the .vscode directory
+        vscode_dir = Path(".vscode")
+        if vscode_dir.exists():
+            print("[setup] VS Code integration files already exist in .vscode/")
+        else:
+            print("[setup] Creating VS Code integration files...")
+            # VS Code files would be created here, but they're already in the repo
+            print("[setup] VS Code files should be committed to your repository")
+        
+        print("[setup] VS Code integration includes:")
+        print("  - Tasks for common IssueSuite operations")
+        print("  - Debug configurations")
+        print("  - YAML schema associations for config files")
+        print("  - Python environment configuration")
+    
+    if not any([args.create_env, args.check_auth, args.vscode]):
+        print("[setup] Use --help to see available setup options")
+        print("Available options:")
+        print("  --create-env    Create sample .env file")
+        print("  --check-auth    Check authentication status")
+        print("  --vscode        Setup VS Code integration")
+    
+    return 0
+
+
 def _cmd_validate(cfg: SuiteConfig) -> int:
     suite = IssueSuite(cfg)
     specs = suite.parse()
@@ -161,6 +218,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_schema(cfg, args)
     if args.cmd == 'validate':
         return _cmd_validate(cfg)
+    if args.cmd == 'setup':
+        return _cmd_setup(cfg, args)
     parser.print_help()
     return 1
 

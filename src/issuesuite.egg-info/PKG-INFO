@@ -25,12 +25,24 @@ License-File: LICENSE
 Requires-Dist: PyYAML<7,>=6
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.21.0; extra == "dev"
 Requires-Dist: ruff>=0.5.0; extra == "dev"
 Requires-Dist: mypy>=1.8.0; extra == "dev"
 Requires-Dist: build>=1.0.0; extra == "dev"
 Requires-Dist: twine>=5.0.0; extra == "dev"
 Provides-Extra: schemas
 Requires-Dist: jsonschema<5,>=4.0.0; extra == "schemas"
+Provides-Extra: env
+Requires-Dist: python-dotenv>=1.0.0; extra == "env"
+Provides-Extra: performance
+Requires-Dist: psutil>=5.9.0; extra == "performance"
+Provides-Extra: vscode
+Requires-Dist: python-dotenv>=1.0.0; extra == "vscode"
+Requires-Dist: psutil>=5.9.0; extra == "vscode"
+Provides-Extra: all
+Requires-Dist: python-dotenv>=1.0.0; extra == "all"
+Requires-Dist: psutil>=5.9.0; extra == "all"
+Requires-Dist: jsonschema<5,>=4.0.0; extra == "all"
 Dynamic: license-file
 
 # IssueSuite

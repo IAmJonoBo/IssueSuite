@@ -1,6 +1,7 @@
 from __future__ import annotations
 import re
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -61,6 +62,18 @@ class SuiteConfig:
     github_app_id: Optional[str]
     github_app_private_key_path: Optional[str]
     github_app_installation_id: Optional[str]
+    # Environment authentication configuration
+    env_auth_enabled: bool
+    env_auth_load_dotenv: bool
+    env_auth_dotenv_path: Optional[str]
+
+
+def _resolve_env_var(value: Any, env_var_name: Optional[str] = None) -> Any:
+    """Resolve environment variable if value starts with $."""
+    if isinstance(value, str) and value.startswith('$'):
+        env_name = env_var_name or value[1:]  # Remove $ prefix
+        return os.getenv(env_name, value)  # Fallback to original if not found
+    return value
 
 
 def load_config(path: str | Path) -> SuiteConfig:
@@ -81,6 +94,17 @@ def load_config(path: str | Path) -> SuiteConfig:
     performance_config = raw.get('performance', {})
     concurrency_config = raw.get('concurrency', {})
     github_app = gh.get('app', {}) or {}
+    env_auth = raw.get('environment', {}) or {}
+    
+    # Resolve environment variables in GitHub App configuration
+    github_app_id = _resolve_env_var(github_app.get('app_id'), 'GITHUB_APP_ID')
+    github_app_private_key_path = _resolve_env_var(
+        github_app.get('private_key_path'), 'GITHUB_APP_PRIVATE_KEY'
+    )
+    github_app_installation_id = _resolve_env_var(
+        github_app.get('installation_id'), 'GITHUB_APP_INSTALLATION_ID'
+    )
+    
     return SuiteConfig(
         version=int(raw.get('version', 1)),
         source_file=p.parent / src.get('file', 'ISSUES.md'),
@@ -99,12 +123,12 @@ def load_config(path: str | Path) -> SuiteConfig:
         summary_json=out.get('summary_json', 'issues_summary.json'),
         export_json=out.get('export_json', 'issues_export.json'),
         report_html=out.get('report_html', 'issues_report.html'),
-        hash_state_file=out.get('hash_state_file', '.issues_sync_state.json'),
-        mapping_file=out.get('mapping_file', 'issues_mapping.json'),
-        lock_file=behavior.get('lock_file', '.issues_sync.lock'),
+        hash_state_file=out.get('hash_state_file', '.issuesuite_hashes.json'),
+        mapping_file=out.get('mapping_file', '.issuesuite_mapping.json'),
+        lock_file=out.get('lock_file', '.issuesuite_lock'),
         truncate_body_diff=int(behavior.get('truncate_body_diff', 80)),
         dry_run_default=bool(behavior.get('dry_run_default', False)),
-        emit_change_events=bool(ai.get('emit_change_events', True)),
+        emit_change_events=bool(behavior.get('emit_change_events', False)),
         schema_export_file=ai.get('schema_export_file', 'issue_export.schema.json'),
         schema_summary_file=ai.get('schema_summary_file', 'issue_change_summary.schema.json'),
         schema_version=int(ai.get('schema_version', 1)),
@@ -116,9 +140,13 @@ def load_config(path: str | Path) -> SuiteConfig:
         # Concurrency configuration
         concurrency_enabled=bool(concurrency_config.get('enabled', False)),
         concurrency_max_workers=int(concurrency_config.get('max_workers', 4)),
-        # GitHub App configuration
+        # GitHub App configuration with environment variable resolution
         github_app_enabled=bool(github_app.get('enabled', False)),
-        github_app_id=github_app.get('app_id'),
-        github_app_private_key_path=github_app.get('private_key_path'),
-        github_app_installation_id=github_app.get('installation_id'),
+        github_app_id=github_app_id,
+        github_app_private_key_path=github_app_private_key_path,
+        github_app_installation_id=github_app_installation_id,
+        # Environment authentication configuration
+        env_auth_enabled=bool(env_auth.get('enabled', True)),
+        env_auth_load_dotenv=bool(env_auth.get('load_dotenv', True)),
+        env_auth_dotenv_path=env_auth.get('dotenv_path'),
     )

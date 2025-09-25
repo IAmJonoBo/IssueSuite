@@ -1,0 +1,56 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "IssueSuite: Debug Dry-run Sync",
+            "type": "python",
+            "request": "launch",
+            "module": "issuesuite.cli",
+            "args": [
+                "sync",
+                "--dry-run",
+                "--update",
+                "--config", "${workspaceFolder}/issue_suite.config.yaml",
+                "--summary-json", "${workspaceFolder}/issues_summary.json"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "ISSUESUITE_DEBUG": "1",
+                "ISSUES_SUITE_MOCK": "0"
+            }
+        },
+        {
+            "name": "IssueSuite: Debug Validate",
+            "type": "python",
+            "request": "launch",
+            "module": "issuesuite.cli",
+            "args": [
+                "validate",
+                "--config", "${workspaceFolder}/issue_suite.config.yaml"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "ISSUESUITE_DEBUG": "1"
+            }
+        },
+        {
+            "name": "IssueSuite: Debug Export",
+            "type": "python",
+            "request": "launch",
+            "module": "issuesuite.cli",
+            "args": [
+                "export",
+                "--pretty",
+                "--config", "${workspaceFolder}/issue_suite.config.yaml",
+                "--output", "${workspaceFolder}/issues_export.json"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "ISSUESUITE_DEBUG": "1"
+            }
+        }
+    ]
+}

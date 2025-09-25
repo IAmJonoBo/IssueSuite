@@ -16,6 +16,7 @@ from .concurrency import (
 )
 from .github_auth import GitHubAppConfig, create_github_app_manager
 from .benchmarking import BenchmarkConfig, create_benchmark
+from .env_auth import EnvAuthConfig, create_env_auth_manager
 
 # Canonical label normalization map (mirrors legacy script)
 _LABEL_CANON_MAP = {
@@ -98,6 +99,17 @@ class IssueSuite:
             level=cfg.logging_level
         )
         
+        # Configure environment authentication
+        if cfg.env_auth_enabled:
+            self._env_auth_manager = create_env_auth_manager(EnvAuthConfig(
+                load_dotenv=cfg.env_auth_load_dotenv,
+                dotenv_path=cfg.env_auth_dotenv_path
+            ))
+            # Setup authentication from environment
+            self._setup_env_authentication()
+        else:
+            self._env_auth_manager = None
+        
         # Configure concurrency
         self._concurrency_config = ConcurrencyConfig(
             enabled=cfg.concurrency_enabled,
@@ -127,6 +139,29 @@ class IssueSuite:
         # Setup GitHub App authentication if enabled
         if self._github_app_config.enabled:
             self._setup_github_app_auth()
+
+    def _setup_env_authentication(self) -> None:
+        """Setup environment-based authentication."""
+        if not self._env_auth_manager:
+            return
+        
+        try:
+            # Try to configure GitHub CLI with environment token
+            if self._env_auth_manager.configure_github_cli():
+                self._logger.log_operation("env_auth_configured", 
+                                         source="environment_variables")
+            
+            # Log authentication recommendations if needed
+            recommendations = self._env_auth_manager.get_authentication_recommendations()
+            if recommendations:
+                self._logger.info("Authentication recommendations: " + "; ".join(recommendations))
+            
+            # Detect online environment
+            if self._env_auth_manager.is_online_environment():
+                self._logger.log_operation("online_environment_detected")
+                
+        except Exception as e:
+            self._logger.log_error("Environment authentication setup failed", error=str(e))
 
     def _setup_github_app_auth(self) -> None:
         """Setup GitHub App authentication."""
