@@ -14,6 +14,7 @@ from .concurrency import (
     ConcurrencyConfig, create_async_github_client, create_concurrent_processor,
     enable_concurrency_for_large_roadmaps, get_optimal_worker_count
 )
+from .github_auth import GitHubAppConfig, create_github_app_manager
 
 # Canonical label normalization map (mirrors legacy script)
 _LABEL_CANON_MAP = {
@@ -102,6 +103,36 @@ class IssueSuite:
             max_workers=cfg.concurrency_max_workers,
             batch_size=10  # Default batch size
         )
+        
+        # Configure GitHub App authentication
+        self._github_app_config = GitHubAppConfig(
+            enabled=cfg.github_app_enabled,
+            app_id=cfg.github_app_id,
+            private_key_path=cfg.github_app_private_key_path,
+            installation_id=cfg.github_app_installation_id
+        )
+        self._github_app_manager = None
+        
+        # Setup GitHub App authentication if enabled
+        if self._github_app_config.enabled:
+            self._setup_github_app_auth()
+
+    def _setup_github_app_auth(self) -> None:
+        """Setup GitHub App authentication."""
+        try:
+            self._github_app_manager = create_github_app_manager(
+                self._github_app_config, self._mock
+            )
+            
+            if self._github_app_manager.is_enabled():
+                success = self._github_app_manager.configure_github_cli()
+                if success:
+                    self._logger.log_operation("github_app_auth_configured",
+                                             app_id=self._github_app_config.app_id)
+                else:
+                    self._logger.log_error("Failed to configure GitHub App authentication")
+        except Exception as e:
+            self._logger.log_error("GitHub App authentication setup failed", error=str(e))
 
     def _log(self, *parts: Any):  # lightweight internal debug logger
         if self._debug:
