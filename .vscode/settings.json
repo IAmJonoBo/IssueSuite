@@ -1,0 +1,36 @@
+{
+    "python.defaultInterpreterPath": ".venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "python.linting.enabled": true,
+    "python.linting.ruffEnabled": true,
+    "python.formatting.provider": "black",
+    "files.associations": {
+        "ISSUES.md": "markdown",
+        "issue_suite.config.yaml": "yaml"
+    },
+    "yaml.schemas": {
+        "./issue_export.schema.json": [
+            "issues_export.json"
+        ],
+        "./issue_change_summary.schema.json": [
+            "issues_summary.json"
+        ]
+    },
+    "terminal.integrated.env.linux": {
+        "ISSUESUITE_DEBUG": "1"
+    },
+    "terminal.integrated.env.osx": {
+        "ISSUESUITE_DEBUG": "1"
+    },
+    "terminal.integrated.env.windows": {
+        "ISSUESUITE_DEBUG": "1"
+    },
+    "github.copilot.enable": {
+        "*": true,
+        "yaml": true,
+        "markdown": true,
+        "python": true
+    },
+    "issuesuite.config.file": "issue_suite.config.yaml",
+    "issuesuite.debug.enabled": true
+}

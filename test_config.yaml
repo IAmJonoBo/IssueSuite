@@ -1,0 +1,12 @@
+version: 1
+source:
+  file: ISSUES.md
+github: {}
+defaults:
+  inject_labels: []
+  ensure_milestones: []
+  ensure_labels_enabled: false
+  ensure_milestones_enabled: false
+output: {}
+behavior: {}
+ai: {}
