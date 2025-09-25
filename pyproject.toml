@@ -12,23 +12,31 @@ build-backend = "setuptools.build_meta"
 name = "issuesuite"
 version = "0.1.4"  # Set at extraction time; keep in sync with issuesuite.__version__
 description = "Declarative GitHub Issues automation: validate, sync, export, and report from a single ISSUES.md file"
-readme = "README.md"
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "IssueSuite Maintainers" }]
-keywords = ["github", "issues", "automation", "declarative", "roadmap", "cli"]
+license = "MIT"
+authors = [{ name = "IssueSuite Maintainers", email = "maintainers@issuesuite.dev" }]
+maintainers = [{ name = "IssueSuite Maintainers", email = "maintainers@issuesuite.dev" }]
+keywords = ["github", "issues", "automation", "declarative", "roadmap", "cli", "project-management", "devops"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: System Administrators",
+  "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3 :: Only",
   "Topic :: Software Development :: Version Control :: Git",
   "Topic :: Software Development :: Build Tools",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: System :: Systems Administration",
+  "Topic :: Utilities",
+  "Typing :: Typed",
 ]
 dependencies = [
   "PyYAML>=6,<7",
@@ -64,8 +72,12 @@ all = [
 
 [project.urls]
 Homepage = "https://github.com/IAmJonoBo/IssueSuite"
-Source = "https://github.com/IAmJonoBo/IssueSuite"
+Repository = "https://github.com/IAmJonoBo/IssueSuite"
+Documentation = "https://github.com/IAmJonoBo/IssueSuite#readme"
 Issues = "https://github.com/IAmJonoBo/IssueSuite/issues"
+Changelog = "https://github.com/IAmJonoBo/IssueSuite/blob/main/CHANGELOG.md"
+"Bug Reports" = "https://github.com/IAmJonoBo/IssueSuite/issues"
+"Source Code" = "https://github.com/IAmJonoBo/IssueSuite"
 
 [project.scripts]
 issuesuite = "issuesuite.cli:main"

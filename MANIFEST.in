@@ -1,0 +1,15 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include pyproject.toml
+recursive-include src/issuesuite *.py
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * .DS_Store
+exclude .github/copilot-instructions.md
+exclude test_config.yaml
+exclude performance_report.json
+exclude renovate.json
+exclude VSCODE_SETUP.md
+exclude .trunk
+exclude .vscode

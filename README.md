@@ -17,7 +17,14 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
 
 ## Quick Start
 ```bash
+# Install from PyPI
 pip install issuesuite
+
+# Or install with pipx (recommended for CLI usage)
+pipx install issuesuite
+
+# Or install directly from GitHub
+pip install git+https://github.com/IAmJonoBo/IssueSuite.git
 
 # Validate structure & ID pattern
 issuesuite validate --config issue_suite.config.yaml

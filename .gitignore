@@ -126,3 +126,6 @@ issues_mapping.json
 .issues_sync.lock
 issue_export.schema.json
 issue_change_summary.schema.json
+
+# Packaging artifacts
+test-dist/
