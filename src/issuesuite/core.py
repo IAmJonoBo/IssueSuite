@@ -1,0 +1,371 @@
+from __future__ import annotations
+import json
+import os
+import subprocess
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from .config import SuiteConfig
+from .project import ProjectConfig, build_project_assigner
+
+# Canonical label normalization map (mirrors legacy script)
+_LABEL_CANON_MAP = {
+    'p0-critical': 'P0-critical',
+    'p1-important': 'P1-important',
+    'p2-enhancement': 'P2-enhancement',
+}
+
+def _parse_meta_block(lines: List[str], start_index: int) -> tuple[Dict[str, str], List[str], int]:
+    meta: Dict[str, str] = {}
+    i = start_index
+    while i < len(lines) and lines[i].strip() != '---':
+        line = lines[i].strip()
+        if ':' in line:
+            k, v = line.split(':', 1)
+            meta[k.strip().lower()] = v.strip()
+        i += 1
+    if i < len(lines) and lines[i].strip() == '---':
+        i += 1
+    body: List[str] = []
+    while i < len(lines) and not lines[i].startswith('## '):
+        body.append(lines[i])
+        i += 1
+    return meta, body, i
+
+def _build_issue_spec(external_id: str, canonical_title: str, meta: Dict[str, str], body_lines: List[str]) -> tuple['IssueSpec', str]:
+    import hashlib
+    labels_raw = [l.strip() for l in meta.get('labels','').split(',') if l.strip()]
+    labels_norm = [_LABEL_CANON_MAP.get(lbl.lower(), lbl) for lbl in labels_raw]
+    body = '\n'.join(body_lines).strip() + '\n'
+    title = f"Issue {external_id}: {canonical_title}"
+    h = hashlib.sha256()
+    h.update('\x1f'.join([
+        external_id,
+        canonical_title,
+        ','.join(sorted(labels_norm)),
+        meta.get('milestone') or '',
+        meta.get('flag') or '',
+        meta.get('priority') or '',
+        body.strip(),
+    ]).encode('utf-8'))
+    issue = IssueSpec(
+        external_id=external_id,
+        title=title,
+        labels=labels_norm,
+        milestone=meta.get('milestone'),
+        body=body,
+        status=meta.get('status')
+    )
+    issue.hash = h.hexdigest()[:16]
+    return issue, canonical_title
+
+try:
+    import yaml  # noqa: F401
+except Exception:  # pragma: no cover
+    pass
+
+# Lightweight IssueSpec for library usage
+@dataclass
+class IssueSpec:
+    external_id: str
+    title: str
+    labels: List[str]
+    milestone: Optional[str]
+    body: str
+    status: Optional[str] = None
+    hash: Optional[str] = None
+
+
+class IssueSuite:
+    def __init__(self, cfg: SuiteConfig):
+        self.cfg = cfg
+        self._debug = os.environ.get('ISSUESUITE_DEBUG') == '1'
+        # Mock mode: skip all GitHub CLI invocations even in non-dry-run paths
+        self._mock = os.environ.get('ISSUES_SUITE_MOCK') == '1'
+
+    def _log(self, *parts: Any):  # lightweight internal debug logger
+        if self._debug:
+            print('[issuesuite]', *parts)
+
+    @classmethod
+    def from_config_path(cls, path: str | Path) -> 'IssueSuite':
+        from .config import load_config
+        return cls(load_config(path))
+
+    def parse(self) -> List[IssueSpec]:
+        import re
+        section_re = re.compile(r'^##\s+(\d{3})\s*\|\s*(.+)$')
+        lines = self.cfg.source_file.read_text(encoding='utf-8').splitlines()
+        specs: List[IssueSpec] = []
+        i = 0
+        while i < len(lines):
+            m = section_re.match(lines[i])
+            if not m:
+                i += 1
+                continue
+            external_id, canonical_title = m.group(1), m.group(2).strip()
+            i += 1
+            meta, body_lines, i = _parse_meta_block(lines, i)
+            issue, _ = _build_issue_spec(external_id, canonical_title, meta, body_lines)
+            specs.append(issue)
+        return specs
+
+    def sync(self, *, dry_run: bool, update: bool, respect_status: bool, preflight: bool) -> Dict[str, Any]:
+        self._log('sync:start', f'dry_run={dry_run}', f'update={update}', f'respect_status={respect_status}', f'preflight={preflight}')
+        specs = self.parse()
+        self._log('sync:parsed', len(specs), 'specs')
+        if preflight:
+            self._preflight(specs)
+        project_assigner = build_project_assigner(ProjectConfig(
+            enabled=bool(getattr(self.cfg, 'project_enable', False)),
+            number=getattr(self.cfg, 'project_number', None),
+            field_mappings=getattr(self.cfg, 'project_field_mappings', {}) or {},
+        ))
+        created: List[Dict[str, Any]] = []
+        updated: List[Dict[str, Any]] = []
+        closed: List[Dict[str, Any]] = []
+        mapping: Dict[str, int] = {}
+        skipped = 0
+        existing = self._existing_issues() if self._gh_auth() else []
+        self._log('sync:existing_issues', len(existing))
+        prev_hashes = self._load_hash_state()
+        for spec in specs:
+            result = self._process_spec(
+                spec=spec,
+                existing=existing,
+                prev_hashes=prev_hashes,
+                dry_run=dry_run,
+                update=update,
+                respect_status=respect_status,
+                project_assigner=project_assigner,
+            )
+            if result.get('created'):
+                created.append({'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash})
+            if mapped := result.get('mapped'):
+                mapping[spec.external_id] = mapped
+            if closed_entry := result.get('closed'):
+                closed.append(closed_entry)
+            if updated_entry := result.get('updated'):
+                updated.append(updated_entry)
+            if result.get('skipped'):
+                skipped += 1
+        if not dry_run:
+            self._save_hash_state(specs)
+        summary = {
+            'totals': {
+                'specs': len(specs),
+                'created': len(created),
+                'updated': len(updated),
+                'closed': len(closed),
+                'skipped': skipped
+            },
+            'changes': {'created': created, 'updated': updated, 'closed': closed},
+            'mapping': mapping,
+        }
+        self._log('sync:done', summary['totals'])
+        return summary
+
+    def _process_spec(self, *, spec: IssueSpec, existing: List[Dict[str, Any]], prev_hashes: Dict[str, str],
+                      dry_run: bool, update: bool, respect_status: bool, project_assigner) -> Dict[str, Any]:
+        """Process a single spec returning a result map with one of keys:
+        created | updated | closed | skipped plus optional mapped (issue number).
+        Keeps logic isolated to lower cognitive complexity of sync().
+        """
+        result: Dict[str, Any] = {}
+        match = self._match(spec, existing)
+        prev_hash = prev_hashes.get(spec.external_id)
+        if not match:
+            self._create(spec, dry_run)
+            result['created'] = True
+            return result
+        number = match.get('number') if isinstance(match, dict) else None
+        if isinstance(number, int):
+            result['mapped'] = number
+            try:  # project assignment (noop currently)
+                project_assigner.assign(number, spec)
+            except Exception:  # pragma: no cover - defensive
+                pass
+        if respect_status and spec.status == 'closed' and match.get('state') != 'CLOSED':
+            self._close(match, dry_run)
+            result['closed'] = {'external_id': spec.external_id, 'number': match['number']}
+            return result
+        if update and self._needs_update(spec, match, prev_hash):
+            diff = self._diff(spec, match)
+            self._update(spec, match, dry_run)
+            result['updated'] = {'external_id': spec.external_id, 'number': match['number'], 'diff': diff}
+            return result
+        result['skipped'] = True
+        return result
+
+    # --- internal helpers ---
+    def _gh_auth(self) -> bool:
+        if self._mock:
+            return False
+        try:
+            subprocess.check_output(['gh','auth','status'], stderr=subprocess.STDOUT)
+            return True
+        except Exception:
+            return False
+
+    def _existing_issues(self):
+        try:
+            out = subprocess.check_output(['gh','issue','list','--state','all','--limit','1000','--json','number,title,body,labels,milestone,state'], text=True)
+            return json.loads(out)
+        except Exception:
+            return []
+
+    def _match(self, spec: IssueSpec, existing: List[Dict[str, Any]]):
+        import re
+        norm = lambda t: re.sub(r'\s+',' ', t.lower())
+        for issue in existing:
+            if issue['title'] == spec.title:
+                return issue
+            if spec.external_id in issue['title'] and norm(issue['title']) == norm(spec.title):
+                return issue
+        return None
+
+    def _needs_update(self, spec: IssueSpec, issue: Dict[str, Any], prev_hash: Optional[str]):
+        if prev_hash and prev_hash == spec.hash:
+            return False
+        existing_labels = {l['name'] for l in (issue.get('labels') or [])}
+        if set(spec.labels) != existing_labels:
+            return True
+        desired_ms = spec.milestone or ''
+        existing_ms = (issue.get('milestone') or {}).get('title','')
+        if desired_ms and desired_ms != existing_ms:
+            return True
+        body = (issue.get('body') or '').strip()
+        return body != spec.body.strip()
+
+    def _diff(self, spec: IssueSpec, issue: Dict[str, Any]):
+        import difflib
+        d: Dict[str, Any] = {}
+        existing_labels = {l['name'] for l in (issue.get('labels') or [])}
+        if set(spec.labels) != existing_labels:
+            d['labels_added'] = sorted(set(spec.labels) - existing_labels)
+            d['labels_removed'] = sorted(existing_labels - set(spec.labels))
+        desired_ms = spec.milestone or ''
+        existing_ms = (issue.get('milestone') or {}).get('title','')
+        if desired_ms and desired_ms != existing_ms:
+            d['milestone_from'] = existing_ms
+            d['milestone_to'] = desired_ms
+        old_body = (issue.get('body') or '').strip().splitlines()
+        new_body = spec.body.strip().splitlines()
+        if old_body != new_body:
+            diff_lines = list(difflib.unified_diff(old_body, new_body, lineterm='', n=3))
+            if len(diff_lines) > 120:
+                diff_lines = diff_lines[:120] + ['... (truncated)']
+            d['body_changed'] = True
+            d['body_diff'] = diff_lines
+        return d
+
+    def _create(self, spec: IssueSpec, dry_run: bool):
+        self._log('create', spec.external_id, 'dry_run' if dry_run else '')
+        if self._mock:
+            print('MOCK create:', spec.external_id)
+            return
+        cmd = ['gh','issue','create','--title', spec.title,'--body', spec.body]
+        if spec.labels:
+            cmd += ['--label', ','.join(spec.labels)]
+        if spec.milestone:
+            cmd += ['--milestone', spec.milestone]
+        if dry_run:
+            print('DRY-RUN create:', ' '.join(cmd))
+            return
+        subprocess.check_call(cmd)
+
+    def _update(self, spec: IssueSpec, issue: Dict[str, Any], dry_run: bool):
+        number = str(issue['number'])
+        self._log('update', spec.external_id, f'#{number}', 'dry_run' if dry_run else '')
+        if self._mock:
+            print('MOCK update:', spec.external_id, f'#{number}')
+            return
+        if dry_run:
+            print(f'DRY-RUN update: #{number}')
+            return
+        if spec.labels:
+            subprocess.check_call(['gh','issue','edit', number, '--add-label', ','.join(spec.labels)])
+        if spec.milestone:
+            subprocess.check_call(['gh','issue','edit', number, '--milestone', spec.milestone])
+        subprocess.check_call(['gh','api', f'repos/:owner/:repo/issues/{number}', '--method','PATCH','-f', f'body={spec.body}'])
+
+    def _close(self, issue: Dict[str, Any], dry_run: bool):
+        number = str(issue['number'])
+        self._log('close', f'#{number}', 'dry_run' if dry_run else '')
+        if self._mock:
+            print('MOCK close:', number)
+            return
+        if dry_run:
+            print(f'DRY-RUN close: {number}')
+            return
+        subprocess.check_call(['gh','issue','close', number])
+
+    def _hash_state_path(self) -> Path:
+        return self.cfg.source_file.parent / self.cfg.hash_state_file
+
+    def _load_hash_state(self) -> Dict[str, str]:
+        p = self._hash_state_path()
+        if p.exists():
+            try:
+                data = json.loads(p.read_text())
+                return data.get('hashes', {})
+            except Exception:
+                return {}
+        return {}
+
+    def _save_hash_state(self, specs: List[IssueSpec]):
+        p = self._hash_state_path()
+        p.write_text(json.dumps({'hashes': {s.external_id: s.hash for s in specs}}, indent=2) + '\n')
+
+    # --- preflight helpers (label & milestone ensure) ---
+    def _preflight(self, specs: List[IssueSpec]):  # orchestrator entry
+        if not (self.cfg.ensure_labels_enabled or self.cfg.ensure_milestones_enabled):
+            return
+        if self.cfg.ensure_labels_enabled:
+            self._ensure_labels(specs)
+        if self.cfg.ensure_milestones_enabled and self.cfg.ensure_milestones_list:
+            self._ensure_milestones()
+
+    def _ensure_labels(self, specs: List[IssueSpec]):  # pragma: no cover - network side-effects
+        if self._mock:
+            return
+        import subprocess
+        desired = sorted({l for s in specs for l in s.labels} | set(self.cfg.inject_labels))
+        try:
+            out = subprocess.check_output(['gh','label','list','--limit','300','--json','name','--jq','.[].name'], text=True)
+            existing = set(out.strip().splitlines())
+        except Exception:
+            existing = set()
+        for lbl in desired:
+            if lbl in existing:
+                continue
+            try:
+                subprocess.check_call([
+                    'gh','label','create', lbl,
+                    '--color','ededed',
+                    '--description','Auto-created (issuesuite)'
+                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception:
+                pass
+
+    def _ensure_milestones(self):  # pragma: no cover - network side-effects
+        if self._mock:
+            return
+        import subprocess
+        try:
+            out = subprocess.check_output(['gh','api','repos/:owner/:repo/milestones','--paginate','--jq','.[].title'], text=True)
+            existing = set(out.strip().splitlines())
+        except Exception:
+            existing = set()
+        for ms in self.cfg.ensure_milestones_list:
+            if ms in existing:
+                continue
+            try:
+                subprocess.check_call([
+                    'gh','api','repos/:owner/:repo/milestones',
+                    '-f', f'title={ms}',
+                    '-f','description=Auto-created (issuesuite)'
+                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception:
+                pass

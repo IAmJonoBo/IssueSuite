@@ -1,0 +1,77 @@
+###############################################
+# IssueSuite Standalone pyproject Template    #
+# Copy this file to pyproject.toml in the new #
+# extraction repository and adjust metadata.  #
+###############################################
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "issuesuite"
+version = "0.1.4"  # Set at extraction time; keep in sync with issuesuite.__version__
+description = "Declarative GitHub Issues automation: validate, sync, export, and report from a single ISSUES.md file"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "IssueSuite Maintainers" }]
+keywords = ["github", "issues", "automation", "declarative", "roadmap", "cli"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Version Control :: Git",
+  "Topic :: Software Development :: Build Tools",
+]
+dependencies = [
+  "PyYAML>=6,<7",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "ruff>=0.5.0",
+  "mypy>=1.8.0",
+  "build>=1.0.0",
+  "twine>=5.0.0",
+]
+schemas = [
+  "jsonschema>=4.0.0,<5",
+]
+
+[project.urls]
+Homepage = "https://github.com/IAmJonoBo/IssueSuite"
+Source = "https://github.com/IAmJonoBo/IssueSuite"
+Issues = "https://github.com/IAmJonoBo/IssueSuite/issues"
+
+[project.scripts]
+issuesuite = "issuesuite.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "C4", "PL"]
+ignore = ["E501", "PLR0913", "PLR0911"]
+
+[tool.pytest.ini_options]
+addopts = ["-q"]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
