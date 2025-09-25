@@ -3,6 +3,7 @@
 Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.md` file and keep real GitHub issues perfectly in sync (create / update / close) with deterministic hashes, readable diffs, JSON artifacts, and optional preflight resource creation.
 
 ## Features
+
 - Single source of truth in Markdown (`ISSUES.md`)
 - Idempotent create/update/close using stable external IDs & content hashes
 - Human & machine-readable diffs (labels, milestone, body snippet)
@@ -16,6 +17,7 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
   - In mock mode all GitHub CLI calls are suppressed (even without `--dry-run`) and operations are printed as `MOCK <action>`.
 
 ## Quick Start
+
 ```bash
 # Install from PyPI
 pip install issuesuite
@@ -43,7 +45,9 @@ issuesuite schema --stdout
 ```
 
 ## Configuration (`issue_suite.config.yaml`)
+
 Key sections:
+
 ```yaml
 version: 1
 source:
@@ -65,6 +69,7 @@ ai:
 ```
 
 ## Library Usage
+
 ```python
 from issuesuite import IssueSuite, load_config
 cfg = load_config('issue_suite.config.yaml')
@@ -74,6 +79,7 @@ print(summary['totals'])
 ```
 
 ### Orchestrator (High-Level Sync)
+
 For a one-call sync that also writes the mapping (future use) and enriched summary JSON with `schemaVersion`, timestamp, and `dry_run` flag, use the orchestrator helper:
 
 ```python
@@ -91,26 +97,33 @@ summary = sync_with_summary(
 )
 print(summary['totals'])
 ```
+
 This mirrors the CLI `sync` output and applies diff body truncation according to `truncate_body_diff` in config.
 
 ## JSON Schemas
+
 Generate schemas (export + change summary):
 CLI:
+
 ```bash
 issuesuite schema --config issue_suite.config.yaml
 ```
+
 Library helper:
+
 ```python
 from issuesuite.schemas import get_schemas
 schemas = get_schemas()
 ```
 
 ## Offline / Testing
+
 ```bash
 ISSUES_SUITE_MOCK=1 issuesuite sync --dry-run --update --config issue_suite.config.yaml --summary-json summary.json
 ```
 
 ## Roadmap
+
 - Structured JSON logging option
 - GitHub Project (v2) assignment integration
 - Concurrency for large roadmaps
@@ -118,7 +131,9 @@ ISSUES_SUITE_MOCK=1 issuesuite sync --dry-run --update --config issue_suite.conf
 - Performance benchmarking harness
 
 ## Versioning
+
 Semantic versioning once extracted; `__version__` exported for tooling.
 
 ## License
+
 MIT
