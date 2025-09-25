@@ -48,6 +48,19 @@ class SuiteConfig:
     schema_export_file: str
     schema_summary_file: str
     schema_version: int
+    # Logging configuration
+    logging_json_enabled: bool
+    logging_level: str
+    # Performance configuration  
+    performance_benchmarking: bool
+    # Concurrency configuration
+    concurrency_enabled: bool
+    concurrency_max_workers: int
+    # GitHub App configuration
+    github_app_enabled: bool
+    github_app_id: Optional[str]
+    github_app_private_key_path: Optional[str]
+    github_app_installation_id: Optional[str]
 
 
 def load_config(path: str | Path) -> SuiteConfig:
@@ -64,6 +77,10 @@ def load_config(path: str | Path) -> SuiteConfig:
     behavior = raw.get('behavior', {})
     ai = raw.get('ai', {})
     project = gh.get('project', {}) or {}
+    logging_config = raw.get('logging', {})
+    performance_config = raw.get('performance', {})
+    concurrency_config = raw.get('concurrency', {})
+    github_app = gh.get('app', {}) or {}
     return SuiteConfig(
         version=int(raw.get('version', 1)),
         source_file=p.parent / src.get('file', 'ISSUES.md'),
@@ -91,4 +108,17 @@ def load_config(path: str | Path) -> SuiteConfig:
         schema_export_file=ai.get('schema_export_file', 'issue_export.schema.json'),
         schema_summary_file=ai.get('schema_summary_file', 'issue_change_summary.schema.json'),
         schema_version=int(ai.get('schema_version', 1)),
+        # Logging configuration
+        logging_json_enabled=bool(logging_config.get('json_enabled', False)),
+        logging_level=logging_config.get('level', 'INFO'),
+        # Performance configuration
+        performance_benchmarking=bool(performance_config.get('benchmarking', False)),
+        # Concurrency configuration
+        concurrency_enabled=bool(concurrency_config.get('enabled', False)),
+        concurrency_max_workers=int(concurrency_config.get('max_workers', 4)),
+        # GitHub App configuration
+        github_app_enabled=bool(github_app.get('enabled', False)),
+        github_app_id=github_app.get('app_id'),
+        github_app_private_key_path=github_app.get('private_key_path'),
+        github_app_installation_id=github_app.get('installation_id'),
     )

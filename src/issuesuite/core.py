@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 
 from .config import SuiteConfig
 from .project import ProjectConfig, build_project_assigner
+from .logging import configure_logging, get_logger
 
 # Canonical label normalization map (mirrors legacy script)
 _LABEL_CANON_MAP = {
@@ -83,10 +84,18 @@ class IssueSuite:
         self._debug = os.environ.get('ISSUESUITE_DEBUG') == '1'
         # Mock mode: skip all GitHub CLI invocations even in non-dry-run paths
         self._mock = os.environ.get('ISSUES_SUITE_MOCK') == '1'
+        
+        # Configure structured logging based on config
+        self._logger = configure_logging(
+            json_logging=cfg.logging_json_enabled,
+            level=cfg.logging_level
+        )
 
     def _log(self, *parts: Any):  # lightweight internal debug logger
         if self._debug:
             print('[issuesuite]', *parts)
+        # Also log via structured logger
+        self._logger.debug(' '.join(str(p) for p in parts))
 
     @classmethod
     def from_config_path(cls, path: str | Path) -> 'IssueSuite':
@@ -112,59 +121,74 @@ class IssueSuite:
         return specs
 
     def sync(self, *, dry_run: bool, update: bool, respect_status: bool, preflight: bool) -> Dict[str, Any]:
-        self._log('sync:start', f'dry_run={dry_run}', f'update={update}', f'respect_status={respect_status}', f'preflight={preflight}')
-        specs = self.parse()
-        self._log('sync:parsed', len(specs), 'specs')
-        if preflight:
-            self._preflight(specs)
-        project_assigner = build_project_assigner(ProjectConfig(
-            enabled=bool(getattr(self.cfg, 'project_enable', False)),
-            number=getattr(self.cfg, 'project_number', None),
-            field_mappings=getattr(self.cfg, 'project_field_mappings', {}) or {},
-        ))
-        created: List[Dict[str, Any]] = []
-        updated: List[Dict[str, Any]] = []
-        closed: List[Dict[str, Any]] = []
-        mapping: Dict[str, int] = {}
-        skipped = 0
-        existing = self._existing_issues() if self._gh_auth() else []
-        self._log('sync:existing_issues', len(existing))
-        prev_hashes = self._load_hash_state()
-        for spec in specs:
-            result = self._process_spec(
-                spec=spec,
-                existing=existing,
-                prev_hashes=prev_hashes,
-                dry_run=dry_run,
-                update=update,
-                respect_status=respect_status,
-                project_assigner=project_assigner,
-            )
-            if result.get('created'):
-                created.append({'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash})
-            if mapped := result.get('mapped'):
-                mapping[spec.external_id] = mapped
-            if closed_entry := result.get('closed'):
-                closed.append(closed_entry)
-            if updated_entry := result.get('updated'):
-                updated.append(updated_entry)
-            if result.get('skipped'):
-                skipped += 1
-        if not dry_run:
-            self._save_hash_state(specs)
-        summary = {
-            'totals': {
-                'specs': len(specs),
-                'created': len(created),
-                'updated': len(updated),
-                'closed': len(closed),
-                'skipped': skipped
-            },
-            'changes': {'created': created, 'updated': updated, 'closed': closed},
-            'mapping': mapping,
-        }
-        self._log('sync:done', summary['totals'])
-        return summary
+        with self._logger.timed_operation('sync', dry_run=dry_run, update=update, 
+                                         respect_status=respect_status, preflight=preflight):
+            self._log('sync:start', f'dry_run={dry_run}', f'update={update}', f'respect_status={respect_status}', f'preflight={preflight}')
+            specs = self.parse()
+            self._log('sync:parsed', len(specs), 'specs')
+            self._logger.log_operation('parse_complete', spec_count=len(specs))
+            
+            if preflight:
+                self._preflight(specs)
+            
+            project_assigner = build_project_assigner(ProjectConfig(
+                enabled=bool(getattr(self.cfg, 'project_enable', False)),
+                number=getattr(self.cfg, 'project_number', None),
+                field_mappings=getattr(self.cfg, 'project_field_mappings', {}) or {},
+            ))
+            created: List[Dict[str, Any]] = []
+            updated: List[Dict[str, Any]] = []
+            closed: List[Dict[str, Any]] = []
+            mapping: Dict[str, int] = {}
+            skipped = 0
+            existing = self._existing_issues() if self._gh_auth() else []
+            self._log('sync:existing_issues', len(existing))
+            self._logger.log_operation('fetch_existing_issues', issue_count=len(existing))
+            
+            prev_hashes = self._load_hash_state()
+            for spec in specs:
+                result = self._process_spec(
+                    spec=spec,
+                    existing=existing,
+                    prev_hashes=prev_hashes,
+                    dry_run=dry_run,
+                    update=update,
+                    respect_status=respect_status,
+                    project_assigner=project_assigner,
+                )
+                if result.get('created'):
+                    created.append({'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash})
+                if mapped := result.get('mapped'):
+                    mapping[spec.external_id] = mapped
+                if closed_entry := result.get('closed'):
+                    closed.append(closed_entry)
+                if updated_entry := result.get('updated'):
+                    updated.append(updated_entry)
+                if result.get('skipped'):
+                    skipped += 1
+            
+            if not dry_run:
+                self._save_hash_state(specs)
+                
+            summary = {
+                'totals': {
+                    'specs': len(specs),
+                    'created': len(created),
+                    'updated': len(updated),
+                    'closed': len(closed),
+                    'skipped': skipped
+                },
+                'changes': {'created': created, 'updated': updated, 'closed': closed},
+                'mapping': mapping,
+            }
+            self._log('sync:done', summary['totals'])
+            self._logger.log_operation('sync_complete', 
+                                      issues_created=summary['totals']['created'],
+                                      issues_updated=summary['totals']['updated'],
+                                      issues_closed=summary['totals']['closed'],
+                                      specs=summary['totals']['specs'],
+                                      skipped=summary['totals']['skipped'])
+            return summary
 
     def _process_spec(self, *, spec: IssueSpec, existing: List[Dict[str, Any]], prev_hashes: Dict[str, str],
                       dry_run: bool, update: bool, respect_status: bool, project_assigner) -> Dict[str, Any]:
@@ -262,6 +286,8 @@ class IssueSuite:
 
     def _create(self, spec: IssueSpec, dry_run: bool):
         self._log('create', spec.external_id, 'dry_run' if dry_run else '')
+        self._logger.log_issue_action('create', spec.external_id, dry_run=dry_run)
+        
         if self._mock:
             print('MOCK create:', spec.external_id)
             return
@@ -278,6 +304,8 @@ class IssueSuite:
     def _update(self, spec: IssueSpec, issue: Dict[str, Any], dry_run: bool):
         number = str(issue['number'])
         self._log('update', spec.external_id, f'#{number}', 'dry_run' if dry_run else '')
+        self._logger.log_issue_action('update', spec.external_id, int(number), dry_run=dry_run)
+        
         if self._mock:
             print('MOCK update:', spec.external_id, f'#{number}')
             return
@@ -293,6 +321,8 @@ class IssueSuite:
     def _close(self, issue: Dict[str, Any], dry_run: bool):
         number = str(issue['number'])
         self._log('close', f'#{number}', 'dry_run' if dry_run else '')
+        self._logger.log_issue_action('close', issue.get('title', 'unknown'), int(number), dry_run=dry_run)
+        
         if self._mock:
             print('MOCK close:', number)
             return
