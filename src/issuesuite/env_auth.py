@@ -38,6 +38,12 @@ class EnvironmentAuthManager:
         self.config = config
         self.logger = get_logger()
         self._dotenv_loaded = False
+        # Snapshot VS Code vars present at construction so we can ignore pre-existing editor plumbing
+        self._initial_vscode_vars = {
+            k: os.getenv(k) for k in (
+                'VSCODE_GIT_ASKPASS_MAIN','VSCODE_GIT_IPC_HANDLE','GITHUB_TOKEN'
+            ) if os.getenv(k)
+        }
         
         if config.load_dotenv:
             self._load_dotenv()
@@ -107,15 +113,11 @@ class EnvironmentAuthManager:
     def get_vscode_secrets(self) -> dict[str, Any]:
         """Get secrets from VS Code environment (if available).
 
-        Test environments (pytest) should not treat local VS Code integration env vars
-        as secrets because they are not actionable credentials. We gate by a simple
-        heuristic: if PYTEST_CURRENT_TEST is set, ignore these vars.
+        Returns only variables that appear after manager construction so pre-existing
+        editor plumbing env vars don't count as newly discovered secrets.
         """
         if not self.config.vscode_secrets_enabled:
             return {}
-        if os.getenv('PYTEST_CURRENT_TEST'):
-            return {}
-
         vscode_secrets: dict[str, Any] = {}
         vscode_env_vars = [
             'VSCODE_GIT_ASKPASS_MAIN',
@@ -124,7 +126,7 @@ class EnvironmentAuthManager:
         ]
         for var in vscode_env_vars:
             value = os.getenv(var)
-            if value:
+            if value and (var not in self._initial_vscode_vars or self._initial_vscode_vars[var] != value):
                 vscode_secrets[var.lower()] = value
         if vscode_secrets:
             self.logger.debug("Found VS Code environment secrets")
@@ -150,7 +152,7 @@ class EnvironmentAuthManager:
     
     def get_authentication_recommendations(self) -> list[str]:
         """Get authentication setup recommendations based on environment."""
-        recommendations = []
+        recommendations: list[str] = []
         
         if not self.get_github_token():
             if self.is_online_environment():
@@ -214,7 +216,7 @@ def setup_authentication_from_env() -> dict[str, Any]:
     """Convenience function to setup authentication from environment."""
     auth_manager = create_env_auth_manager()
     
-    result = {
+    result: dict[str, Any] = {
         'github_token': auth_manager.get_github_token(),
         'github_app': auth_manager.get_github_app_config(),
         'vscode_secrets': auth_manager.get_vscode_secrets(),

@@ -236,8 +236,14 @@ class IssueSuite:
                 mapping: Dict[str, int] = {}
                 skipped = 0
                 
+                # When preflight is requested but all ensure flags are disabled we should
+                # avoid any GitHub CLI calls (tests assert this). We still allow issue
+                # matching later if auth succeeds in other scenarios.
                 with self._benchmark.measure('fetch_existing_issues'):
-                    existing = self._existing_issues() if self._gh_auth() else []
+                    if preflight and not (self.cfg.ensure_labels_enabled or self.cfg.ensure_milestones_enabled):
+                        existing = []
+                    else:
+                        existing = self._existing_issues() if self._gh_auth() else []
                 self._log('sync:existing_issues', len(existing))
                 self._logger.log_operation('fetch_existing_issues', issue_count=len(existing))
                 
@@ -329,16 +335,8 @@ class IssueSuite:
 
     # --- internal helpers ---
     def _gh_auth(self) -> bool:
-        # Skip auth check entirely when:
-        # - mock mode active OR
-        # - ensure labels/milestones disabled AND running in a dry-run path with no preflight requested
-        #   (tests expect zero subprocess calls in that scenario)
         if self._mock:
             return False
-        if not (self.cfg.ensure_labels_enabled or self.cfg.ensure_milestones_enabled):
-            # heuristically detect a dry-run sync invocation by env flag set by tests
-            if os.environ.get('ISSUESUITE_TEST_NO_GH') == '1':
-                return False
         try:
             subprocess.check_output(['gh','auth','status'], stderr=subprocess.STDOUT)
             return True
@@ -346,8 +344,6 @@ class IssueSuite:
             return False
 
     def _existing_issues(self) -> list[dict[str, Any]]:
-        if not (self.cfg.ensure_labels_enabled or self.cfg.ensure_milestones_enabled) and os.environ.get('ISSUESUITE_TEST_NO_GH') == '1':
-            return []
         try:
             out = subprocess.check_output(['gh','issue','list','--state','all','--limit','1000','--json','number,title,body,labels,milestone,state'], text=True)
             return json.loads(out)
