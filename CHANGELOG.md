@@ -7,9 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No unreleased changes yet._
+
+## [0.1.5] - 2025-09-26
+
+### Fixed
+
+- Stabilized test suite: introduced snapshot-based VS Code secret detection to avoid false positives.
+- Added module-level `load_dotenv` shim enabling reliable patching in dotenv tests.
+- Gated GitHub CLI calls during preflight when label/milestone ensure flags are disabled (prevents unnecessary subprocess usage in dry-run scenarios).
+
+### Internal
+
+- Modernized type hints (PEP 604 unions & built-in generics) in env auth module.
+- Minor gating logic adjustments in core sync path to honor test expectations.
+
 ### Added - Phase 3 & 4 Features
 
 ### Added
+
 - IssueSuite 0.1.1: optional preflight auto-create flags (`ensure_labels_enabled`, `ensure_milestones_enabled`), README section, parser equivalence & project stub tests.
 - IssueSuite 0.1.2: debug logging via `ISSUESUITE_DEBUG=1` environment variable.
 - IssueSuite 0.1.3: native argparse CLI (`issuesuite`), JSON Schemas helper (`issuesuite.schemas.get_schemas()`), pyproject & publish workflow templates, initial CLI tests.
@@ -17,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Enhanced
+
 - **Analytics Router** with new HEART and product forecasting endpoints
 - **Strategy Generation** with industry-specific template selection
 - **Template Management** with metadata, KPIs, and validation
@@ -25,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Accessibility Validation** with WCAG 2.2 AA compliance checking
 
 ### Technical Improvements
+
 - Feature flags for gradual rollout: `ENABLE_PREDICTIVE_ANALYTICS`, `ENABLE_EVENT_STREAMING`, `ENABLE_INDUSTRY_TEMPLATES`
 - Backward compatibility maintained through fallback implementations
 - Comprehensive error handling and graceful degradation
@@ -32,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced observability with event-driven metrics collection
 
 ### Added
+
 - Multi-agent debate system with specialized AI agents
 - Comprehensive security model with zero-trust architecture
 - Infrastructure setup guides for local and production deployment
@@ -42,12 +61,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Evidence grading using GRADE framework
 
 ### Changed
+
 - Restructured documentation using Diátaxis framework
 - Enhanced API documentation with OpenAPI 3.1 integration
 - Improved configuration management with hierarchical YAML files
 - Updated security practices to enterprise standards
 
 ### Fixed
+
 - Documentation links and cross-references
 - Configuration validation and error handling
 - API endpoint consistency and error responses
@@ -55,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2024-01-15
 
 ### Added
+
 - Initial release of StratMaster platform
 - FastAPI-based REST API with comprehensive endpoints
 - Multi-database architecture (PostgreSQL, Qdrant, OpenSearch, NebulaGraph)
@@ -68,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI/CD pipelines with GitHub Actions
 
 ### Documentation
+
 - Complete API reference with interactive Swagger UI and ReDoc
 - Developer quick start guide and tutorials  
 - How-to guides for development setup, deployment, and troubleshooting

@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "issuesuite"
-version = "0.1.4"  # Set at extraction time; keep in sync with issuesuite.__version__
+version = "0.1.5"  # Set at extraction time; keep in sync with issuesuite.__version__
 description = "Declarative GitHub Issues automation: validate, sync, export, and report from a single ISSUES.md file"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"

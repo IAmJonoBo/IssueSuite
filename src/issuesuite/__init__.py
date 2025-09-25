@@ -20,7 +20,7 @@ if TYPE_CHECKING or sys.version_info >= (3, 10):
     from .core import IssueSpec, IssueSuite
 
 # Version constant (sync manually with pyproject when extracted as standalone project)
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 
 def __getattr__(name: str):
