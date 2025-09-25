@@ -5,10 +5,15 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+import asyncio
 
 from .config import SuiteConfig
 from .project import ProjectConfig, build_project_assigner
 from .logging import configure_logging, get_logger
+from .concurrency import (
+    ConcurrencyConfig, create_async_github_client, create_concurrent_processor,
+    enable_concurrency_for_large_roadmaps, get_optimal_worker_count
+)
 
 # Canonical label normalization map (mirrors legacy script)
 _LABEL_CANON_MAP = {
@@ -89,6 +94,13 @@ class IssueSuite:
         self._logger = configure_logging(
             json_logging=cfg.logging_json_enabled,
             level=cfg.logging_level
+        )
+        
+        # Configure concurrency
+        self._concurrency_config = ConcurrencyConfig(
+            enabled=cfg.concurrency_enabled,
+            max_workers=cfg.concurrency_max_workers,
+            batch_size=10  # Default batch size
         )
 
     def _log(self, *parts: Any):  # lightweight internal debug logger
@@ -399,3 +411,126 @@ class IssueSuite:
                 ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             except Exception:
                 pass
+    
+    # Concurrency support methods
+    async def _get_existing_issues_async(self) -> List[Dict[str, Any]]:
+        """Get existing issues asynchronously."""
+        if self._mock:
+            return []
+        
+        with create_async_github_client(self._concurrency_config, self._mock) as client:
+            success, issues = await client.get_issues_async()
+            return issues if success else []
+    
+    def _process_spec_wrapper(self, spec: IssueSpec, existing: List[Dict[str, Any]], 
+                            prev_hashes: Dict[str, str], dry_run: bool, update: bool, 
+                            respect_status: bool, project_assigner) -> Dict[str, Any]:
+        """Wrapper for _process_spec to be used with concurrent processing."""
+        return self._process_spec(
+            spec=spec,
+            existing=existing,
+            prev_hashes=prev_hashes,
+            dry_run=dry_run,
+            update=update,
+            respect_status=respect_status,
+            project_assigner=project_assigner
+        )
+    
+    async def sync_async(self, *, dry_run: bool, update: bool, respect_status: bool, preflight: bool) -> Dict[str, Any]:
+        """Async sync method with concurrency support for large roadmaps."""
+        with self._logger.timed_operation('sync_async', dry_run=dry_run, update=update, 
+                                         respect_status=respect_status, preflight=preflight):
+            self._log('sync_async:start', f'dry_run={dry_run}')
+            specs = self.parse()
+            self._logger.log_operation('parse_complete', spec_count=len(specs))
+            
+            # Auto-adjust concurrency based on roadmap size
+            if self.cfg.concurrency_enabled and len(specs) >= 10:
+                optimal_workers = get_optimal_worker_count(len(specs), self.cfg.concurrency_max_workers)
+                self._concurrency_config.max_workers = optimal_workers
+                self._logger.log_operation('concurrency_adjusted', 
+                                         spec_count=len(specs), 
+                                         workers=optimal_workers)
+            
+            if preflight:
+                self._preflight(specs)
+            
+            project_assigner = build_project_assigner(ProjectConfig(
+                enabled=bool(getattr(self.cfg, 'project_enable', False)),
+                number=getattr(self.cfg, 'project_number', None),
+                field_mappings=getattr(self.cfg, 'project_field_mappings', {}) or {},
+            ))
+            
+            # Get existing issues asynchronously if concurrency is enabled
+            if self.cfg.concurrency_enabled:
+                existing = await self._get_existing_issues_async() if self._gh_auth() else []
+            else:
+                existing = self._existing_issues() if self._gh_auth() else []
+            
+            self._logger.log_operation('fetch_existing_issues', issue_count=len(existing))
+            prev_hashes = self._load_hash_state()
+            
+            # Process specs concurrently
+            if self.cfg.concurrency_enabled and len(specs) > 1:
+                processor = create_concurrent_processor(self._concurrency_config, self._mock)
+                results = await processor.process_specs_concurrent(
+                    specs, self._process_spec_wrapper,
+                    existing, prev_hashes, dry_run, update, respect_status, project_assigner
+                )
+            else:
+                # Sequential fallback
+                results = []
+                for spec in specs:
+                    result = self._process_spec(
+                        spec=spec, existing=existing, prev_hashes=prev_hashes,
+                        dry_run=dry_run, update=update, respect_status=respect_status,
+                        project_assigner=project_assigner
+                    )
+                    results.append(result)
+            
+            # Aggregate results
+            created = []
+            updated = []
+            closed = []
+            mapping = {}
+            skipped = 0
+            
+            for i, result in enumerate(results):
+                if isinstance(result, dict) and 'error' not in result:
+                    spec = specs[i]
+                    if result.get('created'):
+                        created.append({'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash})
+                    if mapped := result.get('mapped'):
+                        mapping[spec.external_id] = mapped
+                    if closed_entry := result.get('closed'):
+                        closed.append(closed_entry)
+                    if updated_entry := result.get('updated'):
+                        updated.append(updated_entry)
+                    if result.get('skipped'):
+                        skipped += 1
+                else:
+                    skipped += 1
+            
+            if not dry_run:
+                self._save_hash_state(specs)
+            
+            summary = {
+                'totals': {
+                    'specs': len(specs),
+                    'created': len(created),
+                    'updated': len(updated),
+                    'closed': len(closed),
+                    'skipped': skipped
+                },
+                'changes': {'created': created, 'updated': updated, 'closed': closed},
+                'mapping': mapping,
+            }
+            
+            self._logger.log_operation('sync_async_complete', **{
+                'issues_created': summary['totals']['created'],
+                'issues_updated': summary['totals']['updated'],
+                'issues_closed': summary['totals']['closed'],
+                'specs': summary['totals']['specs'],
+                'skipped': summary['totals']['skipped']
+            })
+            return summary
