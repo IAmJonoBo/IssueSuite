@@ -34,12 +34,14 @@ jobs:
 
       - name: Test installation
         run: |
-          pip install dist/*.whl
-          issuesuite --help
+          python -m pip install dist/*.whl
+          # Invoke via module to avoid PATH/script resolution issues across versions
+          python -m issuesuite --help
 
       - name: Test pipx run from local wheel (Python 3.11 only)
         if: matrix.python-version == '3.11'
         run: |
           python -m pip install pipx
           # Run directly from the locally built wheel to avoid PyPI lookups
-          pipx run --spec "dist/*.whl" issuesuite --version
+          # Use shell expansion to resolve the exact wheel path (avoid quoting the glob)
+          pipx run --spec dist/*.whl issuesuite --version
