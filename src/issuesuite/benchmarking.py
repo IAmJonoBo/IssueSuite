@@ -220,7 +220,7 @@ class PerformanceBenchmark:
 
         # Warm-up runs
         for i in range(self.config.warm_up_runs):
-            self.logger.debug(f"Warm-up run {i+1}/{self.config.warm_up_runs}")
+            self.logger.debug(f"Warm-up run {i + 1}/{self.config.warm_up_runs}")
             func(*args, **kwargs)
 
         # Benchmark runs
@@ -228,7 +228,7 @@ class PerformanceBenchmark:
         total_start = time.perf_counter()
 
         for i in range(self.config.benchmark_runs):
-            with self.measure(f"{name}_run_{i+1}", run=i + 1):
+            with self.measure(f"{name}_run_{i + 1}", run=i + 1):
                 func(*args, **kwargs)
 
         total_duration = (time.perf_counter() - total_start) * 1000

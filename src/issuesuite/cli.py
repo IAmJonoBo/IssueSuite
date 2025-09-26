@@ -169,7 +169,7 @@ def _cmd_summary(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     for s in specs[: args.limit]:
         print(f'  {s.external_id} {s.hash} {s.title[:70]}')
     if len(specs) > args.limit:
-        print(f'  ... ({len(specs)-args.limit} more)')
+        print(f'  ... ({len(specs) - args.limit} more)')
     return 0
 
 
