@@ -1,13 +1,5 @@
 name: Publish to PyPI
 
-concurrency:
-  group: pypi-publish-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
-  id-token: write
-
 on:
   release:
     types: [published]
@@ -20,8 +12,16 @@ on:
         type: boolean
 
 jobs:
-  build:
+  pypi-publish:
+    name: Upload release to PyPI
     runs-on: ubuntu-latest
+    # Specifying a GitHub environment is optional, but strongly encouraged
+    environment:
+      name: ${{ github.event.inputs.test_pypi == 'true' && 'testpypi' || 'pypi' }}
+      url: ${{ github.event.inputs.test_pypi == 'true' && 'https://test.pypi.org/p/issuesuite' || 'https://pypi.org/p/issuesuite' }}
+    permissions:
+      # IMPORTANT: this permission is mandatory for Trusted Publishing
+      id-token: write
     steps:
       - uses: actions/checkout@v5
 
@@ -41,49 +41,15 @@ jobs:
       - name: Check package
         run: twine check dist/*
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: ${{ github.event.inputs.test_pypi == 'true' && 'testpypi' || 'pypi' }}
-      url: ${{ github.event.inputs.test_pypi == 'true' && 'https://test.pypi.org/p/issuesuite' || 'https://pypi.org/p/issuesuite' }}
-    permissions:
-      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
-
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v5
-        with:
-          name: dist
-          path: dist/
-
-      - name: Show artifacts to publish
-        run: |
-          ls -l dist/
-          python - << 'PY'
-          import hashlib, pathlib
-          for p in pathlib.Path('dist').glob('*'):
-              h = hashlib.sha256(p.read_bytes()).hexdigest()
-              print(p.name, h)
-          PY
-
-      - name: Publish to Test PyPI
+      - name: Publish package distributions to Test PyPI
         if: github.event.inputs.test_pypi == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
-          packages-dir: dist
 
-      - name: Publish to PyPI
+      - name: Publish package distributions to PyPI
         if: github.event.inputs.test_pypi != 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           skip-existing: true
-          packages-dir: dist
