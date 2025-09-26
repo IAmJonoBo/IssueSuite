@@ -1,166 +1,180 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "IssueSuite: Validate",
-            "type": "shell",
-            "command": "${workspaceFolder}/.venv/bin/issuesuite",
-            "args": ["validate", "--config", "${workspaceFolder}/issue_suite.config.yaml"],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "IssueSuite: Dry-run Sync",
-            "type": "shell",
-            "command": "${workspaceFolder}/.venv/bin/issuesuite",
-            "args": [
-                "sync",
-                "--dry-run",
-                "--update",
-                "--config", "${workspaceFolder}/issue_suite.config.yaml",
-                "--summary-json", "${workspaceFolder}/issues_summary.json"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "IssueSuite: Full Sync",
-            "type": "shell",
-            "command": "${workspaceFolder}/.venv/bin/issuesuite",
-            "args": [
-                "sync",
-                "--update",
-                "--config", "${workspaceFolder}/issue_suite.config.yaml",
-                "--summary-json", "${workspaceFolder}/issues_summary.json"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": true,
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "IssueSuite: Export",
-            "type": "shell",
-            "command": "${workspaceFolder}/.venv/bin/issuesuite",
-            "args": [
-                "export",
-                "--pretty",
-                "--config", "${workspaceFolder}/issue_suite.config.yaml",
-                "--output", "${workspaceFolder}/issues_export.json"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "IssueSuite: Summary",
-            "type": "shell",
-            "command": "${workspaceFolder}/.venv/bin/issuesuite",
-            "args": [
-                "summary",
-                "--config", "${workspaceFolder}/issue_suite.config.yaml"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "IssueSuite: Generate Schemas",
-            "type": "shell",
-            "command": "${workspaceFolder}/.venv/bin/issuesuite",
-            "args": [
-                "schema",
-                "--config", "${workspaceFolder}/issue_suite.config.yaml"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Setup IssueSuite Environment",
-            "type": "shell",
-            "command": "bash",
-            "args": [
-                "-lc",
-                "python3 -m venv .venv && . .venv/bin/activate && python -m pip install -e '.[dev]'"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "IssueSuite: Reconcile",
-            "type": "shell",
-            "command": "${workspaceFolder}/.venv/bin/issuesuite",
-            "args": [
-                "reconcile",
-                "--config", "${workspaceFolder}/issue_suite.config.yaml"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "IssueSuite: AI Context",
-            "type": "shell",
-            "command": "${workspaceFolder}/.venv/bin/issuesuite",
-            "args": [
-                "ai-context",
-                "--quiet",
-                "--config", "${workspaceFolder}/issue_suite.config.yaml"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        }
-    ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "IssueSuite: Validate",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/issuesuite",
+			"args": [
+				"validate",
+				"--config",
+				"${workspaceFolder}/issue_suite.config.yaml"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "IssueSuite: Dry-run Sync",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/issuesuite",
+			"args": [
+				"sync",
+				"--dry-run",
+				"--update",
+				"--config",
+				"${workspaceFolder}/issue_suite.config.yaml",
+				"--summary-json",
+				"${workspaceFolder}/issues_summary.json"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "IssueSuite: Full Sync",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/issuesuite",
+			"args": [
+				"sync",
+				"--update",
+				"--config",
+				"${workspaceFolder}/issue_suite.config.yaml",
+				"--summary-json",
+				"${workspaceFolder}/issues_summary.json"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "IssueSuite: Export",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/issuesuite",
+			"args": [
+				"export",
+				"--pretty",
+				"--config",
+				"${workspaceFolder}/issue_suite.config.yaml",
+				"--output",
+				"${workspaceFolder}/issues_export.json"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "IssueSuite: Summary",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/issuesuite",
+			"args": [
+				"summary",
+				"--config",
+				"${workspaceFolder}/issue_suite.config.yaml"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "IssueSuite: Generate Schemas",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/issuesuite",
+			"args": [
+				"schema",
+				"--config",
+				"${workspaceFolder}/issue_suite.config.yaml"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Setup IssueSuite Environment",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				"python3 -m venv .venv && . .venv/bin/activate && python -m pip install -e '.[dev]'"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "IssueSuite: Reconcile",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/issuesuite",
+			"args": [
+				"reconcile",
+				"--config",
+				"${workspaceFolder}/issue_suite.config.yaml"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "IssueSuite: AI Context",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/issuesuite",
+			"args": [
+				"ai-context",
+				"--quiet",
+				"--config",
+				"${workspaceFolder}/issue_suite.config.yaml"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		}
+	]
 }
