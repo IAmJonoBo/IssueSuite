@@ -4,33 +4,41 @@ This guide will help you set up IssueSuite for optimal integration with VS Code,
 
 ## Quick Setup
 
-1. **Install IssueSuite with VS Code extensions:**
-   ```bash
-   pip install issuesuite[vscode]
-   ```
+1. Create a local virtual environment and install dev extras:
 
-2. **Setup authentication and VS Code integration:**
-   ```bash
-   issuesuite setup --create-env --check-auth --vscode
-   ```
+  ```bash
+  python3 -m venv .venv
+  . .venv/bin/activate
+  python -m pip install --upgrade pip
+  pip install -e '.[dev,all]'
+  ```
 
-3. **Open VS Code in your project directory:**
-   ```bash
-   code .
-   ```
+1. Setup authentication and optional VS Code integration files:
+
+  ```bash
+  issuesuite setup --create-env --check-auth --vscode
+  ```
+
+1. Open VS Code in your project directory:
+
+  ```bash
+  code .
+  ```
 
 ## Authentication Setup
 
 IssueSuite supports multiple authentication methods optimized for different environments:
 
-### Option 1: Environment Variables (Recommended for Online/Cloud)
+### Option 1: Environment Variables
 
 Create a `.env` file in your project root:
+
 ```bash
 issuesuite setup --create-env
 ```
 
 Edit the `.env` file:
+
 ```env
 # GitHub Personal Access Token
 GITHUB_TOKEN=your_github_token_here
@@ -41,11 +49,11 @@ GITHUB_APP_PRIVATE_KEY=path/to/private-key.pem
 GITHUB_APP_INSTALLATION_ID=67890
 ```
 
-### Option 2: VS Code Secrets (GitHub Codespaces/Online)
+### Option 2: VS Code/GitHub Codespaces secrets
 
 In VS Code or GitHub Codespaces, the `GITHUB_TOKEN` is often automatically available. IssueSuite will detect and use it automatically.
 
-### Option 3: GitHub CLI (Local Development)
+### Option 3: GitHub CLI (local)
 
 ```bash
 gh auth login
@@ -58,55 +66,27 @@ IssueSuite will automatically use your GitHub CLI authentication.
 The VS Code integration provides:
 
 ### 1. **Tasks** (Ctrl+Shift+P → "Tasks: Run Task")
+
 - **IssueSuite: Dry-run Sync** - Test your changes safely
 - **IssueSuite: Full Sync** - Apply changes to GitHub
 - **IssueSuite: Export** - Generate JSON exports
 - **IssueSuite: Summary** - Quick roadmap overview
 - **IssueSuite: Validate** - Check configuration and issues
 
-### 2. **Debug Configurations** (F5)
-- Debug sync operations with breakpoints
-- Step through issue processing logic
-- Inspect configuration and authentication
+### 2. Debugging
 
-### 3. **IntelliSense & Validation**
+- Use the built-in tasks and structured output; add print/log statements as needed.
+
+### 3. IntelliSense & Validation
+
 - YAML schema validation for `issue_suite.config.yaml`
 - JSON schema validation for exports and summaries
 - Markdown syntax highlighting for `ISSUES.md`
 
-## GitHub Copilot Optimization
+## Copilot tips
 
-IssueSuite is optimized for GitHub Copilot workflows:
-
-### 1. **Structured Logging**
-Enable JSON logging for better Copilot understanding:
-```yaml
-# issue_suite.config.yaml
-logging:
-  json_enabled: true
-  level: INFO
-```
-
-### 2. **Performance Benchmarking**
-Enable performance monitoring to identify optimization opportunities:
-```yaml
-# issue_suite.config.yaml
-performance:
-  benchmarking: true
-```
-
-### 3. **Copilot-Friendly Configuration**
-Use clear, descriptive field mappings that Copilot can understand:
-```yaml
-# issue_suite.config.yaml
-github:
-  project:
-    enable: true
-    number: 123
-    field_mappings:
-      labels: "Status"          # Maps issue labels to Status field
-      milestone: "Priority"     # Maps milestone to Priority field
-```
+- Use the provided VS Code tasks (Validate, Dry-run Sync, Full Sync, Export, Summary, Generate Schemas).
+- Keep `ISSUES.md` in the canonical slug + YAML format (see README).
 
 ## Environment Detection
 
@@ -118,19 +98,21 @@ IssueSuite automatically detects your environment:
 - **Development**: Supports `.env` files and manual configuration
 
 Check your environment:
+
 ```bash
 issuesuite setup --check-auth
 ```
 
 ## Configuration for Online Usage
 
-### Sample Configuration for VS Code/Copilot
+### Sample Configuration
+
 ```yaml
 version: 1
 source:
   file: ISSUES.md
-  id_pattern: "^[0-9]{3}$"
-  milestone_required: true
+  id_pattern: "^[a-z0-9][a-z0-9-_]*$"
+  milestone_required: false
 
 github:
   project:
@@ -140,44 +122,32 @@ github:
       labels: "Status"
       milestone: "Priority"
   app:
-    enabled: true
-    app_id: $GITHUB_APP_ID
-    private_key_path: $GITHUB_APP_PRIVATE_KEY
-    installation_id: $GITHUB_APP_INSTALLATION_ID
+    enabled: false
 
 defaults:
   inject_labels: [meta:roadmap, managed:declarative]
 
-logging:
-  json_enabled: true
-  level: INFO
-
-performance:
-  benchmarking: true
-
-concurrency:
-  enabled: true
-  max_workers: 4
-
-environment:
-  enabled: true
-  load_dotenv: true
+behavior:
+  truncate_body_diff: 80
 ```
 
 ## Workflows
 
 ### Daily Development Workflow
+
 1. Edit `ISSUES.md` with your roadmap
-2. Press `Ctrl+Shift+P` → "Tasks: Run Task" → "IssueSuite: Dry-run Sync"
-3. Review changes in VS Code terminal
-4. Run "IssueSuite: Full Sync" to apply changes
+1. Press `Ctrl+Shift+P` → "Tasks: Run Task" → "IssueSuite: Dry-run Sync"
+1. Review changes in VS Code terminal
+1. Run "IssueSuite: Full Sync" to apply changes
 
 ### GitHub Copilot Assistance
-- Ask Copilot to help write issue descriptions
-- Use Copilot to generate milestone patterns
-- Let Copilot suggest configuration improvements
+
+- Ask Copilot to help write issue descriptions.
+- Use Copilot to generate milestone patterns.
+- Let Copilot suggest configuration improvements.
 
 ### Performance Monitoring
+
 - Review `performance_report.json` after sync operations
 - Use benchmarking data to optimize large roadmaps
 - Monitor memory and CPU usage for batch operations
@@ -185,24 +155,29 @@ environment:
 ## Troubleshooting
 
 ### Authentication Issues
+
 ```bash
 issuesuite setup --check-auth
 ```
 
 ### VS Code Tasks Not Working
-1. Ensure IssueSuite is installed: `pip install issuesuite[vscode]`
-2. Reload VS Code window: `Ctrl+Shift+P` → "Developer: Reload Window"
-3. Check Python interpreter: `Ctrl+Shift+P` → "Python: Select Interpreter"
+
+1. Ensure IssueSuite is installed: `pip install -e .[dev,all]`
+1. Reload VS Code window: `Ctrl+Shift+P` → "Developer: Reload Window"
+1. Check Python interpreter: `Ctrl+Shift+P` → "Python: Select Interpreter"
 
 ### Environment Variables Not Loading
+
 1. Check `.env` file exists and has correct format
-2. Ensure `python-dotenv` is installed: `pip install python-dotenv`
-3. Verify environment configuration in `issue_suite.config.yaml`
+1. Ensure `python-dotenv` is installed: `pip install python-dotenv`
+1. Verify environment configuration in `issue_suite.config.yaml`
 
 ## Advanced Configuration
 
 ### Multiple Environments
+
 Use different `.env` files for different environments:
+
 ```yaml
 # issue_suite.config.yaml
 environment:
@@ -212,7 +187,9 @@ environment:
 ```
 
 ### Custom VS Code Settings
+
 Add to `.vscode/settings.json`:
+
 ```json
 {
   "issuesuite.autoSync": true,
@@ -224,7 +201,9 @@ Add to `.vscode/settings.json`:
 ```
 
 ### GitHub Copilot Chat Integration
+
 Use these prompts with GitHub Copilot Chat:
+
 - "Help me optimize this ISSUES.md structure"
 - "Suggest better milestone patterns for agile development"
 - "Review my IssueSuite configuration for best practices"

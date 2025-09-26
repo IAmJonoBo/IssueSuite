@@ -7,14 +7,15 @@
 [![CI](https://github.com/IAmJonoBo/IssueSuite/actions/workflows/ci.yml/badge.svg)](https://github.com/IAmJonoBo/IssueSuite/actions/workflows/ci.yml)
 
 
-Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.md` file (now using **slug headings + fenced YAML blocks**) and keep real GitHub issues perfectly in sync (create / update / close) with deterministic hashes, readable diffs, JSON artifacts, and optional preflight resource creation.
+Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.md` file (using **slug headings + fenced YAML blocks**) and keep real GitHub issues perfectly in sync (create / update / close) with deterministic hashes, readable diffs, JSON artifacts, and optional preflight resource creation.
 
 ## Features
 
-- Single source of truth in Markdown (`ISSUES.md`), each item:
+- Single source of truth in Markdown (`ISSUES.md`), each item. Example:
 
-  ````markdown
+  ```markdown
   ## [slug: api-timeouts]
+  ```
 
   ```yaml
   title: Investigate API timeouts
@@ -22,15 +23,14 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
   milestone: Sprint 1
   body: |
     Requests intermittently exceed 5s …
-  ```yaml
-  ````
+  ```
 
   The parser requires this exact pattern: a level-2 heading with `[slug: <slug>]` followed immediately (allowing blank lines) by a fenced yaml block.
 
 - Idempotent create/update/close using stable external IDs & content hashes
 - Human & machine-readable diffs (labels, milestone, body snippet)
 - JSON export (`issues_export.json`) + change summary (`issues_summary.json`)
-- HTML roadmap report generation (legacy script; optional in future extraction)
+- JSON Schemas for export/summary and AI context
 - Configurable patterns (ID regex, milestone naming, global injected labels)
 - Optional preflight auto-create of labels & milestones (feature flags)
 - AI tooling: generated JSON Schemas for export, change summary, and AI context (+ `issuesuite.schemas.get_schemas()`)
@@ -68,8 +68,8 @@ issuesuite export --pretty --config issue_suite.config.yaml --output issues_expo
 # Human-readable summary
 issuesuite summary --config issue_suite.config.yaml
 
-# Emit schemas to stdout (or files when omitting --stdout)
-issuesuite schema --stdout
+# Emit schemas to default files
+issuesuite schema --config issue_suite.config.yaml
 ```
 
 ### Reconcile (Spec vs Live Drift Detection)
@@ -144,7 +144,7 @@ ai:
   schema_export_file: issue_export.schema.json
   schema_summary_file: issue_change_summary.schema.json
   schema_version: 1
-```bash
+```
 
 ## Library Usage
 
@@ -303,6 +303,8 @@ Library helper:
 from issuesuite.schemas import get_schemas
 schemas = get_schemas()
 print(schemas.keys())  # dict_keys(['export','summary','ai_context'])
+
+```
 
 ### Programmatic AI Context
 

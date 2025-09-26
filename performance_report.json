@@ -11,8 +11,8 @@
   "metrics": [
     {
       "name": "parse_specs",
-      "duration_ms": 1.6099580097943544,
-      "timestamp": "2025-09-26T16:29:12.652204+00:00",
+      "duration_ms": 0.5355409812182188,
+      "timestamp": "2025-09-26T17:16:34.839182+00:00",
       "context": {
         "spec_count": "pending"
       },
@@ -21,16 +21,16 @@
     },
     {
       "name": "fetch_existing_issues",
-      "duration_ms": 0.001416075974702835,
-      "timestamp": "2025-09-26T16:29:12.652309+00:00",
+      "duration_ms": 0.0012919772416353226,
+      "timestamp": "2025-09-26T17:16:34.839233+00:00",
       "context": {},
       "memory_usage_mb": null,
       "cpu_usage_percent": null
     },
     {
       "name": "process_specs",
-      "duration_ms": 0.05291705019772053,
-      "timestamp": "2025-09-26T16:29:12.652460+00:00",
+      "duration_ms": 0.047042034566402435,
+      "timestamp": "2025-09-26T17:16:34.839346+00:00",
       "context": {
         "spec_count": 2,
         "mode": "sequential"
@@ -41,40 +41,40 @@
   ],
   "summary": {
     "total_metrics": 3,
-    "total_duration_ms": 1.6642911359667778,
-    "overall_mean_ms": 0.5547637119889259,
-    "overall_median_ms": 0.05291705019772053,
+    "total_duration_ms": 0.5838749930262566,
+    "overall_mean_ms": 0.19462499767541885,
+    "overall_median_ms": 0.047042034566402435,
     "operations": {
       "parse_specs": {
         "count": 1,
-        "total_ms": 1.6099580097943544,
-        "mean_ms": 1.6099580097943544,
-        "median_ms": 1.6099580097943544,
-        "min_ms": 1.6099580097943544,
-        "max_ms": 1.6099580097943544,
+        "total_ms": 0.5355409812182188,
+        "mean_ms": 0.5355409812182188,
+        "median_ms": 0.5355409812182188,
+        "min_ms": 0.5355409812182188,
+        "max_ms": 0.5355409812182188,
         "stddev_ms": 0
       },
       "fetch_existing_issues": {
         "count": 1,
-        "total_ms": 0.001416075974702835,
-        "mean_ms": 0.001416075974702835,
-        "median_ms": 0.001416075974702835,
-        "min_ms": 0.001416075974702835,
-        "max_ms": 0.001416075974702835,
+        "total_ms": 0.0012919772416353226,
+        "mean_ms": 0.0012919772416353226,
+        "median_ms": 0.0012919772416353226,
+        "min_ms": 0.0012919772416353226,
+        "max_ms": 0.0012919772416353226,
         "stddev_ms": 0
       },
       "process_specs": {
         "count": 1,
-        "total_ms": 0.05291705019772053,
-        "mean_ms": 0.05291705019772053,
-        "median_ms": 0.05291705019772053,
-        "min_ms": 0.05291705019772053,
-        "max_ms": 0.05291705019772053,
+        "total_ms": 0.047042034566402435,
+        "mean_ms": 0.047042034566402435,
+        "median_ms": 0.047042034566402435,
+        "min_ms": 0.047042034566402435,
+        "max_ms": 0.047042034566402435,
         "stddev_ms": 0
       }
     },
     "environment": {},
-    "generated_at": "2025-09-26T16:29:12.652557+00:00"
+    "generated_at": "2025-09-26T17:16:34.839435+00:00"
   },
-  "report_generated_at": "2025-09-26T16:29:12.652559+00:00"
+  "report_generated_at": "2025-09-26T17:16:34.839437+00:00"
 }

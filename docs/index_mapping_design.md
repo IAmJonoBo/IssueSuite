@@ -6,7 +6,7 @@ Last Updated: 2025-09-26
 
 ## Purpose
 
-Maintain a durable mapping from `external_id` (spec slug / numeric ID) to GitHub issue number (int) to preserve continuity when titles change and to accelerate lookups.
+Maintain a durable mapping from `external_id` (spec slug) to GitHub issue number (int) to preserve continuity when titles change and to accelerate lookups.
 
 ## File Path
 
@@ -17,11 +17,11 @@ Maintain a durable mapping from `external_id` (spec slug / numeric ID) to GitHub
 ```json
 {
   "version": 1,
-  "generated_at": "2025-09-26T12:00:00Z",  // ISO8601
+  "generated_at": "2025-09-26T12:00:00Z",
   "repo": "<owner>/<repo>",
   "entries": {
-    "001": { "issue": 123, "hash": "abc123def4567890" },
-    "002": { "issue": 124, "hash": "def456abc7890123" }
+    "api-timeouts": { "issue": 123, "hash": "abc123def4567890" },
+    "search-caching": { "issue": 124, "hash": "def456abc7890123" }
   }
 }
 ```
@@ -31,7 +31,7 @@ Maintain a durable mapping from `external_id` (spec slug / numeric ID) to GitHub
 - `version`: Schema revision (start at 1).
 - `generated_at`: Timestamp of last full write (UTC ISO8601).
 - `repo`: Repository identifier if available (optional for local only).
-- `entries`: Object mapping string external IDs to entry objects.
+- `entries`: Object mapping slug external IDs to entry objects.
   - `issue`: Integer issue number.
   - `hash`: Last known spec hash (truncated SHA-256) to enable quick skip decisions and drift detection.
 
@@ -39,11 +39,11 @@ Maintain a durable mapping from `external_id` (spec slug / numeric ID) to GitHub
 
 1. Load existing index if present (ignore on corruption – start fresh).
 
-1. After a successful non-dry-run sync:
+2. After a successful non-dry-run sync:
 
 - For each created spec: add new entry with issue number + hash.
 - For each updated spec: update hash.
-- For each closed spec (if closed by removal and not reused): optionally keep (historical) or mark with `"closed": true` (future enhancement).
+- For each removed spec: stale entries are pruned by the orchestrator on subsequent non-dry-run syncs.
 
 1. Persist atomically (write to temp file then rename).
 
@@ -52,9 +52,9 @@ Maintain a durable mapping from `external_id` (spec slug / numeric ID) to GitHub
 - Write to `.issuesuite/index.json.tmp` then `os.replace` to final path.
 - Ensures readers never see partial file.
 
-## Concurrency Considerations
+## Snapshot Threshold
 
-Current CLI use is single-process; if future parallel invocations arise, a simple file lock (`.issuesuite/index.lock`) can gate writes.
+The orchestrator includes a `mapping_snapshot` in enriched summaries when the mapping size is below a threshold (default: 500). Larger mappings include only size metadata.
 
 ## Error Handling
 

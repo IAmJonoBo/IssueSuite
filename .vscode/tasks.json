@@ -4,7 +4,7 @@
         {
             "label": "IssueSuite: Validate",
             "type": "shell",
-            "command": "issuesuite",
+            "command": "${workspaceFolder}/.venv/bin/issuesuite",
             "args": ["validate", "--config", "${workspaceFolder}/issue_suite.config.yaml"],
             "group": "build",
             "presentation": {
@@ -18,7 +18,7 @@
         {
             "label": "IssueSuite: Dry-run Sync",
             "type": "shell",
-            "command": "issuesuite",
+            "command": "${workspaceFolder}/.venv/bin/issuesuite",
             "args": [
                 "sync",
                 "--dry-run",
@@ -41,7 +41,7 @@
         {
             "label": "IssueSuite: Full Sync",
             "type": "shell",
-            "command": "issuesuite",
+            "command": "${workspaceFolder}/.venv/bin/issuesuite",
             "args": [
                 "sync",
                 "--update",
@@ -60,7 +60,7 @@
         {
             "label": "IssueSuite: Export",
             "type": "shell",
-            "command": "issuesuite",
+            "command": "${workspaceFolder}/.venv/bin/issuesuite",
             "args": [
                 "export",
                 "--pretty",
@@ -79,7 +79,7 @@
         {
             "label": "IssueSuite: Summary",
             "type": "shell",
-            "command": "issuesuite",
+            "command": "${workspaceFolder}/.venv/bin/issuesuite",
             "args": [
                 "summary",
                 "--config", "${workspaceFolder}/issue_suite.config.yaml"
@@ -96,7 +96,7 @@
         {
             "label": "IssueSuite: Generate Schemas",
             "type": "shell",
-            "command": "issuesuite",
+            "command": "${workspaceFolder}/.venv/bin/issuesuite",
             "args": [
                 "schema",
                 "--config", "${workspaceFolder}/issue_suite.config.yaml"
@@ -113,8 +113,11 @@
         {
             "label": "Setup IssueSuite Environment",
             "type": "shell",
-            "command": "python",
-            "args": ["-m", "pip", "install", "-e", ".", "[dev]"],
+            "command": "bash",
+            "args": [
+                "-lc",
+                "python3 -m venv .venv && . .venv/bin/activate && python -m pip install -e '.[dev]'"
+            ],
             "group": "build",
             "presentation": {
                 "echo": true,
@@ -127,7 +130,7 @@
         {
             "label": "IssueSuite: Reconcile",
             "type": "shell",
-            "command": "issuesuite",
+            "command": "${workspaceFolder}/.venv/bin/issuesuite",
             "args": [
                 "reconcile",
                 "--config", "${workspaceFolder}/issue_suite.config.yaml"
@@ -144,7 +147,7 @@
         {
             "label": "IssueSuite: AI Context",
             "type": "shell",
-            "command": "issuesuite",
+            "command": "${workspaceFolder}/.venv/bin/issuesuite",
             "args": [
                 "ai-context",
                 "--quiet",
