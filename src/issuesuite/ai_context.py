@@ -38,24 +38,21 @@ def get_ai_context(cfg: SuiteConfig, *, preview: int = 5) -> AIContextDoc:
         'spec_count': len(specs),
         'preview': preview_specs,
         'errors': {
-            'categories': [
-                'github.rate_limit',
-                'github.abuse',
-                'network',
-                'parse',
-                'generic'
-            ],
+            'categories': ['github.rate_limit', 'github.abuse', 'network', 'parse', 'generic'],
             'retry': {
                 'attempts_env': os.environ.get('ISSUESUITE_RETRY_ATTEMPTS', '3'),
                 'base_env': os.environ.get('ISSUESUITE_RETRY_BASE', '0.5'),
-                'strategy': 'exponential_backoff_with_jitter'
-            }
+                'strategy': 'exponential_backoff_with_jitter',
+            },
         },
         'mapping': {
             'present': bool(mapping_snapshot),
             'size': len(mapping_snapshot),
-            'snapshot_included': bool(mapping_snapshot) and len(mapping_snapshot) <= MAPPING_SNAPSHOT_THRESHOLD,
-            'snapshot': mapping_snapshot if mapping_snapshot and len(mapping_snapshot) <= MAPPING_SNAPSHOT_THRESHOLD else None,
+            'snapshot_included': bool(mapping_snapshot)
+            and len(mapping_snapshot) <= MAPPING_SNAPSHOT_THRESHOLD,
+            'snapshot': mapping_snapshot
+            if mapping_snapshot and len(mapping_snapshot) <= MAPPING_SNAPSHOT_THRESHOLD
+            else None,
         },
         'config': {
             'dry_run_default': cfg.dry_run_default,
@@ -84,15 +81,16 @@ def get_ai_context(cfg: SuiteConfig, *, preview: int = 5) -> AIContextDoc:
             'usage': [
                 'Use safe_sync for read-only diffing in AI mode',
                 'Call export for full structured spec list when preview insufficient',
-                'Prefer summary for quick human-readable validation before sync'
+                'Prefer summary for quick human-readable validation before sync',
             ],
             'env': [
                 'ISSUESUITE_AI_MODE=1 to force dry-run safety',
                 'ISSUES_SUITE_MOCK=1 for offline parsing without GitHub API',
-                'ISSUESUITE_DEBUG=1 for verbose debugging output'
+                'ISSUESUITE_DEBUG=1 for verbose debugging output',
             ],
-        }
+        },
     }
     return doc
+
 
 __all__ = ["get_ai_context"]

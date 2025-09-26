@@ -12,6 +12,7 @@ The caller supplies a thunk returning the desired result or raising
 ``subprocess.CalledProcessError`` (or generic Exception). Only specific
 error messages trigger a retry; other failures propagate immediately.
 """
+
 from __future__ import annotations
 
 import os
@@ -77,7 +78,7 @@ def is_transient(output: str) -> bool:
 def _compute_sleep(attempt: int, cfg: RetryConfig, out: str) -> float:
     explicit = _extract_explicit_backoff(out)
     backoff = cfg.base_sleep * (2 ** (attempt - 1)) + random.uniform(0, 0.25)
-    sleep_for = explicit if explicit is not None else backoff
+    sleep_for: float = explicit if explicit is not None else backoff
     max_cap_env = os.environ.get('ISSUESUITE_RETRY_MAX_SLEEP')
     if max_cap_env:
         try:
@@ -89,7 +90,9 @@ def _compute_sleep(attempt: int, cfg: RetryConfig, out: str) -> float:
     return sleep_for
 
 
-def _handle_called_process_error(exc: subprocess.CalledProcessError, attempt: int, attempts: int, cfg: RetryConfig) -> bool:
+def _handle_called_process_error(
+    exc: subprocess.CalledProcessError, attempt: int, attempts: int, cfg: RetryConfig
+) -> bool:
     out = exc.output or ''
     if attempt >= attempts or not is_transient(out):
         return False
@@ -109,5 +112,6 @@ def run_with_retries(fn: Callable[[], T], *, cfg: RetryConfig | None = None) -> 
             if not _handle_called_process_error(exc, attempt, attempts, cfg):
                 raise
     raise RuntimeError('retry logic exited unexpectedly')  # pragma: no cover
+
 
 __all__ = ['RetryConfig', 'run_with_retries', 'is_transient']

@@ -8,10 +8,9 @@ from typing import Any, TypedDict, cast
 from .models import IssueSpec
 
 try:  # optional import; caller should guard
-    import yaml as _yaml  # type: ignore[import-untyped]
+    import yaml as _yaml
 except Exception:  # pragma: no cover
-    _yaml = None
-_yaml = cast(Any, _yaml)
+    _yaml = cast(Any, None)
 
 LABEL_CANON_MAP = {
     'p0-critical': 'P0-critical',
@@ -19,8 +18,10 @@ LABEL_CANON_MAP = {
     'p2-enhancement': 'P2-enhancement',
 }
 
+
 class ParseError(ValueError):
     pass
+
 
 _slug_re = re.compile(r'^##\s*\[slug:\s*([a-z0-9][a-z0-9-_]*)\s*\]$', re.IGNORECASE)
 
@@ -73,14 +74,18 @@ def _parse_single(slug: str, block: list[str]) -> IssueSpec:  # noqa: C901 - acc
     project_val = data.get('project') if 'project' in data else None
     project_block = project_val if isinstance(project_val, dict) else None
     h = hashlib.sha256()
-    h.update('\x1f'.join([
-        slug,
-        title,
-        ','.join(sorted(labels)),
-        milestone or '',
-        status or '',
-        body.strip(),
-    ]).encode('utf-8'))
+    h.update(
+        '\x1f'.join(
+            [
+                slug,
+                title,
+                ','.join(sorted(labels)),
+                milestone or '',
+                status or '',
+                body.strip(),
+            ]
+        ).encode('utf-8')
+    )
     return IssueSpec(
         external_id=slug,
         title=title,
@@ -125,5 +130,6 @@ def parse_issues(lines: Iterable[str]) -> list[IssueSpec]:  # noqa: C901
     if not specs:
         raise ParseError('No slug headings found in ISSUES.md')
     return specs
+
 
 __all__ = ["parse_issues", "ParseError", "IssueSpec"]

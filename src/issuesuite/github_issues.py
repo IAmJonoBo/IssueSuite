@@ -18,6 +18,7 @@ required we can switch to ``gh api`` calls (or direct HTTP) that return
 JSON. For now we parse the stdout of ``gh issue create`` to extract the
 issue number when possible (pattern: ``/issues/<number>``).
 """
+
 from __future__ import annotations
 
 import json
@@ -70,13 +71,23 @@ class IssuesClient:
             print("DRY-RUN", " ".join(cmd))
             return ""
         try:
-            return run_with_retries(lambda: subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT))
-        except subprocess.CalledProcessError as exc:  # pragma: no cover - propagate consistent RuntimeError
+            return run_with_retries(
+                lambda: subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT)
+            )
+        except (
+            subprocess.CalledProcessError
+        ) as exc:  # pragma: no cover - propagate consistent RuntimeError
             raise RuntimeError(f"Command failed: {' '.join(cmd)}: {exc.output}") from exc
 
     # --- CRUD operations --------------------------------------------------
-    def create_issue(self, *, title: str, body: str, labels: Iterable[str] | None = None,
-                     milestone: str | None = None) -> int | None:
+    def create_issue(
+        self,
+        *,
+        title: str,
+        body: str,
+        labels: Iterable[str] | None = None,
+        milestone: str | None = None,
+    ) -> int | None:
         cmd = self._base_cmd("issue", "create", "--title", title, "--body", body)
         label_list = list(labels or [])
         if label_list:
@@ -97,25 +108,50 @@ class IssuesClient:
                 return None
         return None
 
-    def update_issue(self, *, number: int, body: str | None = None,
-                      labels: Iterable[str] | None = None, milestone: str | None = None) -> None:
+    def update_issue(
+        self,
+        *,
+        number: int,
+        body: str | None = None,
+        labels: Iterable[str] | None = None,
+        milestone: str | None = None,
+    ) -> None:
         # GitHub CLI edit semantics: adding labels with --add-label merges; we may
         # want full reconciliation later (remove extraneous) via --remove-label.
         label_list = list(labels or [])
         if label_list:
-            self._run(self._base_cmd("issue", "edit", str(number), "--add-label", ",".join(label_list)))
+            self._run(
+                self._base_cmd("issue", "edit", str(number), "--add-label", ",".join(label_list))
+            )
         if milestone:
             self._run(self._base_cmd("issue", "edit", str(number), "--milestone", milestone))
         if body is not None:
             # Use gh api for body patch (consistent with existing code)
-            self._run(self._base_cmd("api", f"repos/:owner/:repo/issues/{number}", "--method", "PATCH", "-f", f"body={body}"))
+            self._run(
+                self._base_cmd(
+                    "api",
+                    f"repos/:owner/:repo/issues/{number}",
+                    "--method",
+                    "PATCH",
+                    "-f",
+                    f"body={body}",
+                )
+            )
 
     def close_issue(self, *, number: int) -> None:
         self._run(self._base_cmd("issue", "close", str(number)))
 
     def list_existing(self) -> list[dict[str, Any]]:
-        cmd = self._base_cmd("issue", "list", "--state", "all", "--limit", "1000", "--json",
-                              "number,title,body,labels,milestone,state")
+        cmd = self._base_cmd(
+            "issue",
+            "list",
+            "--state",
+            "all",
+            "--limit",
+            "1000",
+            "--json",
+            "number,title,body,labels,milestone,state",
+        )
         if self.cfg.mock:
             return []
         if self.cfg.dry_run:

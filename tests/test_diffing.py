@@ -34,25 +34,41 @@ def _spec(**overrides: Any) -> IssueSpec:
 
 def test_needs_update_labels_changed() -> None:
     spec = _spec(labels=["one", "three"])
-    issue: dict[str, Any] = {"labels": [{"name": "one"}, {"name": "two"}], "body": spec.body, "milestone": {"title": "M1"}}
+    issue: dict[str, Any] = {
+        "labels": [{"name": "one"}, {"name": "two"}],
+        "body": spec.body,
+        "milestone": {"title": "M1"},
+    }
     assert needs_update(spec, issue, prev_hash=None)
 
 
 def test_needs_update_milestone_changed() -> None:
     spec = _spec(milestone="M2")
-    issue: dict[str, Any] = {"labels": [{"name": lbl} for lbl in spec.labels], "body": spec.body, "milestone": {"title": "M1"}}
+    issue: dict[str, Any] = {
+        "labels": [{"name": lbl} for lbl in spec.labels],
+        "body": spec.body,
+        "milestone": {"title": "M1"},
+    }
     assert needs_update(spec, issue, prev_hash=None)
 
 
 def test_needs_update_body_changed() -> None:
     spec = _spec(body="<!-- issuesuite:slug=abc -->\n\nNew body\n")
-    issue: dict[str, Any] = {"labels": [{"name": lbl} for lbl in spec.labels], "body": "<!-- issuesuite:slug=abc -->\n\nBody line\n", "milestone": {"title": "M1"}}
+    issue: dict[str, Any] = {
+        "labels": [{"name": lbl} for lbl in spec.labels],
+        "body": "<!-- issuesuite:slug=abc -->\n\nBody line\n",
+        "milestone": {"title": "M1"},
+    }
     assert needs_update(spec, issue, prev_hash=None)
 
 
 def test_compute_diff_labels_and_body() -> None:
     spec = _spec(labels=["one", "three"], body="<!-- issuesuite:slug=abc -->\n\nNew body\n")
-    issue: dict[str, Any] = {"labels": [{"name": "one"}, {"name": "two"}], "body": "<!-- issuesuite:slug=abc -->\n\nOld body\n", "milestone": {"title": "M1"}}
+    issue: dict[str, Any] = {
+        "labels": [{"name": "one"}, {"name": "two"}],
+        "body": "<!-- issuesuite:slug=abc -->\n\nOld body\n",
+        "milestone": {"title": "M1"},
+    }
     diff: dict[str, Any] = compute_diff(spec, issue)
     assert diff["labels_added"] == ["three"]
     assert diff["labels_removed"] == ["two"]
@@ -65,7 +81,11 @@ def test_compute_diff_truncates_large_body_diff() -> None:
     new_lines = [f"Line {i}" for i in range(200)]
     new_lines[150] = "Changed line"
     spec = _spec(body="<!-- issuesuite:slug=abc -->\n" + "\n".join(new_lines) + "\n")
-    issue: dict[str, Any] = {"labels": [{"name": lbl} for lbl in spec.labels], "body": "<!-- issuesuite:slug=abc -->\n" + "\n".join(original_lines) + "\n", "milestone": {"title": "M1"}}
+    issue: dict[str, Any] = {
+        "labels": [{"name": lbl} for lbl in spec.labels],
+        "body": "<!-- issuesuite:slug=abc -->\n" + "\n".join(original_lines) + "\n",
+        "milestone": {"title": "M1"},
+    }
     diff: dict[str, Any] = compute_diff(spec, issue)
     assert diff["body_changed"] is True
     assert len(diff["body_diff"]) <= MAX_BODY_DIFF_LINES + 1  # +1 for truncation marker

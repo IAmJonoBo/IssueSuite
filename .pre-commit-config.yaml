@@ -23,15 +23,15 @@ repos:
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: check-added-large-files
-        args: ["--maxkb=1000"]  # 1 MB max for new files
+        args: [--maxkb=1000]
       - id: mixed-line-ending
         args: ["--fix=lf"]
       - id: detect-private-key
+        exclude: ^(tests/test_github_app_auth\.py|tests/test_github_app_integration\.py|tests/test_errors\.py|src/issuesuite/errors\.py)$
       - id: debug-statements
       - id: end-of-file-fixer
       - id: trailing-whitespace
-
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: 2.5.0
+    rev: v2.6.0
     hooks:
       - id: pyproject-fmt

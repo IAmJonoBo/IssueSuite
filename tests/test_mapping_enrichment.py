@@ -30,24 +30,26 @@ def run_cli(args: list[str]) -> str:
     start = out.find('{')
     end = out.rfind('}')
     if start != -1 and end != -1 and start < end:
-        return out[start:end+1]
+        return out[start : end + 1]
     return out  # let caller fail with JSON error for visibility
 
 
 def test_ai_context_includes_mapping_snapshot(tmp_path, monkeypatch):
     # Copy config & sources into temp dir
     repo_root = Path(__file__).resolve().parent.parent
-    for name in ['issue_suite.config.yaml','ISSUES.md']:
+    for name in ['issue_suite.config.yaml', 'ISSUES.md']:
         src = repo_root / name
         if src.exists():
             (tmp_path / name).write_text(src.read_text())
     # Create minimal index.json with small mapping
     issues_dir = tmp_path / '.issuesuite'
     issues_dir.mkdir(exist_ok=True)
-    (issues_dir / 'index.json').write_text(json.dumps({'mapping': {'alpha': 101, 'beta': 202}}, indent=2))
+    (issues_dir / 'index.json').write_text(
+        json.dumps({'mapping': {'alpha': 101, 'beta': 202}}, indent=2)
+    )
     monkeypatch.chdir(tmp_path)
 
-    out = run_cli(['ai-context','--config', CONFIG, '--preview','2'])
+    out = run_cli(['ai-context', '--config', CONFIG, '--preview', '2'])
     data = json.loads(out)
     mapping = data['mapping']
     assert mapping['present'] is True
@@ -58,7 +60,7 @@ def test_ai_context_includes_mapping_snapshot(tmp_path, monkeypatch):
 
 def test_ai_context_large_mapping_excludes_snapshot(tmp_path, monkeypatch):
     repo_root = Path(__file__).resolve().parent.parent
-    for name in ['issue_suite.config.yaml','ISSUES.md']:
+    for name in ['issue_suite.config.yaml', 'ISSUES.md']:
         src = repo_root / name
         if src.exists():
             (tmp_path / name).write_text(src.read_text())
@@ -69,7 +71,7 @@ def test_ai_context_large_mapping_excludes_snapshot(tmp_path, monkeypatch):
     (issues_dir / 'index.json').write_text(json.dumps({'mapping': large_map}))
     monkeypatch.chdir(tmp_path)
 
-    out = run_cli(['ai-context','--config', CONFIG, '--preview','1'])
+    out = run_cli(['ai-context', '--config', CONFIG, '--preview', '1'])
     data = json.loads(out)
     mapping = data['mapping']
     assert mapping['present'] is True
@@ -80,7 +82,7 @@ def test_ai_context_large_mapping_excludes_snapshot(tmp_path, monkeypatch):
 
 def test_sync_summary_mapping_fields(tmp_path, monkeypatch):
     repo_root = Path(__file__).resolve().parent.parent
-    for name in ['issue_suite.config.yaml','ISSUES.md']:
+    for name in ['issue_suite.config.yaml', 'ISSUES.md']:
         src = repo_root / name
         if src.exists():
             (tmp_path / name).write_text(src.read_text())
@@ -93,7 +95,18 @@ def test_sync_summary_mapping_fields(tmp_path, monkeypatch):
     env = os.environ.copy()
     env['ISSUESUITE_AI_MODE'] = '1'  # force dry-run (ensures we don't mutate mapping)
     proc = subprocess.run(
-        ['python','-m','issuesuite','sync','--config', CONFIG,'--dry-run','--update','--summary-json','summary.json'],
+        [
+            'python',
+            '-m',
+            'issuesuite',
+            'sync',
+            '--config',
+            CONFIG,
+            '--dry-run',
+            '--update',
+            '--summary-json',
+            'summary.json',
+        ],
         capture_output=True,
         text=True,
         env=env,

@@ -7,11 +7,12 @@ from issuesuite import retry
 
 # Constants for test expectations
 FIRST_SUCCESS_ATTEMPT = 2  # transient once then success
-EXPECTED_RETRY_COUNT = 2   # total attempts when one retry occurs
+EXPECTED_RETRY_COUNT = 2  # total attempts when one retry occurs
 
 
 class DummyCalledProcessError(subprocess.CalledProcessError):
     """Helper to craft subprocess errors with custom output."""
+
     def __init__(self, output: str):
         super().__init__(returncode=1, cmd=['gh', 'dummy'])
         self.output = output

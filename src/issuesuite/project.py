@@ -10,6 +10,7 @@ Features:
 Real GraphQL interactions are stubbed for now to keep tests deterministic and
 avoid network dependencies. The public surface is stable for future expansion.
 """
+
 from __future__ import annotations
 
 import json
@@ -57,7 +58,7 @@ class GitHubProjectAssigner:
 
     def _is_cache_stale(self, payload: dict[str, Any]) -> bool:
         ts = payload.get('ts')
-        if not isinstance(ts, (int, float)):
+        if not isinstance(ts, int | float):
             return True
         return (time.time() - ts) > self._cache_ttl
 
@@ -82,7 +83,7 @@ class GitHubProjectAssigner:
             payload = {
                 'project_id': self._project_id,
                 'fields': self._field_cache,
-                'ts': time.time()
+                'ts': time.time(),
             }
             self._cache_path().write_text(json.dumps(payload, indent=2))
         except Exception:  # pragma: no cover - best effort
@@ -123,11 +124,25 @@ class GitHubProjectAssigner:
             return self._field_cache
         if self._mock:
             self._field_cache = {
-                'Status': {'id': 'field_status', 'type': 'single_select', 'options': {
-                    'Todo': 'opt_status_todo', 'In Progress': 'opt_status_in_progress', 'Done': 'opt_status_done'}},
-                'Priority': {'id': 'field_priority', 'type': 'single_select', 'options': {
-                    'P0': 'opt_priority_p0', 'P1': 'opt_priority_p1', 'P2': 'opt_priority_p2'}},
-                'Assignee': {'id': 'field_assignee', 'type': 'assignees'}
+                'Status': {
+                    'id': 'field_status',
+                    'type': 'single_select',
+                    'options': {
+                        'Todo': 'opt_status_todo',
+                        'In Progress': 'opt_status_in_progress',
+                        'Done': 'opt_status_done',
+                    },
+                },
+                'Priority': {
+                    'id': 'field_priority',
+                    'type': 'single_select',
+                    'options': {
+                        'P0': 'opt_priority_p0',
+                        'P1': 'opt_priority_p1',
+                        'P2': 'opt_priority_p2',
+                    },
+                },
+                'Assignee': {'id': 'field_assignee', 'type': 'assignees'},
             }
             self._save_cache()
             return self._field_cache
@@ -137,10 +152,24 @@ class GitHubProjectAssigner:
             self.logger.debug("Fetching project fields", project_id=self._project_id)
             # Simulated subset; real call would populate dynamically
             self._field_cache = {
-                'Status': {'id': 'field_status', 'type': 'single_select', 'options': {
-                    'Todo': 'opt_status_todo', 'In Progress': 'opt_status_in_progress', 'Done': 'opt_status_done'}},
-                'Priority': {'id': 'field_priority', 'type': 'single_select', 'options': {
-                    'P0': 'opt_priority_p0', 'P1': 'opt_priority_p1', 'P2': 'opt_priority_p2'}},
+                'Status': {
+                    'id': 'field_status',
+                    'type': 'single_select',
+                    'options': {
+                        'Todo': 'opt_status_todo',
+                        'In Progress': 'opt_status_in_progress',
+                        'Done': 'opt_status_done',
+                    },
+                },
+                'Priority': {
+                    'id': 'field_priority',
+                    'type': 'single_select',
+                    'options': {
+                        'P0': 'opt_priority_p0',
+                        'P1': 'opt_priority_p1',
+                        'P2': 'opt_priority_p2',
+                    },
+                },
             }
             self._save_cache()
             return self._field_cache
@@ -156,14 +185,14 @@ class GitHubProjectAssigner:
             self.logger.info(f"MOCK: Add issue #{issue_number} to project {project_id}")
             return f"mock_item_{issue_number}"
         try:  # pragma: no cover - placeholder
-            self.logger.debug("Adding issue to project", issue_number=issue_number, project_id=project_id)
+            self.logger.debug(
+                "Adding issue to project", issue_number=issue_number, project_id=project_id
+            )
             item_id = f"project_item_{issue_number}"
             self.logger.info(f"Added issue #{issue_number} to project", item_id=item_id)
             return item_id
         except Exception as e:  # pragma: no cover - defensive
-            self.logger.log_error(
-                f"Failed to add issue #{issue_number} to project", error=str(e)
-            )
+            self.logger.log_error(f"Failed to add issue #{issue_number} to project", error=str(e))
             return None
 
     def _get_issue_id(self, issue_number: int) -> str | None:
@@ -177,9 +206,7 @@ class GitHubProjectAssigner:
             return f"mock_issue_{issue_number}"
         try:  # pragma: no cover - placeholder shell call
             result = subprocess.run(
-                [
-                    'gh', 'api', f'repos/:owner/:repo/issues/{issue_number}', '--jq', '.node_id'
-                ],
+                ['gh', 'api', f'repos/:owner/:repo/issues/{issue_number}', '--jq', '.node_id'],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -189,12 +216,12 @@ class GitHubProjectAssigner:
                 self.logger.debug("Got issue ID", issue_number=issue_number, issue_id=issue_id)
             return issue_id or None
         except Exception as e:  # pragma: no cover - defensive
-            self.logger.log_error(
-                f"Failed to get issue ID for #{issue_number}", error=str(e)
-            )
+            self.logger.log_error(f"Failed to get issue ID for #{issue_number}", error=str(e))
             return None
 
-    def _update_project_field(self, item_id: str, field_name: str, field_value: str | list[str]) -> bool:
+    def _update_project_field(
+        self, item_id: str, field_name: str, field_value: str | list[str]
+    ) -> bool:
         fields = self._get_project_fields()
         info = fields.get(field_name)
         if not info:
@@ -204,11 +231,15 @@ class GitHubProjectAssigner:
         if isinstance(field_value, str) and info.get('type') == 'single_select':
             options: dict[str, str] = info.get('options', {})
             if options:
-                match_id = next((oid for name, oid in options.items() if name.lower() == field_value.lower()), None)
+                match_id = next(
+                    (oid for name, oid in options.items() if name.lower() == field_value.lower()),
+                    None,
+                )
                 if not match_id:
                     self.logger.warning(
                         f"Value '{field_value}' not found among options for field '{field_name}'",
-                        field=field_name, value=field_value
+                        field=field_name,
+                        value=field_value,
                     )
                     return False
                 value_repr = match_id
@@ -221,7 +252,10 @@ class GitHubProjectAssigner:
             if not self._get_project_id():
                 return False
             self.logger.debug(
-                "Updating project field", item_id=item_id, field_name=field_name, field_value=value_repr
+                "Updating project field",
+                item_id=item_id,
+                field_name=field_name,
+                field_value=value_repr,
             )
             self.logger.info(f"Updated project field '{field_name}' for item {item_id}")
             return True
@@ -259,8 +293,10 @@ class GitHubProjectAssigner:
                 return
             self._apply_field_mappings(item_id, spec)
             self.logger.log_operation(
-                "project_assign_complete", issue_number=issue_number, project_number=self.config.number,
-                item_id=item_id
+                "project_assign_complete",
+                issue_number=issue_number,
+                project_number=self.config.number,
+                item_id=item_id,
             )
         except Exception as e:  # pragma: no cover - defensive
             self.logger.log_error(

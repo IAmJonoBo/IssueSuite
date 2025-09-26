@@ -36,6 +36,7 @@ LEGACY_NUMERIC_MD = """\
 Something
 """
 
+
 def test_parse_happy_path(tmp_path: Path) -> None:
     md = tmp_path / 'ISSUES.md'
     md.write_text(SIMPLE_MD)

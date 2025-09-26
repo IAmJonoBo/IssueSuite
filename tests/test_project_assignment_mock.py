@@ -30,6 +30,7 @@ body: |
 ```
 """
 
+
 def write_files(tmp_path: Path) -> None:  # noqa: D401
     (tmp_path / 'issue_suite.config.yaml').write_text(CONFIG_YAML)
     (tmp_path / 'ISSUES.md').write_text(ISSUES_MD)

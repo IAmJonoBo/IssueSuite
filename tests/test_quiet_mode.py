@@ -12,10 +12,13 @@ def run_cli(*args: str, env: dict[str, str] | None = None) -> subprocess.Complet
         proc_env.update(env)
     return subprocess.run(cmd, capture_output=True, text=True, env=proc_env, check=False)  # noqa: PLR1730
 
+
 def test_ai_context_quiet_suppresses_logs(tmp_path: Path) -> None:
     cfg = tmp_path / 'issue_suite.config.yaml'
     cfg.write_text('version: 1\nrepository: example/repo\n')
-    (tmp_path / 'ISSUES.md').write_text('# Roadmap\n\n## [slug: example-feature]\n```yaml\ntitle: Example Feature\nlabels: [feature]\nbody: |\n  Task one\n```\n')
+    (tmp_path / 'ISSUES.md').write_text(
+        '# Roadmap\n\n## [slug: example-feature]\n```yaml\ntitle: Example Feature\nlabels: [feature]\nbody: |\n  Task one\n```\n'
+    )
 
     # Without quiet we may see recommendation logs (best-effort heuristic)
     res_no_quiet = run_cli('ai-context', '--config', str(cfg))
@@ -39,7 +42,7 @@ def test_ai_context_quiet_suppresses_logs(tmp_path: Path) -> None:
     assert data['schemaVersion'].startswith('ai-context/1')
 
     # Env var variant
-    res_env_quiet = run_cli('ai-context', '--config', str(cfg), env={'ISSUESUITE_QUIET':'1'})
+    res_env_quiet = run_cli('ai-context', '--config', str(cfg), env={'ISSUESUITE_QUIET': '1'})
     assert res_env_quiet.returncode == 0
     if noisy:
         assert res_env_quiet.stdout.count('Authentication recommendations') <= 1

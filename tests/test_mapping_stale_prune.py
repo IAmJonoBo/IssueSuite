@@ -64,13 +64,21 @@ def test_stale_mapping_pruned(tmp_path: Path) -> None:
 
     # Initial issues with two slugs
     (tmp_path / "ISSUES.md").write_text(SAMPLE_ISSUES_INITIAL)
-    rc1, out1 = _run([
-        sys.executable,
-        '-m', 'issuesuite.cli', 'sync',
-        '--config', 'issue_suite.config.yaml',
-        '--update',
-        '--summary-json', 'issues_summary.json'
-    ], tmp_path, env)
+    rc1, out1 = _run(
+        [
+            sys.executable,
+            '-m',
+            'issuesuite.cli',
+            'sync',
+            '--config',
+            'issue_suite.config.yaml',
+            '--update',
+            '--summary-json',
+            'issues_summary.json',
+        ],
+        tmp_path,
+        env,
+    )
     assert rc1 == 0, out1
 
     idx = tmp_path / '.issuesuite' / 'index.json'
@@ -82,16 +90,26 @@ def test_stale_mapping_pruned(tmp_path: Path) -> None:
 
     # Modify ISSUES.md to remove stale-two
     (tmp_path / "ISSUES.md").write_text(SAMPLE_ISSUES_AFTER)
-    rc2, out2 = _run([
-        sys.executable,
-        '-m', 'issuesuite.cli', 'sync',
-        '--config', 'issue_suite.config.yaml',
-        '--update',
-        '--summary-json', 'issues_summary.json'
-    ], tmp_path, env)
+    rc2, out2 = _run(
+        [
+            sys.executable,
+            '-m',
+            'issuesuite.cli',
+            'sync',
+            '--config',
+            'issue_suite.config.yaml',
+            '--update',
+            '--summary-json',
+            'issues_summary.json',
+        ],
+        tmp_path,
+        env,
+    )
     assert rc2 == 0, out2
 
     data_any2: Any = json.loads(idx.read_text())
     mapping_val2 = data_any2.get('mapping') if isinstance(data_any2, dict) else {}
     mapping_any2 = cast(dict[Any, Any], mapping_val2 if isinstance(mapping_val2, dict) else {})
-    assert 'keep-one' in mapping_any2 and 'stale-two' not in mapping_any2, 'stale slug should be pruned'
+    assert (
+        'keep-one' in mapping_any2 and 'stale-two' not in mapping_any2
+    ), 'stale slug should be pruned'

@@ -12,4 +12,3 @@ def test_noop_assigner_does_nothing():
     assigner = build_project_assigner(cfg)
     # Should not raise when calling assign
     assigner.assign(123, object())
-

@@ -5,6 +5,7 @@ properties) to give downstream tooling enough information for validation,
 documentation, and AI reasoning without over‑specifying internals that may
 change. Nested objects are left mostly open to allow additive evolution.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -57,12 +58,16 @@ def get_schemas() -> dict[str, Any]:
             "dry_run": {"type": "boolean"},
             "totals": {"type": "object"},
             "changes": {"type": "object"},
-            "last_error": {"type": "object", "description": "Present only when sync failed", "properties": {
-                "category": {"type": "string"},
-                "transient": {"type": "boolean"},
-                "original_type": {"type": "string"},
-                "message": {"type": "string"},
-            }},
+            "last_error": {
+                "type": "object",
+                "description": "Present only when sync failed",
+                "properties": {
+                    "category": {"type": "string"},
+                    "transient": {"type": "boolean"},
+                    "original_type": {"type": "string"},
+                    "message": {"type": "string"},
+                },
+            },
         },
     }
 

@@ -55,12 +55,8 @@ ai:
 )
 
 
-def _run(
-    cmd: Sequence[str], cwd: Path, env: dict[str, str] | None = None
-) -> tuple[int, str]:
-    result = subprocess.run(
-        cmd, cwd=str(cwd), capture_output=True, text=True, env=env, check=False
-    )
+def _run(cmd: Sequence[str], cwd: Path, env: dict[str, str] | None = None) -> tuple[int, str]:
+    result = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True, env=env, check=False)
     return int(result.returncode), str(result.stdout + result.stderr)
 
 
@@ -95,9 +91,7 @@ def test_mapping_persistence_mock_mode(tmp_path: Path) -> None:
         dict[Any, Any], mapping_val if isinstance(mapping_val, dict) else {}
     )
     mapping: dict[str, int] = {
-        str(k): int(v)
-        for k, v in mapping_raw.items()
-        if isinstance(k, str) and isinstance(v, int)
+        str(k): int(v) for k, v in mapping_raw.items() if isinstance(k, str) and isinstance(v, int)
     }
     assert mapping, "mapping should be present after first sync"
     index_file = tmp_path / ".issuesuite" / "index.json"
@@ -139,10 +133,6 @@ def test_mapping_persistence_mock_mode(tmp_path: Path) -> None:
         dict[Any, Any], mapping2_val if isinstance(mapping2_val, dict) else {}
     )
     mapping2: dict[str, int] = {
-        str(k): int(v)
-        for k, v in mapping2_raw.items()
-        if isinstance(k, str) and isinstance(v, int)
+        str(k): int(v) for k, v in mapping2_raw.items() if isinstance(k, str) and isinstance(v, int)
     }
-    assert (
-        mapping2 == mapping
-    ), "mapping should remain stable across runs with no changes"
+    assert mapping2 == mapping, "mapping should remain stable across runs with no changes"

@@ -3,7 +3,14 @@ from __future__ import annotations
 from issuesuite.models import IssueSpec  # isort:skip
 from issuesuite.reconcile import reconcile  # isort:skip
 
-def make_spec(slug: str, title: str, labels: list[str] | None = None, milestone: str | None = None, body: str = 'Body') -> IssueSpec:  # minimal helper
+
+def make_spec(
+    slug: str,
+    title: str,
+    labels: list[str] | None = None,
+    milestone: str | None = None,
+    body: str = 'Body',
+) -> IssueSpec:  # minimal helper
     return IssueSpec(
         external_id=slug,
         title=title,
@@ -43,7 +50,9 @@ def test_reconcile_detects_all_categories() -> None:
     report = reconcile(specs=specs, live_issues=live)
     assert report['in_sync'] is False
     kinds = [d['kind'] for d in report['drift']]
-    assert 'spec_only' in kinds  # slug-b or slug-c (one missing entirely, one will diff or be spec_only)
+    assert (
+        'spec_only' in kinds
+    )  # slug-b or slug-c (one missing entirely, one will diff or be spec_only)
     assert 'live_only' in kinds
     assert 'diff' in kinds
 

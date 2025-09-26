@@ -20,6 +20,7 @@ from .core import IssueSpec, IssueSuite
 # Version constant (sync manually with pyproject when extracted as standalone project)
 __version__ = "0.1.8"
 
+
 def __getattr__(name: str) -> object:
     """Lazy loading of modules to improve import performance."""
     if name == "load_config":

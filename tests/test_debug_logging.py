@@ -25,6 +25,7 @@ body: |
 ```
 """
 
+
 def test_debug_logging_emits(monkeypatch, tmp_path, capsys):
     cfg_path = tmp_path / 'issue_suite.config.yaml'
     (tmp_path / 'ISSUES.md').write_text(ISSUES)

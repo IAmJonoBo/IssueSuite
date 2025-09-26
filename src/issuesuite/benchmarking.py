@@ -19,10 +19,13 @@ from typing import Any
 from .logging import get_logger
 
 # Optional system metrics dependency (module-level import for linting)
+_psutil: Any | None
 try:
-    import psutil as _psutil  # type: ignore[import-untyped]
+    import psutil as _psutil_mod
 except Exception:  # pragma: no cover - optional dependency
     _psutil = None
+else:
+    _psutil = _psutil_mod
 
 # Magic-number thresholds (ms)
 SLOW_OPERATION_MS = 1000  # 1 second
@@ -87,7 +90,6 @@ class PerformanceBenchmark:
             self._system_monitor = _psutil
             self.logger.debug("System monitoring initialized")
         else:
-            self.logger.warning("psutil not available - system metrics disabled")
             self._system_monitor = None
 
     def _get_system_metrics(self) -> dict[str, Any]:
@@ -116,43 +118,43 @@ class PerformanceBenchmark:
     def measure(self, operation: str, **context: Any) -> Generator[None, None, None]:
         """Context manager for measuring operation performance."""
         if not self.config.enabled:
+            # Provide a no-op context manager when disabled.
             yield
-            return
+        else:
+            start_time = time.perf_counter()
+            start_metrics = self._get_system_metrics()
 
-        start_time = time.perf_counter()
-        start_metrics = self._get_system_metrics()
+            try:
+                self.logger.debug(f"Starting benchmark: {operation}")
+                yield
+            finally:
+                end_time = time.perf_counter()
+                duration_ms = (end_time - start_time) * 1000
+                end_metrics = self._get_system_metrics()
 
-        try:
-            self.logger.debug(f"Starting benchmark: {operation}")
-            yield
-        finally:
-            end_time = time.perf_counter()
-            duration_ms = (end_time - start_time) * 1000
-            end_metrics = self._get_system_metrics()
+                # Calculate resource usage differences
+                memory_usage = None
+                cpu_usage = None
 
-            # Calculate resource usage differences
-            memory_usage = None
-            cpu_usage = None
+                if start_metrics and end_metrics:
+                    if "memory_rss_mb" in end_metrics:
+                        memory_usage = end_metrics["memory_rss_mb"] - start_metrics.get(
+                            "memory_rss_mb", 0
+                        )
+                    if "cpu_percent" in end_metrics:
+                        cpu_usage = end_metrics["cpu_percent"]
 
-            if start_metrics and end_metrics:
-                if "memory_rss_mb" in end_metrics:
-                    memory_usage = end_metrics["memory_rss_mb"] - start_metrics.get(
-                        "memory_rss_mb", 0
-                    )
-                if "cpu_percent" in end_metrics:
-                    cpu_usage = end_metrics["cpu_percent"]
+                metric = PerformanceMetric(
+                    name=operation,
+                    duration_ms=duration_ms,
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    context=context,
+                    memory_usage_mb=memory_usage,
+                    cpu_usage_percent=cpu_usage,
+                )
 
-            metric = PerformanceMetric(
-                name=operation,
-                duration_ms=duration_ms,
-                timestamp=datetime.now(timezone.utc).isoformat(),
-                context=context,
-                memory_usage_mb=memory_usage,
-                cpu_usage_percent=cpu_usage,
-            )
-
-            self._metrics.append(metric)
-            self.logger.log_performance(operation, duration_ms, **context)
+                self._metrics.append(metric)
+                self.logger.log_performance(operation, duration_ms, **context)
 
     def start_timer(self, name: str) -> None:
         """Start a named timer."""
@@ -264,9 +266,7 @@ class PerformanceBenchmark:
         self.logger.log_operation("benchmark_complete", benchmark_name=name, **summary)
         return benchmark_result
 
-    def get_metrics(
-        self, operation_filter: str | None = None
-    ) -> list[PerformanceMetric]:
+    def get_metrics(self, operation_filter: str | None = None) -> list[PerformanceMetric]:
         """Get collected metrics, optionally filtered by operation name."""
         if operation_filter:
             return [m for m in self._metrics if operation_filter in m.name]
@@ -297,9 +297,7 @@ class PerformanceBenchmark:
                 "median_ms": statistics.median(op_durations),
                 "min_ms": min(op_durations),
                 "max_ms": max(op_durations),
-                "stddev_ms": (
-                    statistics.stdev(op_durations) if len(op_durations) > 1 else 0
-                ),
+                "stddev_ms": (statistics.stdev(op_durations) if len(op_durations) > 1 else 0),
             }
 
         return {
@@ -334,9 +332,7 @@ class PerformanceBenchmark:
                     metric_count=len(self._metrics),
                 )
             except Exception as e:
-                self.logger.log_error(
-                    "Failed to write performance report", error=str(e)
-                )
+                self.logger.log_error("Failed to write performance report", error=str(e))
 
         return report
 
@@ -384,18 +380,14 @@ class PerformanceBenchmark:
                 "other_mean_ms": other_mean,
                 "performance_ratio": ratio,
                 "improvement_percent": (
-                    ((other_mean - self_mean) / other_mean * 100)
-                    if other_mean > 0
-                    else 0
+                    ((other_mean - self_mean) / other_mean * 100) if other_mean > 0 else 0
                 ),
             }
 
         return comparison
 
 
-def create_benchmark(
-    config: BenchmarkConfig, mock: bool = False
-) -> PerformanceBenchmark:
+def create_benchmark(config: BenchmarkConfig, mock: bool = False) -> PerformanceBenchmark:
     """Factory function to create a performance benchmark."""
     return PerformanceBenchmark(config, mock)
 
@@ -441,9 +433,7 @@ def analyze_performance_trends(metrics: list[PerformanceMetric]) -> dict[str, An
             second_half_avg = statistics.mean(durations[midpoint:])
 
             trend = "improving" if second_half_avg < first_half_avg else "degrading"
-            trend_magnitude = (
-                abs(second_half_avg - first_half_avg) / first_half_avg * 100
-            )
+            trend_magnitude = abs(second_half_avg - first_half_avg) / first_half_avg * 100
 
             analysis[op_name] = {
                 "trend": trend,

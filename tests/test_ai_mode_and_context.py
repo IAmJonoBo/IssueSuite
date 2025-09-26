@@ -31,7 +31,9 @@ def test_ai_mode_forces_dry_run(tmp_path: Path, monkeypatch: Any) -> None:
     # Minimal config + ISSUES.md
     config = tmp_path / "issue_suite.config.yaml"
     config.write_text("""version: 1\nrepository: example/repo\n""")
-    (tmp_path / "ISSUES.md").write_text("""# Roadmap\n\n## [slug: example-feature]\n```yaml\ntitle: Example Feature\nlabels: [feature]\nbody: |\n  Task one\n```\n""")
+    (tmp_path / "ISSUES.md").write_text(
+        """# Roadmap\n\n## [slug: example-feature]\n```yaml\ntitle: Example Feature\nlabels: [feature]\nbody: |\n  Task one\n```\n"""
+    )
 
     env = {"ISSUESUITE_AI_MODE": "1", "ISSUES_SUITE_MOCK": "1"}
 
@@ -41,13 +43,19 @@ def test_ai_mode_forces_dry_run(tmp_path: Path, monkeypatch: Any) -> None:
     # Expect ai_mode indicator in output
     assert "ai_mode" in res.stdout
     # Dry run should be enforced implicitly (text heuristic)
-    assert "dry_run=True" in res.stdout or "dry-run=True" in res.stdout or "dry_run': True" in res.stdout
+    assert (
+        "dry_run=True" in res.stdout
+        or "dry-run=True" in res.stdout
+        or "dry_run': True" in res.stdout
+    )
 
 
 def test_ai_context_command_structure(tmp_path: Path, monkeypatch: Any) -> None:
     config = tmp_path / "issue_suite.config.yaml"
     config.write_text("""version: 1\nrepository: example/repo\n""")
-    (tmp_path / "ISSUES.md").write_text("""# Roadmap\n\n## [slug: example-feature]\n```yaml\ntitle: Example Feature\nlabels: [feature]\nbody: |\n  Task one\n```\n""")
+    (tmp_path / "ISSUES.md").write_text(
+        """# Roadmap\n\n## [slug: example-feature]\n```yaml\ntitle: Example Feature\nlabels: [feature]\nbody: |\n  Task one\n```\n"""
+    )
 
     env = {"ISSUES_SUITE_MOCK": "1"}
     res = run_cli(env, "ai-context", "--config", str(config))
@@ -79,9 +87,8 @@ def test_ai_context_command_structure(tmp_path: Path, monkeypatch: Any) -> None:
     assert data["schemaVersion"].startswith("ai-context/1"), data["schemaVersion"]
     # Each preview item should have limited keys
     for item in data["preview"]:
-        assert set(item.keys()) <= {"external_id","title","hash","labels","milestone","status"}
+        assert set(item.keys()) <= {"external_id", "title", "hash", "labels", "milestone", "status"}
 
     # recommended section sanity checks
     assert "usage" in data["recommended"]
     assert "env" in data["recommended"]
-

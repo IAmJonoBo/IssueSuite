@@ -5,6 +5,7 @@ imported without an editable install (`pip install -e .`). This keeps CI and
 local iteration fast and avoids polluting the environment when running tests
 directly from a fresh clone.
 """
+
 from __future__ import annotations
 
 import os
@@ -40,14 +41,17 @@ pytest_plugins = ["pytest_asyncio"]
 
 # --- Timing utilities to help identify slow/stalling tests ---
 
+
 def pytest_runtest_setup(item):  # type: ignore
     _TEST_START_TIMES[item.nodeid] = time.perf_counter()
+
 
 def pytest_runtest_teardown(item):  # type: ignore
     start = _TEST_START_TIMES.pop(item.nodeid, None)
     if start is not None:
         duration = time.perf_counter() - start
         _TEST_DURATIONS.append((item.nodeid, duration))
+
 
 def pytest_sessionfinish(session, exitstatus):  # type: ignore
     # Print a simple sorted timing table at the end to spot slow tests

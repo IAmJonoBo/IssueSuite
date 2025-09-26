@@ -14,6 +14,7 @@ Usage examples:
   python scripts/release.py --patch --push
   python scripts/release.py --minor --dry-run
 """
+
 from __future__ import annotations
 
 import argparse
@@ -53,7 +54,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument('--prerelease', help='Append prerelease tag (e.g. rc1, beta1)')
     p.add_argument('--skip-changelog', action='store_true', help='Do not modify CHANGELOG')
     p.add_argument('--push', action='store_true', help='Push commit and tag to origin')
-    p.add_argument('--create-github-release', action='store_true', help='Create GitHub release via gh CLI (requires gh auth)')
+    p.add_argument(
+        '--create-github-release',
+        action='store_true',
+        help='Create GitHub release via gh CLI (requires gh auth)',
+    )
     p.add_argument('--dry-run', action='store_true', help='Do not write files or run git commands')
     return p.parse_args()
 
@@ -97,8 +102,12 @@ def update_init(version: str, dry_run: bool) -> None:
 def update_pyproject(version: str, dry_run: bool) -> None:
     text = PYPROJECT.read_text(encoding='utf-8')
     # Replace first occurrence only inside [project] section
-    new_text = re.sub(r"(\n\[project\][\s\S]*?\nversion\s*=\s*['\"])([^'\"]+)(['\"])",
-                      lambda m: m.group(1) + version + m.group(3), text, count=1)
+    new_text = re.sub(
+        r"(\n\[project\][\s\S]*?\nversion\s*=\s*['\"])([^'\"]+)(['\"])",
+        lambda m: m.group(1) + version + m.group(3),
+        text,
+        count=1,
+    )
     if text == new_text:
         return
     if dry_run:
@@ -192,6 +201,7 @@ def main() -> None:
     if args.create_github_release:
         gh_release(new_version, args.dry_run)
     print('Done.')
+
 
 if __name__ == '__main__':  # pragma: no cover
     main()

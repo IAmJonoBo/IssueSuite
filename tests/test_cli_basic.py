@@ -65,34 +65,90 @@ def test_cli_summary_export_schema_validate_sync(tmp_path):
     env['ISSUES_SUITE_MOCK'] = '1'
 
     # summary
-    rc, out = _run([sys.executable, '-m', 'issuesuite.cli', 'summary', '--config', 'issue_suite.config.yaml', '--limit', '5'], tmp_path, env)
+    rc, out = _run(
+        [
+            sys.executable,
+            '-m',
+            'issuesuite.cli',
+            'summary',
+            '--config',
+            'issue_suite.config.yaml',
+            '--limit',
+            '5',
+        ],
+        tmp_path,
+        env,
+    )
     assert rc == 0, out
     assert 'Total: 2' in out
 
     # export
     export_path = tmp_path / 'out.json'
-    rc, out = _run([sys.executable, '-m', 'issuesuite.cli', 'export', '--config', 'issue_suite.config.yaml', '--output', str(export_path), '--pretty'], tmp_path, env)
+    rc, out = _run(
+        [
+            sys.executable,
+            '-m',
+            'issuesuite.cli',
+            'export',
+            '--config',
+            'issue_suite.config.yaml',
+            '--output',
+            str(export_path),
+            '--pretty',
+        ],
+        tmp_path,
+        env,
+    )
     assert rc == 0, out
     data = json.loads(export_path.read_text())
     assert len(data) == EXPECTED_SPEC_COUNT
     assert {d['external_id'] for d in data} == {'cli-alpha', 'cli-beta'}
 
     # schema (stdout)
-    rc, out = _run([sys.executable, '-m', 'issuesuite.cli', 'schema', '--config', 'issue_suite.config.yaml', '--stdout'], tmp_path, env)
+    rc, out = _run(
+        [
+            sys.executable,
+            '-m',
+            'issuesuite.cli',
+            'schema',
+            '--config',
+            'issue_suite.config.yaml',
+            '--stdout',
+        ],
+        tmp_path,
+        env,
+    )
     assert rc == 0, out
     schemas = json.loads(out)
     # Now includes ai_context schema as well
     assert set(schemas.keys()) == {'export', 'summary', 'ai_context'}
 
     # validate
-    rc, out = _run([sys.executable, '-m', 'issuesuite.cli', 'validate', '--config', 'issue_suite.config.yaml'], tmp_path, env)
+    rc, out = _run(
+        [sys.executable, '-m', 'issuesuite.cli', 'validate', '--config', 'issue_suite.config.yaml'],
+        tmp_path,
+        env,
+    )
     assert rc == 0, out
 
     # sync (dry-run) with summary output
     summary_path = tmp_path / 'summary.json'
-    rc, out = _run([
-        sys.executable, '-m', 'issuesuite.cli', 'sync', '--config', 'issue_suite.config.yaml', '--dry-run', '--update', '--summary-json', str(summary_path)
-    ], tmp_path, env)
+    rc, out = _run(
+        [
+            sys.executable,
+            '-m',
+            'issuesuite.cli',
+            'sync',
+            '--config',
+            'issue_suite.config.yaml',
+            '--dry-run',
+            '--update',
+            '--summary-json',
+            str(summary_path),
+        ],
+        tmp_path,
+        env,
+    )
     assert rc == 0, out
     summary = json.loads(summary_path.read_text())
     assert summary['totals']['specs'] == EXPECTED_SPEC_COUNT
@@ -100,22 +156,43 @@ def test_cli_summary_export_schema_validate_sync(tmp_path):
 
 
 def test_marker_and_prune(tmp_path):
-  issues_file = tmp_path / 'ISSUES.md'
-  issues_file.write_text(SAMPLE_ISSUES)
-  (tmp_path / 'issue_suite.config.yaml').write_text(MIN_CONFIG)
-  env = os.environ.copy()
-  env['ISSUES_SUITE_MOCK'] = '1'
-  # First sync (non dry-run) to create issues and persist mapping
-  rc, out = _run([
-    sys.executable, '-m', 'issuesuite.cli', 'sync', '--config', 'issue_suite.config.yaml', '--update'
-  ], tmp_path, env)
-  assert rc == 0, out
-  # Body marker should have been inserted (check in mock create output)
-  assert '<!-- issuesuite:slug=cli-alpha -->' in out
-  # Remove one spec and prune
-  pruned_content = SAMPLE_ISSUES.split('\n\n## [slug: cli-beta]')[0] + '\n'
-  issues_file.write_text(pruned_content)
-  rc, out2 = _run([
-    sys.executable, '-m', 'issuesuite.cli', 'sync', '--config', 'issue_suite.config.yaml', '--update', '--prune'
-  ], tmp_path, env)
-  assert rc == 0, out2
+    issues_file = tmp_path / 'ISSUES.md'
+    issues_file.write_text(SAMPLE_ISSUES)
+    (tmp_path / 'issue_suite.config.yaml').write_text(MIN_CONFIG)
+    env = os.environ.copy()
+    env['ISSUES_SUITE_MOCK'] = '1'
+    # First sync (non dry-run) to create issues and persist mapping
+    rc, out = _run(
+        [
+            sys.executable,
+            '-m',
+            'issuesuite.cli',
+            'sync',
+            '--config',
+            'issue_suite.config.yaml',
+            '--update',
+        ],
+        tmp_path,
+        env,
+    )
+    assert rc == 0, out
+    # Body marker should have been inserted (check in mock create output)
+    assert '<!-- issuesuite:slug=cli-alpha -->' in out
+    # Remove one spec and prune
+    pruned_content = SAMPLE_ISSUES.split('\n\n## [slug: cli-beta]')[0] + '\n'
+    issues_file.write_text(pruned_content)
+    rc, out2 = _run(
+        [
+            sys.executable,
+            '-m',
+            'issuesuite.cli',
+            'sync',
+            '--config',
+            'issue_suite.config.yaml',
+            '--update',
+            '--prune',
+        ],
+        tmp_path,
+        env,
+    )
+    assert rc == 0, out2

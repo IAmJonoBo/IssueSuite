@@ -6,6 +6,7 @@ from typing import Any  # isort:skip
 
 from issuesuite.retry import RetryConfig, run_with_retries  # isort:skip
 
+
 class DummyCalledProcessError(subprocess.CalledProcessError):
     def __init__(self, output: str, returncode: int = 1):
         super().__init__(returncode, cmd='gh api', output=output)

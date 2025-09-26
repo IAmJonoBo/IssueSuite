@@ -233,7 +233,7 @@ Use these prompts with GitHub Copilot Chat:
 
 1. **Use descriptive issue titles** - Helps Copilot understand context
 2. **Enable structured logging** - Better debugging and monitoring
-3. **Use environment variables** - Secure and flexible configuration  
+3. **Use environment variables** - Secure and flexible configuration
 4. **Enable performance benchmarking** - Monitor and optimize operations
 5. **Leverage VS Code tasks** - Streamline your workflow
 6. **Regular authentication checks** - Prevent sync failures

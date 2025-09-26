@@ -22,15 +22,18 @@ MAPPING_SNAPSHOT_THRESHOLD = 500
 
 # --- Typed schema objects -------------------------------------------------
 
+
 class ChangeEntry(TypedDict, total=False):
     external_id: str
     action: str  # created / updated / closed / unchanged (if ever exposed)
     diff: dict[str, Any]
 
+
 class ChangeSet(TypedDict, total=False):
     created: list[ChangeEntry]
     updated: list[ChangeEntry]
     closed: list[ChangeEntry]
+
 
 class Totals(TypedDict):
     created: int
@@ -39,10 +42,12 @@ class Totals(TypedDict):
     unchanged: int
     parsed: int
 
+
 class BaseSummary(TypedDict, total=False):
     totals: Totals
     changes: ChangeSet
     mapping: dict[str, int]
+
 
 class EnrichedSummary(BaseSummary, total=False):
     schemaVersion: int
@@ -54,6 +59,7 @@ class EnrichedSummary(BaseSummary, total=False):
     mapping_snapshot: dict[str, int]
     # last_error is optional and only present when sync failed
     last_error: Any
+
 
 # -------------------------------------------------------------------------
 

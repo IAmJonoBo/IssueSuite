@@ -6,19 +6,21 @@ from pathlib import Path
 from typing import Any, cast
 
 try:
-    import yaml  # type: ignore
+    import yaml
 except Exception:  # pragma: no cover
-    yaml = None
+    yaml = cast(Any, None)
 
 DEFAULT_MILESTONES = [
     'Sprint 0: Mobilize & Baseline',
     'M1: Real-Time Foundation',
     'M2: Performance & Validation',
-    'M3: Advanced Analytics'
+    'M3: Advanced Analytics',
 ]
+
 
 class ConfigError(RuntimeError):
     pass
+
 
 @dataclass
 class SuiteConfig:
@@ -52,7 +54,7 @@ class SuiteConfig:
     # Logging configuration
     logging_json_enabled: bool
     logging_level: str
-    # Performance configuration  
+    # Performance configuration
     performance_benchmarking: bool
     # Concurrency configuration
     concurrency_enabled: bool
@@ -95,7 +97,7 @@ def load_config(path: str | Path) -> SuiteConfig:
     concurrency_config = cast(dict[str, Any], raw.get('concurrency', {}) or {})
     github_app = cast(dict[str, Any], gh.get('app', {}) or {})
     env_auth = cast(dict[str, Any], raw.get('environment', {}) or {})
-    
+
     # Resolve environment variables in GitHub App configuration
     github_app_id = _resolve_env_var(github_app.get('app_id'), 'GITHUB_APP_ID')
     github_app_private_key_path = _resolve_env_var(
@@ -104,12 +106,12 @@ def load_config(path: str | Path) -> SuiteConfig:
     github_app_installation_id = _resolve_env_var(
         github_app.get('installation_id'), 'GITHUB_APP_INSTALLATION_ID'
     )
-    
+
     return SuiteConfig(
         version=int(raw.get('version', 1)),
         source_file=p.parent / src.get('file', 'ISSUES.md'),
-    # New slug-based format default: lowercase alnum plus hyphen/underscore
-    id_pattern=src.get('id_pattern', '^[a-z0-9][a-z0-9-_]*$'),
+        # New slug-based format default: lowercase alnum plus hyphen/underscore
+        id_pattern=src.get('id_pattern', '^[a-z0-9][a-z0-9-_]*$'),
         # Milestone enforcement is opt-in; default False to preserve backward compatibility.
         milestone_required=bool(src.get('milestone_required', False)),
         auto_status_label=bool(src.get('auto_status_label', True)),
@@ -133,7 +135,7 @@ def load_config(path: str | Path) -> SuiteConfig:
         emit_change_events=bool(behavior.get('emit_change_events', False)),
         schema_export_file=ai.get('schema_export_file', 'issue_export.schema.json'),
         schema_summary_file=ai.get('schema_summary_file', 'issue_change_summary.schema.json'),
-    schema_ai_context_file=ai.get('schema_ai_context_file', 'ai_context.schema.json'),
+        schema_ai_context_file=ai.get('schema_ai_context_file', 'ai_context.schema.json'),
         schema_version=int(ai.get('schema_version', 1)),
         # Logging configuration
         logging_json_enabled=bool(logging_config.get('json_enabled', False)),

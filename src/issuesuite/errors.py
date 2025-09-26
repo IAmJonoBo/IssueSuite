@@ -14,6 +14,7 @@ Usage goals:
 - Provide redaction for sensitive substrings (tokens, file paths, possibly emails).
 - Allow future mapping to metrics / schema exports.
 """
+
 from __future__ import annotations
 
 import re

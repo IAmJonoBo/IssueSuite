@@ -11,6 +11,7 @@ Subcommands:
 
 Designed to be dependency-light; heavy validation can be layered externally.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -41,8 +42,14 @@ def _build_parser() -> argparse.ArgumentParser:
 
     Keep ordering stable for help output readability.
     """
-    p = argparse.ArgumentParser(prog='issuesuite', description='Declarative GitHub issue automation')
-    p.add_argument('--quiet', action='store_true', help='Suppress informational logging (env: ISSUESUITE_QUIET=1)')
+    p = argparse.ArgumentParser(
+        prog='issuesuite', description='Declarative GitHub issue automation'
+    )
+    p.add_argument(
+        '--quiet',
+        action='store_true',
+        help='Suppress informational logging (env: ISSUESUITE_QUIET=1)',
+    )
     sub = p.add_subparsers(dest='cmd', required=True)
 
     ps = sub.add_parser('sync', help='Sync issues to GitHub (create/update/close)')
@@ -54,8 +61,12 @@ def _build_parser() -> argparse.ArgumentParser:
     ps.add_argument('--respect-status', action='store_true')
     ps.add_argument('--preflight', action='store_true')
     ps.add_argument('--summary-json')
-    ps.add_argument('--plan-json', help='When used with --dry-run, writes only the plan actions to a JSON file')
-    ps.add_argument('--prune', action='store_true', help='Close issues not present in specs (removed)')
+    ps.add_argument(
+        '--plan-json', help='When used with --dry-run, writes only the plan actions to a JSON file'
+    )
+    ps.add_argument(
+        '--prune', action='store_true', help='Close issues not present in specs (removed)'
+    )
     ps.add_argument('--project-owner', help='Override project owner (for future GraphQL)')
     ps.add_argument('--project-number', type=int, help='Override project number')
 
@@ -73,13 +84,19 @@ def _build_parser() -> argparse.ArgumentParser:
     imp = sub.add_parser('import', help='Generate draft ISSUES.md from live issues')
     imp.add_argument('--config', default=CONFIG_DEFAULT)
     imp.add_argument('--repo', help=REPO_HELP)
-    imp.add_argument('--output', default='ISSUES.import.md', help='Output markdown file (default: ISSUES.import.md)')
+    imp.add_argument(
+        '--output',
+        default='ISSUES.import.md',
+        help='Output markdown file (default: ISSUES.import.md)',
+    )
     imp.add_argument('--limit', type=int, default=500, help='Max issues to import (default 500)')
 
     rec = sub.add_parser('reconcile', help='Detect drift between local specs and live issues')
     rec.add_argument('--config', default=CONFIG_DEFAULT)
     rec.add_argument('--repo', help=REPO_HELP)
-    rec.add_argument('--limit', type=int, default=500, help='Max issues to fetch for comparison (default 500)')
+    rec.add_argument(
+        '--limit', type=int, default=500, help='Max issues to fetch for comparison (default 500)'
+    )
 
     doc = sub.add_parser('doctor', help='Run diagnostics (auth, repo access, config)')
     doc.add_argument('--config', default=CONFIG_DEFAULT)
@@ -90,8 +107,11 @@ def _build_parser() -> argparse.ArgumentParser:
     aictx.add_argument('--repo', help=REPO_HELP)
     aictx.add_argument('--output', help='Output file (defaults to stdout)')
     aictx.add_argument('--preview', type=int, default=5, help='Preview first N specs')
-    aictx.add_argument('--quiet', action='store_true', help='Suppress informational logging (env: ISSUESUITE_QUIET=1)')
-
+    aictx.add_argument(
+        '--quiet',
+        action='store_true',
+        help='Suppress informational logging (env: ISSUESUITE_QUIET=1)',
+    )
 
     sch = sub.add_parser('schema', help='Emit JSON Schema files')
     sch.add_argument('--config', default=CONFIG_DEFAULT)
@@ -101,7 +121,6 @@ def _build_parser() -> argparse.ArgumentParser:
     val = sub.add_parser('validate', help='Basic parse + id pattern validation')
     val.add_argument('--config', default=CONFIG_DEFAULT)
     val.add_argument('--repo', help=REPO_HELP)
-
 
     # Setup command for VS Code and online integration
     setup = sub.add_parser('setup', help='Setup authentication and VS Code integration')
@@ -129,10 +148,13 @@ def _cmd_export(cfg: SuiteConfig, args: argparse.Namespace) -> int:
             'status': s.status,
             'hash': s.hash,
             'body': s.body,
-        } for s in specs
+        }
+        for s in specs
     ]
     out_path = Path(args.output or cfg.export_json)
-    out_path.write_text(json.dumps(data, indent=2 if args.pretty else None) + ('\n' if args.pretty else ''))
+    out_path.write_text(
+        json.dumps(data, indent=2 if args.pretty else None) + ('\n' if args.pretty else '')
+    )
     print(f'[export] {len(data)} issues -> {out_path}')
     return 0
 
@@ -144,7 +166,7 @@ def _cmd_summary(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     if os.environ.get('ISSUESUITE_AI_MODE') == '1':
         # Include both hyphen and underscore style tokens so tests / tools can detect reliably
         print('[ai-mode] ai_mode=1 dry_run=True (forced)')
-    for s in specs[:args.limit]:
+    for s in specs[: args.limit]:
         print(f'  {s.external_id} {s.hash} {s.title[:70]}')
     if len(specs) > args.limit:
         print(f'  ... ({len(specs)-args.limit} more)')
@@ -191,8 +213,12 @@ def _cmd_schema(cfg: SuiteConfig, args: argparse.Namespace) -> int:
         Path(cfg.schema_export_file).write_text(json.dumps(schemas['export'], indent=2) + '\n')
         Path(cfg.schema_summary_file).write_text(json.dumps(schemas['summary'], indent=2) + '\n')
         if 'ai_context' in schemas and getattr(cfg, 'schema_ai_context_file', None):
-            Path(cfg.schema_ai_context_file).write_text(json.dumps(schemas['ai_context'], indent=2) + '\n')
-            print(f"[schema] wrote {cfg.schema_export_file}, {cfg.schema_summary_file}, {cfg.schema_ai_context_file}")
+            Path(cfg.schema_ai_context_file).write_text(
+                json.dumps(schemas['ai_context'], indent=2) + '\n'
+            )
+            print(
+                f"[schema] wrote {cfg.schema_export_file}, {cfg.schema_summary_file}, {cfg.schema_ai_context_file}"
+            )
         else:
             print(f"[schema] wrote {cfg.schema_export_file}, {cfg.schema_summary_file}")
         return 0
@@ -215,11 +241,13 @@ def _setup_check_auth(auth_manager: Any) -> None:  # dynamic methods accessed re
     token = auth_manager.get_github_token()
     app_cfg = auth_manager.get_github_app_config()
     online = auth_manager.is_online_environment()
-    _print_lines([
-        f"[setup] Environment: {'Online' if online else 'Local'}",
-        f"[setup] GitHub Token: {'✓ Found' if token else '✗ Not found'}",
-        f"[setup] GitHub App: {'✓ Configured' if all(app_cfg.values()) else '✗ Not configured'}",
-    ])
+    _print_lines(
+        [
+            f"[setup] Environment: {'Online' if online else 'Local'}",
+            f"[setup] GitHub Token: {'✓ Found' if token else '✗ Not found'}",
+            f"[setup] GitHub App: {'✓ Configured' if all(app_cfg.values()) else '✗ Not configured'}",
+        ]
+    )
     recs = auth_manager.get_authentication_recommendations()
     if recs:
         print("[setup] Recommendations:")
@@ -234,23 +262,27 @@ def _setup_vscode() -> None:
     else:
         print("[setup] Creating VS Code integration files...")
         print("[setup] VS Code files should be committed to your repository")
-    _print_lines([
-        "[setup] VS Code integration includes:",
-        "  - Tasks for common IssueSuite operations",
-        "  - Debug configurations",
-        "  - YAML schema associations for config files",
-        "  - Python environment configuration",
-    ])
+    _print_lines(
+        [
+            "[setup] VS Code integration includes:",
+            "  - Tasks for common IssueSuite operations",
+            "  - Debug configurations",
+            "  - YAML schema associations for config files",
+            "  - Python environment configuration",
+        ]
+    )
 
 
 def _setup_show_help() -> None:
-    _print_lines([
-        "[setup] Use --help to see available setup options",
-        "Available options:",
-        "  --create-env    Create sample .env file",
-        "  --check-auth    Check authentication status",
-        "  --vscode        Setup VS Code integration",
-    ])
+    _print_lines(
+        [
+            "[setup] Use --help to see available setup options",
+            "Available options:",
+            "  --create-env    Create sample .env file",
+            "  --check-auth    Check authentication status",
+            "  --vscode        Setup VS Code integration",
+        ]
+    )
 
 
 def _cmd_setup(args: argparse.Namespace) -> int:
@@ -268,6 +300,7 @@ def _cmd_setup(args: argparse.Namespace) -> int:
 
 class _QuietLogs:
     """Context manager to silence 'issuesuite' logger for clean machine-readable output."""
+
     def __enter__(self) -> _QuietLogs:  # noqa: D401
         self._logger = logging.getLogger('issuesuite')
         self._prev_level = self._logger.level
@@ -277,7 +310,9 @@ class _QuietLogs:
         self._logger.setLevel(logging.CRITICAL + 10)
         return self
 
-    def __exit__(self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: Any | None) -> None:  # noqa: D401
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: Any | None
+    ) -> None:  # noqa: D401
         self._logger.setLevel(self._prev_level)
         self._logger.handlers = self._prev_handlers
         self._logger.propagate = True
@@ -319,19 +354,23 @@ def _extract_issue_fields(it: dict[str, Any]) -> tuple[str, str, list[str], str 
     title = str(it.get('title') or '').strip() or 'Untitled'
     body = str(it.get('body') or '').strip()
     labels_raw: list[str] = []
-    for lbl in (it.get('labels') or []):
+    for lbl in it.get('labels') or []:
         if isinstance(lbl, dict):
             name = lbl.get('name')
             if isinstance(name, str) and name:
                 labels_raw.append(name)
     ms = it.get('milestone')
-    milestone_title = ms.get('title') if isinstance(ms, dict) and isinstance(ms.get('title'), str) else None
+    milestone_title = (
+        ms.get('title') if isinstance(ms, dict) and isinstance(ms.get('title'), str) else None
+    )
     state_val = str(it.get('state') or '').lower()
     status = state_val if state_val in {'open', 'closed'} else None
     return title, body, labels_raw, milestone_title, status
 
 
-def _render_issue_block(slug: str, title: str, body: str, labels: list[str], milestone: str | None, status: str | None) -> list[str]:
+def _render_issue_block(
+    slug: str, title: str, body: str, labels: list[str], milestone: str | None, status: str | None
+) -> list[str]:
     lines: list[str] = [f'## [slug: {slug}]', '', '```yaml', f'title: {title}']
     if milestone:
         lines.append(f'milestone: {milestone}')
@@ -350,7 +389,11 @@ def _render_issue_block(slug: str, title: str, body: str, labels: list[str], mil
 
 
 def _cmd_import(cfg: SuiteConfig, args: argparse.Namespace) -> int:
-    client_cfg = IssuesClientConfig(repo=args.repo or cfg.github_repo, dry_run=False, mock=os.environ.get('ISSUES_SUITE_MOCK') == '1')
+    client_cfg = IssuesClientConfig(
+        repo=args.repo or cfg.github_repo,
+        dry_run=False,
+        mock=os.environ.get('ISSUES_SUITE_MOCK') == '1',
+    )
     client = IssuesClient(client_cfg)
     issues = client.list_existing()
     if not issues:
@@ -389,7 +432,13 @@ def _cmd_reconcile(cfg: SuiteConfig, args: argparse.Namespace) -> int:
         print(f"[reconcile] failed to parse specs: {exc}", file=sys.stderr)
         return 2
     # Fetch live issues (respect mock & dry-run semantics by using IssuesClient directly)
-    client = IssuesClient(IssuesClientConfig(repo=args.repo or cfg.github_repo, dry_run=False, mock=os.environ.get('ISSUES_SUITE_MOCK') == '1'))
+    client = IssuesClient(
+        IssuesClientConfig(
+            repo=args.repo or cfg.github_repo,
+            dry_run=False,
+            mock=os.environ.get('ISSUES_SUITE_MOCK') == '1',
+        )
+    )
     live = client.list_existing()[: args.limit]
     rep = reconcile(specs=specs, live_issues=live)
     for line in format_report(rep):
@@ -407,7 +456,9 @@ def _doctor_token_check(warnings: list[str]) -> None:
     token = os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN')
     print(f"[doctor] token: {'present' if token else 'missing'}")
     if not token:
-        warnings.append('No GH_TOKEN/GITHUB_TOKEN environment variable detected (may rely on gh auth)')
+        warnings.append(
+            'No GH_TOKEN/GITHUB_TOKEN environment variable detected (may rely on gh auth)'
+        )
 
 
 def _doctor_env_flags() -> tuple[bool, bool]:

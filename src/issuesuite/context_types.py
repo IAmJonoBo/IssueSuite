@@ -6,11 +6,13 @@ from typing_extensions import NotRequired
 
 # Typed structures for AI context output
 
+
 class AIContextMapping(TypedDict, total=False):
     present: bool
     size: int
     snapshot_included: bool
     snapshot: NotRequired[dict[str, int] | None]
+
 
 class AIContextConfig(TypedDict):
     dry_run_default: bool
@@ -21,16 +23,19 @@ class AIContextConfig(TypedDict):
     concurrency_max_workers: int
     performance_benchmarking: bool
 
+
 class AIContextEnv(TypedDict):
     ai_mode: bool
     mock_mode: bool
     debug_logging: bool
+
 
 class AIContextProject(TypedDict, total=False):
     enabled: bool
     number: int | None
     field_mappings: dict[str, str]
     has_mappings: bool
+
 
 class AIContextRecommended(TypedDict):
     safe_sync: str
@@ -39,14 +44,17 @@ class AIContextRecommended(TypedDict):
     usage: list[str]
     env: list[str]
 
+
 class AIContextErrorsRetry(TypedDict):
     attempts_env: str
     base_env: str
     strategy: str
 
+
 class AIContextErrors(TypedDict):
     categories: list[str]
     retry: AIContextErrorsRetry
+
 
 class AIContextDoc(TypedDict):
     schemaVersion: str
@@ -59,6 +67,7 @@ class AIContextDoc(TypedDict):
     env: AIContextEnv
     project: AIContextProject
     recommended: AIContextRecommended
+
 
 __all__ = [
     'AIContextMapping',

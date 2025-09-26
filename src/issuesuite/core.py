@@ -7,7 +7,7 @@ import re
 import subprocess
 from contextlib import AbstractContextManager
 from pathlib import Path
-from typing import Any, Protocol, TypedDict
+from typing import Any, Protocol, TypedDict, cast
 
 from .benchmarking import BenchmarkConfig, create_benchmark
 from .concurrency import (
@@ -29,6 +29,7 @@ from .project import ProjectConfig, build_project_assigner
 # Hidden marker template for idempotent issue recognition
 _MARKER_PREFIX = '<!-- issuesuite:slug='
 
+
 def _ensure_marker(body: str, slug: str) -> str:
     """Ensure the hidden slug marker is present at top of body.
 
@@ -41,6 +42,8 @@ def _ensure_marker(body: str, slug: str) -> str:
         # Still prepend marker with blank line after for readability
         return marker + "\n\n" + body
     return marker + "\n\n" + body
+
+
 class PlanEntry(TypedDict, total=False):
     external_id: str
     title: str
@@ -52,14 +55,14 @@ class PlanEntry(TypedDict, total=False):
     changes: dict[str, int] | None
 
 
-
-
 def _plan_match_issue(spec: IssueSpec, existing: list[dict[str, Any]]) -> dict[str, Any] | None:
     for issue in existing:
         title = issue.get('title')
         if title == spec.title:
             return issue
-        if spec.external_id in (title or '') and re.sub(r'\s+', ' ', (title or '').lower()) == re.sub(r'\s+', ' ', spec.title.lower()):
+        if spec.external_id in (title or '') and re.sub(
+            r'\s+', ' ', (title or '').lower()
+        ) == re.sub(r'\s+', ' ', spec.title.lower()):
             return issue
     return None
 
@@ -84,13 +87,49 @@ def _plan_entry_for_spec(
     issue = _plan_match_issue(spec, existing)
     prev_hash = prev_hashes.get(spec.external_id)
     if not issue:
-        return PlanEntry(external_id=spec.external_id, title=spec.title, action='create', number=None, labels=spec.labels, milestone=spec.milestone, reason='no existing match', changes=None)
+        return PlanEntry(
+            external_id=spec.external_id,
+            title=spec.title,
+            action='create',
+            number=None,
+            labels=spec.labels,
+            milestone=spec.milestone,
+            reason='no existing match',
+            changes=None,
+        )
     number = issue.get('number') if isinstance(issue.get('number'), int) else None
     if respect_status and spec.status == 'closed' and issue.get('state') != 'CLOSED':
-        return PlanEntry(external_id=spec.external_id, title=spec.title, action='close', number=number, labels=spec.labels, milestone=spec.milestone, reason=None, changes=None)
+        return PlanEntry(
+            external_id=spec.external_id,
+            title=spec.title,
+            action='close',
+            number=number,
+            labels=spec.labels,
+            milestone=spec.milestone,
+            reason=None,
+            changes=None,
+        )
     if update and needs_update(spec, issue, prev_hash):
-        return PlanEntry(external_id=spec.external_id, title=spec.title, action='update', number=number, labels=spec.labels, milestone=spec.milestone, reason=None, changes=_plan_changes(spec, issue))
-    return PlanEntry(external_id=spec.external_id, title=spec.title, action='skip', number=number, labels=spec.labels, milestone=spec.milestone, reason=None, changes=None)
+        return PlanEntry(
+            external_id=spec.external_id,
+            title=spec.title,
+            action='update',
+            number=number,
+            labels=spec.labels,
+            milestone=spec.milestone,
+            reason=None,
+            changes=_plan_changes(spec, issue),
+        )
+    return PlanEntry(
+        external_id=spec.external_id,
+        title=spec.title,
+        action='skip',
+        number=number,
+        labels=spec.labels,
+        milestone=spec.milestone,
+        reason=None,
+        changes=None,
+    )
 
 
 def _build_plan(
@@ -100,7 +139,10 @@ def _build_plan(
     update: bool,
     respect_status: bool,
 ) -> list[PlanEntry]:
-    return [_plan_entry_for_spec(spec, existing, prev_hashes, update, respect_status) for spec in specs]
+    return [
+        _plan_entry_for_spec(spec, existing, prev_hashes, update, respect_status) for spec in specs
+    ]
+
 
 # Canonical label normalization map (mirrors legacy script)
 _LABEL_CANON_MAP = {
@@ -114,11 +156,15 @@ _concurrency_threshold_default = 10
 
 
 class ProjectAssignerProtocol(Protocol):  # narrow contract used in core for typing
-    def assign(self, issue_number: int, spec: Any) -> None: ...  # pragma: no cover - structural only
+    def assign(
+        self, issue_number: int, spec: Any
+    ) -> None: ...  # pragma: no cover - structural only
 
 
 class BenchmarkProtocol(Protocol):  # minimal protocol to appease type checker
-    def measure(self, operation: str, **context: Any) -> AbstractContextManager[None]: ...  # pragma: no cover
+    def measure(
+        self, operation: str, **context: Any
+    ) -> AbstractContextManager[None]: ...  # pragma: no cover
     def generate_report(self) -> None: ...  # pragma: no cover
 
 
@@ -131,13 +177,12 @@ class _ConcurrentProcessorProtocol(Protocol):  # narrow structural type for conc
     ) -> list[dict[str, Any]]: ...
 
 
-
 try:  # YAML is mandatory for new parser; if missing we raise at runtime when parse called
-    import yaml as _yaml  # type: ignore
+    import yaml as _yaml
 except Exception:  # pragma: no cover
-    _yaml = None
+    _yaml = cast(Any, None)
 
- # IssueSpec now sourced from models.py
+# IssueSpec now sourced from models.py
 
 
 class IssueSuite:
@@ -145,6 +190,7 @@ class IssueSuite:
     _env_auth_manager: Any | None
     _github_app_manager: Any | None
     _benchmark: BenchmarkProtocol
+
     def __init__(self, cfg: SuiteConfig):
         self.cfg = cfg
         self._debug = os.environ.get('ISSUESUITE_DEBUG') == '1'
@@ -152,50 +198,50 @@ class IssueSuite:
         self._mock = os.environ.get('ISSUES_SUITE_MOCK') == '1'
         # Last error classification (populated on failure for orchestrator embedding)
         self._last_error: dict[str, Any] | None = None
-        
+
         # Configure structured logging based on config
         self._logger = configure_logging(
-            json_logging=cfg.logging_json_enabled,
-            level=cfg.logging_level
+            json_logging=cfg.logging_json_enabled, level=cfg.logging_level
         )
-        
+
         # Configure environment authentication
         if cfg.env_auth_enabled:
-            self._env_auth_manager = create_env_auth_manager(EnvAuthConfig(
-                load_dotenv=cfg.env_auth_load_dotenv,
-                dotenv_path=cfg.env_auth_dotenv_path
-            ))
+            self._env_auth_manager = create_env_auth_manager(
+                EnvAuthConfig(
+                    load_dotenv=cfg.env_auth_load_dotenv, dotenv_path=cfg.env_auth_dotenv_path
+                )
+            )
             # Setup authentication from environment
             self._setup_env_authentication()
         else:
             self._env_auth_manager = None
-        
+
         # Configure concurrency
         self._concurrency_config = ConcurrencyConfig(
             enabled=cfg.concurrency_enabled,
             max_workers=cfg.concurrency_max_workers,
-            batch_size=10  # Default batch size
+            batch_size=10,  # Default batch size
         )
-        
+
         # Configure GitHub App authentication
         self._github_app_config = GitHubAppConfig(
             enabled=cfg.github_app_enabled,
             app_id=cfg.github_app_id,
             private_key_path=cfg.github_app_private_key_path,
-            installation_id=cfg.github_app_installation_id
+            installation_id=cfg.github_app_installation_id,
         )
         self._github_app_manager = None
-        
+
         # Configure performance benchmarking
         self._benchmark_config = BenchmarkConfig(
             enabled=cfg.performance_benchmarking,
             output_file='performance_report.json',
             collect_system_metrics=True,
             track_memory=True,
-            track_cpu=True
+            track_cpu=True,
         )
         self._benchmark: BenchmarkProtocol = create_benchmark(self._benchmark_config, self._mock)  # type: ignore[assignment]
-        
+
         # Setup GitHub App authentication if enabled
         if self._github_app_config.enabled:
             self._setup_github_app_auth()
@@ -204,23 +250,22 @@ class IssueSuite:
         """Setup environment-based authentication."""
         if not self._env_auth_manager:
             return
-        
+
         try:
             # Try to configure GitHub CLI with environment token
             if self._env_auth_manager.configure_github_cli():
-                self._logger.log_operation("env_auth_configured", 
-                                         source="environment_variables")
-            
+                self._logger.log_operation("env_auth_configured", source="environment_variables")
+
             # Log authentication recommendations if needed
             recommendations = self._env_auth_manager.get_authentication_recommendations()
             # Suppress recommendation noise when quiet mode requested
             if recommendations and os.environ.get('ISSUESUITE_QUIET') != '1':
                 self._logger.info("Authentication recommendations: " + "; ".join(recommendations))
-            
+
             # Detect online environment
             if self._env_auth_manager.is_online_environment():
                 self._logger.log_operation("online_environment_detected")
-                
+
         except Exception as e:
             self._logger.log_error("Environment authentication setup failed", error=str(e))
 
@@ -230,12 +275,13 @@ class IssueSuite:
             self._github_app_manager = create_github_app_manager(
                 self._github_app_config, self._mock
             )
-            
+
             if self._github_app_manager.is_enabled():
                 success = self._github_app_manager.configure_github_cli()
                 if success:
-                    self._logger.log_operation("github_app_auth_configured",
-                                             app_id=self._github_app_config.app_id)
+                    self._logger.log_operation(
+                        "github_app_auth_configured", app_id=self._github_app_config.app_id
+                    )
                 else:
                     self._logger.log_error("Failed to configure GitHub App authentication")
         except Exception as e:
@@ -250,6 +296,7 @@ class IssueSuite:
     @classmethod
     def from_config_path(cls, path: str | Path) -> IssueSuite:
         from .config import load_config  # local import to avoid circular  # noqa: PLC0415
+
         return cls(load_config(path))
 
     def parse(self) -> list[IssueSpec]:  # thin wrapper over parser module
@@ -263,16 +310,43 @@ class IssueSuite:
             raise ValueError(str(exc)) from exc
         return specs
 
-    def sync(self, *, dry_run: bool, update: bool, respect_status: bool, preflight: bool, prune: bool = False) -> dict[str, Any]:
+    def sync(
+        self,
+        *,
+        dry_run: bool,
+        update: bool,
+        respect_status: bool,
+        preflight: bool,
+        prune: bool = False,
+    ) -> dict[str, Any]:
         from .errors import (  # noqa: PLC0415 - local import to avoid cycles and only on demand
             classify_error,
         )
+
         try:
-            with self._benchmark.measure('sync_total', dry_run=dry_run, update=update,
-                                         respect_status=respect_status, preflight=preflight), \
-                 self._logger.timed_operation('sync', dry_run=dry_run, update=update,
-                                              respect_status=respect_status, preflight=preflight):
-                self._log('sync:start', f'dry_run={dry_run}', f'update={update}', f'respect_status={respect_status}', f'preflight={preflight}')
+            with (
+                self._benchmark.measure(
+                    'sync_total',
+                    dry_run=dry_run,
+                    update=update,
+                    respect_status=respect_status,
+                    preflight=preflight,
+                ),
+                self._logger.timed_operation(
+                    'sync',
+                    dry_run=dry_run,
+                    update=update,
+                    respect_status=respect_status,
+                    preflight=preflight,
+                ),
+            ):
+                self._log(
+                    'sync:start',
+                    f'dry_run={dry_run}',
+                    f'update={update}',
+                    f'respect_status={respect_status}',
+                    f'preflight={preflight}',
+                )
 
                 specs = self._sync_parse_and_preflight(preflight)
                 project_assigner = self._build_project_assigner()
@@ -281,7 +355,9 @@ class IssueSuite:
                 plan: list[PlanEntry] | None = None
                 if dry_run:
                     plan = _build_plan(specs, existing, prev_hashes, update, respect_status)
-                results = self._sync_process_specs(specs, existing, prev_hashes, dry_run, update, respect_status, project_assigner)
+                results = self._sync_process_specs(
+                    specs, existing, prev_hashes, dry_run, update, respect_status, project_assigner
+                )
                 if prune and not dry_run:
                     self._prune_unmatched(existing, results, dry_run)
                 summary = self._sync_build_summary(specs, results)
@@ -293,12 +369,14 @@ class IssueSuite:
                         self._save_hash_state(specs)
 
                 self._log('sync:done', summary['totals'])
-                self._logger.log_operation('sync_complete',
-                                           issues_created=summary['totals']['created'],
-                                           issues_updated=summary['totals']['updated'],
-                                           issues_closed=summary['totals']['closed'],
-                                           specs=summary['totals']['specs'],
-                                           skipped=summary['totals']['skipped'])
+                self._logger.log_operation(
+                    'sync_complete',
+                    issues_created=summary['totals']['created'],
+                    issues_updated=summary['totals']['updated'],
+                    issues_closed=summary['totals']['closed'],
+                    specs=summary['totals']['specs'],
+                    skipped=summary['totals']['skipped'],
+                )
 
                 if self._benchmark_config.enabled:
                     self._benchmark.generate_report()
@@ -333,34 +411,44 @@ class IssueSuite:
             missing = [s.external_id for s in specs if not s.milestone]
             if missing:
                 preview_limit = 5  # limit number of ids shown in exception
-                self._logger.log_error('milestone_required_missing', count=len(missing), ids=missing[:10])
+                self._logger.log_error(
+                    'milestone_required_missing', count=len(missing), ids=missing[:10]
+                )
                 preview = ', '.join(missing[:preview_limit])
                 suffix = '...' if len(missing) > preview_limit else ''
-                raise ValueError(f"Milestone required but missing for {len(missing)} spec(s): {preview}{suffix}")
+                raise ValueError(
+                    f"Milestone required but missing for {len(missing)} spec(s): {preview}{suffix}"
+                )
         if preflight:
             with self._benchmark.measure('preflight_setup'):
                 self._preflight(specs)
         return specs
 
     def _build_project_assigner(self) -> ProjectAssignerProtocol:
-        assigner = build_project_assigner(ProjectConfig(
-            enabled=bool(getattr(self.cfg, 'project_enable', False)),
-            number=getattr(self.cfg, 'project_number', None),
-            field_mappings=getattr(self.cfg, 'project_field_mappings', {}) or {},
-        ))
+        assigner = build_project_assigner(
+            ProjectConfig(
+                enabled=bool(getattr(self.cfg, 'project_enable', False)),
+                number=getattr(self.cfg, 'project_number', None),
+                field_mappings=getattr(self.cfg, 'project_field_mappings', {}) or {},
+            )
+        )
         return assigner  # conforms to ProjectAssignerProtocol
 
     # --- Issues client factory -------------------------------------------------
     def _build_issues_client(self, *, dry_run: bool) -> IssuesClient:
-        return IssuesClient(IssuesClientConfig(
-            repo=self.cfg.github_repo,
-            mock=self._mock,
-            dry_run=dry_run,
-        ))
+        return IssuesClient(
+            IssuesClientConfig(
+                repo=self.cfg.github_repo,
+                mock=self._mock,
+                dry_run=dry_run,
+            )
+        )
 
     def _sync_fetch_existing(self, preflight: bool) -> list[dict[str, Any]]:
         with self._benchmark.measure('fetch_existing_issues'):
-            if preflight and not (self.cfg.ensure_labels_enabled or self.cfg.ensure_milestones_enabled):
+            if preflight and not (
+                self.cfg.ensure_labels_enabled or self.cfg.ensure_milestones_enabled
+            ):
                 existing: list[dict[str, Any]] = []
             else:
                 existing = self._existing_issues() if self._gh_auth() else []
@@ -368,8 +456,16 @@ class IssueSuite:
         self._logger.log_operation('fetch_existing_issues', issue_count=len(existing))
         return existing
 
-    def _sync_process_specs(self, specs: list[IssueSpec], existing: list[dict[str, Any]], prev_hashes: dict[str, str],
-                            dry_run: bool, update: bool, respect_status: bool, project_assigner: ProjectAssignerProtocol) -> list[dict[str, Any]]:
+    def _sync_process_specs(
+        self,
+        specs: list[IssueSpec],
+        existing: list[dict[str, Any]],
+        prev_hashes: dict[str, str],
+        dry_run: bool,
+        update: bool,
+        respect_status: bool,
+        project_assigner: ProjectAssignerProtocol,
+    ) -> list[dict[str, Any]]:
         # Sequential fast path (default) unless concurrency explicitly enabled in config.
         if not self._concurrency_config.enabled or len(specs) < _concurrency_threshold_default:
             results: list[dict[str, Any]] = []
@@ -412,7 +508,9 @@ class IssueSuite:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():  # pragma: no cover - defensive
                     seq_sequential: list[dict[str, Any]] = []
-                    with self._benchmark.measure('process_specs', spec_count=len(specs), mode='sequential'):
+                    with self._benchmark.measure(
+                        'process_specs', spec_count=len(specs), mode='sequential'
+                    ):
                         for spec in specs:
                             result = self._process_spec(
                                 spec=spec,
@@ -428,7 +526,9 @@ class IssueSuite:
                 return asyncio.run(_run())
             except Exception:  # pragma: no cover - defensive fallback
                 seq_fallback: list[dict[str, Any]] = []
-                with self._benchmark.measure('process_specs', spec_count=len(specs), mode='sequential'):
+                with self._benchmark.measure(
+                    'process_specs', spec_count=len(specs), mode='sequential'
+                ):
                     for spec in specs:
                         result = self._process_spec(
                             spec=spec,
@@ -442,7 +542,9 @@ class IssueSuite:
                         seq_fallback.append({'spec': spec, 'result': result})
                 return seq_fallback
 
-    def _sync_build_summary(self, specs: list[IssueSpec], processed: list[dict[str, Any]]) -> dict[str, Any]:
+    def _sync_build_summary(
+        self, specs: list[IssueSpec], processed: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         created: list[dict[str, Any]] = []
         updated: list[dict[str, Any]] = []
         closed: list[dict[str, Any]] = []
@@ -452,7 +554,9 @@ class IssueSuite:
             spec: IssueSpec = entry['spec']
             result: dict[str, Any] = entry['result']
             if result.get('created'):
-                created.append({'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash})
+                created.append(
+                    {'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash}
+                )
             if mapped := result.get('mapped'):
                 mapping[spec.external_id] = mapped
             if closed_entry := result.get('closed'):
@@ -467,14 +571,23 @@ class IssueSuite:
                 'created': len(created),
                 'updated': len(updated),
                 'closed': len(closed),
-                'skipped': skipped
+                'skipped': skipped,
             },
             'changes': {'created': created, 'updated': updated, 'closed': closed},
             'mapping': mapping,
         }
 
-    def _process_spec(self, *, spec: IssueSpec, existing: list[dict[str, Any]], prev_hashes: dict[str, str],
-                      dry_run: bool, update: bool, respect_status: bool, project_assigner: ProjectAssignerProtocol) -> dict[str, Any]:
+    def _process_spec(
+        self,
+        *,
+        spec: IssueSpec,
+        existing: list[dict[str, Any]],
+        prev_hashes: dict[str, str],
+        dry_run: bool,
+        update: bool,
+        respect_status: bool,
+        project_assigner: ProjectAssignerProtocol,
+    ) -> dict[str, Any]:
         """Process a single spec returning a result map with one of keys:
         created | updated | closed | skipped plus optional mapped (issue number).
         Keeps logic isolated to lower cognitive complexity of sync().
@@ -504,7 +617,11 @@ class IssueSuite:
         if update and needs_update(spec, match, prev_hash):
             diff = compute_diff(spec, match)
             self._update(spec, match, dry_run)
-            result['updated'] = {'external_id': spec.external_id, 'number': match['number'], 'diff': diff}
+            result['updated'] = {
+                'external_id': spec.external_id,
+                'number': match['number'],
+                'diff': diff,
+            }
             return result
         result['skipped'] = True
         return result
@@ -514,7 +631,7 @@ class IssueSuite:
         if self._mock:
             return False
         try:
-            subprocess.check_output(['gh','auth','status'], stderr=subprocess.STDOUT)
+            subprocess.check_output(['gh', 'auth', 'status'], stderr=subprocess.STDOUT)
             return True
         except Exception:
             return False
@@ -531,6 +648,7 @@ class IssueSuite:
     def _match(self, spec: IssueSpec, existing: list[dict[str, Any]]) -> dict[str, Any] | None:
         def _norm(text: str) -> str:
             return re.sub(r'\s+', ' ', text.lower())
+
         marker = f"{_MARKER_PREFIX}{spec.external_id} -->"
         for issue in existing:
             body = issue.get('body') or ''
@@ -550,7 +668,9 @@ class IssueSuite:
         self._logger.log_issue_action('create', spec.external_id, dry_run=dry_run)
         client = self._build_issues_client(dry_run=dry_run)
         body_with_marker = _ensure_marker(spec.body, spec.external_id)
-        return client.create_issue(title=spec.title, body=body_with_marker, labels=spec.labels, milestone=spec.milestone)
+        return client.create_issue(
+            title=spec.title, body=body_with_marker, labels=spec.labels, milestone=spec.milestone
+        )
 
     def _update(self, spec: IssueSpec, issue: dict[str, Any], dry_run: bool) -> None:
         number = int(issue['number'])
@@ -558,16 +678,22 @@ class IssueSuite:
         self._logger.log_issue_action('update', spec.external_id, number, dry_run=dry_run)
         client = self._build_issues_client(dry_run=dry_run)
         body_with_marker = _ensure_marker(spec.body, spec.external_id)
-        client.update_issue(number=number, body=body_with_marker, labels=spec.labels, milestone=spec.milestone)
+        client.update_issue(
+            number=number, body=body_with_marker, labels=spec.labels, milestone=spec.milestone
+        )
 
     def _close(self, issue: dict[str, Any], dry_run: bool) -> None:
         number = int(issue['number'])
         self._log('close', f'#{number}', 'dry_run' if dry_run else '')
-        self._logger.log_issue_action('close', issue.get('title', 'unknown'), number, dry_run=dry_run)
+        self._logger.log_issue_action(
+            'close', issue.get('title', 'unknown'), number, dry_run=dry_run
+        )
         client = self._build_issues_client(dry_run=dry_run)
         client.close_issue(number=number)
 
-    def _prune_unmatched(self, existing: list[dict[str, Any]], processed: list[dict[str, Any]], dry_run: bool) -> None:
+    def _prune_unmatched(
+        self, existing: list[dict[str, Any]], processed: list[dict[str, Any]], dry_run: bool
+    ) -> None:
         """Close any existing issues that did not match a spec (removed from ISSUES.md).
 
         Only operates when prune flag set and not dry-run.
@@ -588,7 +714,13 @@ class IssueSuite:
     def _hash_state_path(self) -> Path:
         return self.cfg.source_file.parent / self.cfg.hash_state_file
 
-    def _maybe_assign_project_on_create(self, spec: IssueSpec, project_assigner: ProjectAssignerProtocol, result: dict[str, Any], dry_run: bool) -> None:
+    def _maybe_assign_project_on_create(
+        self,
+        spec: IssueSpec,
+        project_assigner: ProjectAssignerProtocol,
+        result: dict[str, Any],
+        dry_run: bool,
+    ) -> None:
         """Best-effort project assignment immediately after creation.
 
         In mock mode we fabricate an issue number from the external id if numeric.
@@ -632,7 +764,9 @@ class IssueSuite:
 
     def _save_hash_state(self, specs: list[IssueSpec]) -> None:
         p = self._hash_state_path()
-        p.write_text(json.dumps({'hashes': {s.external_id: s.hash for s in specs}}, indent=2) + '\n')
+        p.write_text(
+            json.dumps({'hashes': {s.external_id: s.hash for s in specs}}, indent=2) + '\n'
+        )
 
     # --- preflight helpers (label & milestone ensure) ---
     def _preflight(self, specs: list[IssueSpec]) -> None:  # orchestrator entry
@@ -643,12 +777,19 @@ class IssueSuite:
         if self.cfg.ensure_milestones_enabled and self.cfg.ensure_milestones_list:
             self._ensure_milestones()
 
-    def _ensure_labels(self, specs: list[IssueSpec]) -> None:  # pragma: no cover - network side-effects
+    def _ensure_labels(
+        self, specs: list[IssueSpec]
+    ) -> None:  # pragma: no cover - network side-effects
         if self._mock:
             return
-        desired = sorted({label for spec in specs for label in spec.labels} | set(self.cfg.inject_labels))
+        desired = sorted(
+            {label for spec in specs for label in spec.labels} | set(self.cfg.inject_labels)
+        )
         try:
-            out = subprocess.check_output(['gh','label','list','--limit','300','--json','name','--jq','.[].name'], text=True)
+            out = subprocess.check_output(
+                ['gh', 'label', 'list', '--limit', '300', '--json', 'name', '--jq', '.[].name'],
+                text=True,
+            )
             existing: set[str] = set(out.strip().splitlines())
         except Exception:
             existing = set()
@@ -656,11 +797,20 @@ class IssueSuite:
             if lbl in existing:
                 continue
             try:
-                subprocess.check_call([
-                    'gh','label','create', lbl,
-                    '--color','ededed',
-                    '--description','Auto-created (issuesuite)'
-                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.check_call(
+                    [
+                        'gh',
+                        'label',
+                        'create',
+                        lbl,
+                        '--color',
+                        'ededed',
+                        '--description',
+                        'Auto-created (issuesuite)',
+                    ],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
             except Exception:
                 pass
 
@@ -668,7 +818,10 @@ class IssueSuite:
         if self._mock:
             return
         try:
-            out = subprocess.check_output(['gh','api','repos/:owner/:repo/milestones','--paginate','--jq','.[].title'], text=True)
+            out = subprocess.check_output(
+                ['gh', 'api', 'repos/:owner/:repo/milestones', '--paginate', '--jq', '.[].title'],
+                text=True,
+            )
             existing: set[str] = set(out.strip().splitlines())
         except Exception:
             existing = set()
@@ -676,27 +829,42 @@ class IssueSuite:
             if ms in existing:
                 continue
             try:
-                subprocess.check_call([
-                    'gh','api','repos/:owner/:repo/milestones',
-                    '-f', f'title={ms}',
-                    '-f','description=Auto-created (issuesuite)'
-                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.check_call(
+                    [
+                        'gh',
+                        'api',
+                        'repos/:owner/:repo/milestones',
+                        '-f',
+                        f'title={ms}',
+                        '-f',
+                        'description=Auto-created (issuesuite)',
+                    ],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
             except Exception:
                 pass
-    
+
     # Concurrency support methods
     async def _get_existing_issues_async(self) -> list[dict[str, Any]]:
         """Get existing issues asynchronously."""
         if self._mock:
             return []
-        
+
         with create_async_github_client(self._concurrency_config, self._mock) as client:
             success, issues = await client.get_issues_async()
             return issues if success else []
-    
-    def _process_spec_wrapper(self, spec: IssueSpec, existing: list[dict[str, Any]],
-                              prev_hashes: dict[str, str], dry_run: bool, update: bool,
-                              respect_status: bool, project_assigner: ProjectAssignerProtocol) -> dict[str, Any]:
+
+    def _process_spec_wrapper(
+        self,
+        spec: IssueSpec,
+        existing: list[dict[str, Any]],
+        prev_hashes: dict[str, str],
+        dry_run: bool,
+        update: bool,
+        respect_status: bool,
+        project_assigner: ProjectAssignerProtocol,
+    ) -> dict[str, Any]:
         """Wrapper for _process_spec to be used with concurrent processing."""
         return self._process_spec(
             spec=spec,
@@ -705,16 +873,23 @@ class IssueSuite:
             dry_run=dry_run,
             update=update,
             respect_status=respect_status,
-            project_assigner=project_assigner
+            project_assigner=project_assigner,
         )
-    
-    async def sync_async(self, *, dry_run: bool, update: bool, respect_status: bool, preflight: bool) -> dict[str, Any]:
+
+    async def sync_async(
+        self, *, dry_run: bool, update: bool, respect_status: bool, preflight: bool
+    ) -> dict[str, Any]:
         """Async sync method with concurrency support for large roadmaps.
 
         Refactored to reduce branching complexity by delegating to helpers.
         """
-        with self._logger.timed_operation('sync_async', dry_run=dry_run, update=update,
-                                          respect_status=respect_status, preflight=preflight):
+        with self._logger.timed_operation(
+            'sync_async',
+            dry_run=dry_run,
+            update=update,
+            respect_status=respect_status,
+            preflight=preflight,
+        ):
             self._log('sync_async:start', f'dry_run={dry_run}')
             specs = self.parse()
             self._logger.log_operation('parse_complete', spec_count=len(specs))
@@ -725,23 +900,29 @@ class IssueSuite:
             existing = await self._fetch_existing_async()
             self._logger.log_operation('fetch_existing_issues', issue_count=len(existing))
             prev_hashes = self._load_hash_state()
-            results = await self._process_specs_async(specs, existing, prev_hashes,
-                                                      dry_run, update, respect_status, project_assigner)
+            results = await self._process_specs_async(
+                specs, existing, prev_hashes, dry_run, update, respect_status, project_assigner
+            )
             summary = self._aggregate_results(specs, results, dry_run)
-            self._logger.log_operation('sync_async_complete', **{
-                'issues_created': summary['totals']['created'],
-                'issues_updated': summary['totals']['updated'],
-                'issues_closed': summary['totals']['closed'],
-                'specs': summary['totals']['specs'],
-                'skipped': summary['totals']['skipped']
-            })
+            self._logger.log_operation(
+                'sync_async_complete',
+                **{
+                    'issues_created': summary['totals']['created'],
+                    'issues_updated': summary['totals']['updated'],
+                    'issues_closed': summary['totals']['closed'],
+                    'specs': summary['totals']['specs'],
+                    'skipped': summary['totals']['skipped'],
+                },
+            )
             return summary
 
     def _adjust_concurrency_if_needed(self, spec_count: int) -> None:
         if self.cfg.concurrency_enabled and spec_count >= _concurrency_threshold_default:
             optimal_workers = get_optimal_worker_count(spec_count, self.cfg.concurrency_max_workers)
             self._concurrency_config.max_workers = optimal_workers
-            self._logger.log_operation('concurrency_adjusted', spec_count=spec_count, workers=optimal_workers)
+            self._logger.log_operation(
+                'concurrency_adjusted', spec_count=spec_count, workers=optimal_workers
+            )
 
     async def _fetch_existing_async(self) -> list[dict[str, Any]]:
         if not self._gh_auth():
@@ -750,28 +931,49 @@ class IssueSuite:
             return await self._get_existing_issues_async()
         return self._existing_issues()
 
-    async def _process_specs_async(self, specs: list[IssueSpec], existing: list[dict[str, Any]],
-                                   prev_hashes: dict[str, str], dry_run: bool, update: bool,
-                                   respect_status: bool, project_assigner: ProjectAssignerProtocol) -> list[dict[str, Any]]:
+    async def _process_specs_async(
+        self,
+        specs: list[IssueSpec],
+        existing: list[dict[str, Any]],
+        prev_hashes: dict[str, str],
+        dry_run: bool,
+        update: bool,
+        respect_status: bool,
+        project_assigner: ProjectAssignerProtocol,
+    ) -> list[dict[str, Any]]:
         if self.cfg.concurrency_enabled and len(specs) > 1:
-            processor: _ConcurrentProcessorProtocol = create_concurrent_processor(self._concurrency_config, self._mock)
+            processor: _ConcurrentProcessorProtocol = create_concurrent_processor(
+                self._concurrency_config, self._mock
+            )
             concurrent_results: list[dict[str, Any]] = await processor.process_specs_concurrent(
-                specs, self._process_spec_wrapper,
-                existing, prev_hashes, dry_run, update, respect_status, project_assigner
+                specs,
+                self._process_spec_wrapper,
+                existing,
+                prev_hashes,
+                dry_run,
+                update,
+                respect_status,
+                project_assigner,
             )
             return concurrent_results
         # Sequential fallback
         results: list[dict[str, Any]] = []
         for spec in specs:
             result = self._process_spec(
-                spec=spec, existing=existing, prev_hashes=prev_hashes,
-                dry_run=dry_run, update=update, respect_status=respect_status,
-                project_assigner=project_assigner
+                spec=spec,
+                existing=existing,
+                prev_hashes=prev_hashes,
+                dry_run=dry_run,
+                update=update,
+                respect_status=respect_status,
+                project_assigner=project_assigner,
             )
             results.append(result)
         return results
 
-    def _aggregate_results(self, specs: list[IssueSpec], results: list[dict[str, Any]], dry_run: bool) -> dict[str, Any]:  # noqa: PLR0915
+    def _aggregate_results(
+        self, specs: list[IssueSpec], results: list[dict[str, Any]], dry_run: bool
+    ) -> dict[str, Any]:  # noqa: PLR0915
         created: list[dict[str, Any]] = []
         updated: list[dict[str, Any]] = []
         closed: list[dict[str, Any]] = []
@@ -783,7 +985,9 @@ class IssueSuite:
                 continue
             spec = specs[i]
             if result.get('created'):
-                created.append({'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash})
+                created.append(
+                    {'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash}
+                )
             if mapped := result.get('mapped'):
                 mapping[spec.external_id] = mapped
             if closed_entry := result.get('closed'):
@@ -800,7 +1004,7 @@ class IssueSuite:
                 'created': len(created),
                 'updated': len(updated),
                 'closed': len(closed),
-                'skipped': skipped
+                'skipped': skipped,
             },
             'changes': {'created': created, 'updated': updated, 'closed': closed},
             'mapping': mapping,

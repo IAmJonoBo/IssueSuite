@@ -29,19 +29,19 @@ def main():
     """Set up development environment."""
     project_root = Path(__file__).parent.parent
     os.chdir(project_root)
-    
+
     print("🚀 Setting up IssueSuite development environment...")
-    
+
     # Check if we're already in a virtual environment
     if not os.environ.get('VIRTUAL_ENV'):
         print("⚠️  Not in a virtual environment. Creating one...")
-        
+
         # Create virtual environment
         venv_path = project_root / "venv"
         if not venv_path.exists():
             run_command([sys.executable, "-m", "venv", "venv"])
             print("✅ Virtual environment created at ./venv")
-        
+
         # Detect activation script
         if sys.platform == "win32":
             activate_script = venv_path / "Scripts" / "activate.bat"
@@ -49,20 +49,20 @@ def main():
         else:
             activate_script = venv_path / "bin" / "activate"
             print(f"🔧 Activate with: source {activate_script}")
-        
+
         print("Please activate the virtual environment and run this script again.")
         return 1
-    
+
     print("✅ Virtual environment detected")
-    
+
     # Upgrade pip
     print("📦 Upgrading pip...")
     run_command([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
-    
+
     # Install package in editable mode with dev dependencies
     print("📦 Installing IssueSuite in editable mode with dev dependencies...")
     run_command([sys.executable, "-m", "pip", "install", "-e", ".[dev,all]"])
-    
+
     # Create development config if it doesn't exist
     dev_config = project_root / "issue_suite.config.yaml"
     if not dev_config.exists():
@@ -87,7 +87,7 @@ ai:
 '''
         dev_config.write_text(sample_config)
         print("✅ Created issue_suite.config.yaml")
-    
+
     # Run tests to verify setup
     print("🧪 Running tests to verify setup...")
     result = run_command([sys.executable, "-m", "pytest", "tests/", "-v"], check=False)
@@ -95,7 +95,7 @@ ai:
         print("✅ All tests passed!")
     else:
         print("⚠️  Some tests failed. Development environment is set up but tests need attention.")
-    
+
     # Check if issuesuite command works
     print("🔍 Verifying CLI installation...")
     result = run_command(["issuesuite", "--help"], check=False)
@@ -104,7 +104,7 @@ ai:
     else:
         print("❌ CLI command failed. Check installation.")
         return 1
-    
+
     print("\n🎉 Development environment setup complete!")
     print("\nQuick start commands:")
     print("  issuesuite validate --config issue_suite.config.yaml")
@@ -112,7 +112,7 @@ ai:
     print("  pytest tests/ -v")
     print("  ruff check src/")
     print("  mypy src/")
-    
+
     return 0
 
 

@@ -19,7 +19,9 @@ class _IssueDict(TypedDict, total=False):
     milestone: _MilestoneDict
     body: str
 
+
 MAX_BODY_DIFF_LINES = 120
+
 
 def extract_label_names(issue: dict[str, Any] | _IssueDict) -> set[str]:
     names: set[str] = set()
@@ -76,6 +78,7 @@ def compute_diff(spec: IssueSpec, issue: dict[str, Any]) -> dict[str, Any]:
         d['body_changed'] = True
         d['body_diff'] = diff_lines
     return d
+
 
 __all__ = [
     'needs_update',
