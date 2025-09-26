@@ -123,6 +123,41 @@
                 "panel": "shared"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "IssueSuite: Reconcile",
+            "type": "shell",
+            "command": "issuesuite",
+            "args": [
+                "reconcile",
+                "--config", "${workspaceFolder}/issue_suite.config.yaml"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "IssueSuite: AI Context",
+            "type": "shell",
+            "command": "issuesuite",
+            "args": [
+                "ai-context",
+                "--quiet",
+                "--config", "${workspaceFolder}/issue_suite.config.yaml"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
         }
     ]
 }

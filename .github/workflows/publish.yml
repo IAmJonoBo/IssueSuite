@@ -1,5 +1,13 @@
 name: Publish to PyPI
 
+concurrency:
+  group: pypi-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+
 on:
   release:
     types: [published]
@@ -55,12 +63,27 @@ jobs:
           name: dist
           path: dist/
 
+      - name: Show artifacts to publish
+        run: |
+          ls -l dist/
+          python - << 'PY'
+          import hashlib, pathlib
+          for p in pathlib.Path('dist').glob('*'):
+              h = hashlib.sha256(p.read_bytes()).hexdigest()
+              print(p.name, h)
+          PY
+
       - name: Publish to Test PyPI
         if: github.event.inputs.test_pypi == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+          packages-dir: dist
 
       - name: Publish to PyPI
         if: github.event.inputs.test_pypi != 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+          packages-dir: dist
