@@ -33,7 +33,7 @@ def main():
     print("🚀 Setting up IssueSuite development environment...")
 
     # Check if we're already in a virtual environment
-    if not os.environ.get('VIRTUAL_ENV'):
+    if not os.environ.get("VIRTUAL_ENV"):
         print("⚠️  Not in a virtual environment. Creating one...")
 
         # Create virtual environment
@@ -67,7 +67,7 @@ def main():
     dev_config = project_root / "issue_suite.config.yaml"
     if not dev_config.exists():
         print("📝 Creating development configuration...")
-        sample_config = '''version: 1
+        sample_config = """version: 1
 source:
   file: ISSUES.md
   id_pattern: "^[0-9]{3}$"
@@ -84,7 +84,7 @@ ai:
   schema_export_file: issue_export.schema.json
   schema_summary_file: issue_change_summary.schema.json
   schema_version: 1
-'''
+"""
         dev_config.write_text(sample_config)
         print("✅ Created issue_suite.config.yaml")
 

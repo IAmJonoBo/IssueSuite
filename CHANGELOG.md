@@ -21,6 +21,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.10] - 2025-09-26
 
+## [0.1.11] - 2025-09-26
+
+### Added (0.1.11)
+
+- New `agent-apply` CLI subcommand to ingest agent/Copilot completion updates (JSON), update `ISSUES.md` (status + append completion summaries), optionally update docs, and run a follow-up sync.
+- Shared rendering helpers in `parser.py` (`render_yaml_block_from_fields`, `render_issue_block`) to ensure canonical formatting across import/agent-apply and future renderers.
+
+### Changed (0.1.11)
+
+- `import` and `agent-apply` now use the central renderer utilities for consistent YAML/Markdown output.
+- Default agent-apply behavior respects status (closed issues get closed) and performs a dry-run sync unless `--apply` is provided; flags support explicit overrides.
+
+### Fixed (0.1.11)
+
+- Tests added to assert ISSUES.md is actually modified by agent-apply (status closed + completion summary) and that labels/milestone are preserved; full suite remains green.
+- Documentation updates in README and VS Code setup to describe agent-apply usage and workflows.
+
 ### Changed (0.1.10)
 
 - Bump version for docs/tasks/workflow updates and minor polish since 0.1.9.

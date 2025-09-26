@@ -11,7 +11,7 @@ requires = [ "setuptools>=68", "wheel" ]
 
 [project] # trigger-ci
 name = "issuesuite"
-version = "0.1.10" # Keep in sync with issuesuite.__version__
+version = "0.1.11" # Keep in sync with issuesuite.__version__
 description = "Declarative GitHub Issues automation: validate, sync, export, and report from a single ISSUES.md file"
 readme = { file = "README.md", content-type = "text/markdown" }
 keywords = [ "automation", "cli", "declarative", "devops", "github", "issues", "project-management", "roadmap" ]
@@ -98,6 +98,9 @@ lint.per-file-ignores."src/issuesuite/cli.py" = [
 ] # allow higher function complexity for CLI command dispatcher
 lint.per-file-ignores."src/issuesuite/core.py" = [ "PLR0912", "PLR0915" ] # parser + aggregation intentionally verbose
 lint.per-file-ignores."src/issuesuite/orchestrator.py" = [ "PLR0915" ] # enrichment logic intentionally linear/complex
+lint.per-file-ignores."src/issuesuite/parser.py" = [
+  "C901",
+] # parser functions are intentionally explicit with inline noqas
 lint.per-file-ignores."tests/**/*.py" = [
   "E741",    # ambiguous variable names in tests (e.g., list comps)
   "F401",    # unused imports in tests

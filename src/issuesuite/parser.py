@@ -132,4 +132,58 @@ def parse_issues(lines: Iterable[str]) -> list[IssueSpec]:  # noqa: C901
     return specs
 
 
-__all__ = ["parse_issues", "ParseError", "IssueSpec"]
+def render_yaml_block_from_fields(
+    *,
+    title: str,
+    labels: list[str] | None,
+    milestone: str | None,
+    status: str | None,
+    body: str,
+) -> list[str]:
+    """Render a YAML block in the canonical IssueSuite format.
+
+    Order: title, milestone, labels, status, body.
+    Body uses a literal block with two-space indentation. Trailing newline preserved.
+    """
+    lines: list[str] = []
+    title_s = (title or '').strip() or 'Untitled'
+    lines.append(f'title: {title_s}')
+    if milestone:
+        lines.append(f'milestone: {milestone}')
+    if labels:
+        lines.append('labels: [' + ', '.join(labels) + ']')
+    if status:
+        lines.append(f'status: {status}')
+    body_s = body or ''
+    if body_s:
+        if not body_s.endswith('\n'):
+            body_s += '\n'
+        lines.append('body: |')
+        for ln in body_s.splitlines():
+            lines.append('  ' + ln)
+    return lines
+
+
+def render_issue_block(
+    *,
+    slug: str,
+    title: str,
+    labels: list[str] | None,
+    milestone: str | None,
+    status: str | None,
+    body: str,
+) -> list[str]:
+    """Render a full issue block (header + fenced YAML)."""
+    yaml_lines = render_yaml_block_from_fields(
+        title=title, labels=labels, milestone=milestone, status=status, body=body
+    )
+    return [f'## [slug: {slug}]', '', '```yaml', *yaml_lines, '```', '']
+
+
+__all__ = [
+    "parse_issues",
+    "ParseError",
+    "IssueSpec",
+    "render_yaml_block_from_fields",
+    "render_issue_block",
+]

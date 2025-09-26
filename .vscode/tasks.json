@@ -2,6 +2,53 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "IssueSuite: Agent Apply (dry-run)",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/issuesuite",
+			"args": [
+				"agent-apply",
+				"--config",
+				"${workspaceFolder}/issue_suite.config.yaml",
+				"--updates-json",
+				"${workspaceFolder}/agent_updates.json",
+				"--dry-run-sync",
+				"--summary-json",
+				"${workspaceFolder}/issues_summary.json"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "IssueSuite: Agent Apply (apply)",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/issuesuite",
+			"args": [
+				"agent-apply",
+				"--config",
+				"${workspaceFolder}/issue_suite.config.yaml",
+				"--updates-json",
+				"${workspaceFolder}/agent_updates.json",
+				"--apply",
+				"--no-dry-run-sync",
+				"--summary-json",
+				"${workspaceFolder}/issues_summary.json"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "IssueSuite: Validate",
 			"type": "shell",
 			"command": "${workspaceFolder}/.venv/bin/issuesuite",
@@ -175,28 +222,6 @@
 				"panel": "shared"
 			},
 			"problemMatcher": []
-		},
-		{
-			"label": "IssueSuite: Validate",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/bin/issuesuite",
-			"args": [
-				"validate",
-				"--config",
-				"${workspaceFolder}/issue_suite.config.yaml"
-			],
-			"group": "build"
-		},
-		{
-			"label": "IssueSuite: Validate",
-			"type": "shell",
-			"command": "${workspaceFolder}/.venv/bin/issuesuite",
-			"args": [
-				"validate",
-				"--config",
-				"${workspaceFolder}/issue_suite.config.yaml"
-			],
-			"group": "build"
 		}
 	]
 }

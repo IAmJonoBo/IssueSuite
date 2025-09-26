@@ -8,6 +8,7 @@ Subcommands:
   schema    -> write JSON Schemas for export & summary
     import    -> generate draft ISSUES.md from live repository issues
     reconcile -> compare live issues against local specs (no mutation)
+        agent-apply -> apply agent completion summaries to ISSUES.md and docs
 
 Designed to be dependency-light; heavy validation can be layered externally.
 """
@@ -22,15 +23,17 @@ import re
 import sys
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from . import schemas as schema_module
+from .agent_updates import apply_agent_updates
 from .ai_context import get_ai_context
 from .config import SuiteConfig, load_config
 from .core import IssueSuite
 from .env_auth import create_env_auth_manager
 from .github_issues import IssuesClient, IssuesClientConfig
 from .orchestrator import sync_with_summary
+from .parser import render_issue_block
 from .reconcile import format_report, reconcile
 
 CONFIG_DEFAULT = 'issue_suite.config.yaml'
@@ -121,6 +124,34 @@ def _build_parser() -> argparse.ArgumentParser:
     val = sub.add_parser('validate', help='Basic parse + id pattern validation')
     val.add_argument('--config', default=CONFIG_DEFAULT)
     val.add_argument('--repo', help=REPO_HELP)
+
+    # Agent updates subcommand: ingest completion summaries and update ISSUES.md/docs
+    au = sub.add_parser(
+        'agent-apply',
+        help='Apply agent completion summaries to ISSUES.md and optional docs, then sync',
+    )
+    au.add_argument('--config', default=CONFIG_DEFAULT)
+    au.add_argument('--updates-json', help='Path to JSON file with agent updates (default: stdin)')
+    au.add_argument('--apply', action='store_true', help='Perform GitHub mutations (sync apply)')
+    au.add_argument(
+        '--no-sync', action='store_true', help='Do not run sync after applying file updates'
+    )
+    au.add_argument(
+        '--respect-status',
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help='Respect status for closing issues (default: true; use --no-respect-status to disable)',
+    )
+    au.add_argument(
+        '--dry-run-sync',
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help='Run a dry-run sync after file updates (default: true when --apply is not used; otherwise false unless explicitly enabled)',
+    )
+    au.add_argument(
+        '--summary-json',
+        help='Optional path to write sync summary json (passed through to sync)',
+    )
 
     # Setup command for VS Code and online integration
     setup = sub.add_parser('setup', help='Setup authentication and VS Code integration')
@@ -343,6 +374,63 @@ def _cmd_ai_context(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     return 0
 
 
+def _read_updates_json(path: str | None) -> dict[str, Any] | list[dict[str, Any]]:
+    if path:
+        text = Path(path).read_text(encoding='utf-8')
+    else:
+        text = sys.stdin.read()
+    data: Any = json.loads(text)
+    # Accept dict or list
+    if isinstance(data, dict):
+        return cast(dict[str, Any], data)
+    if isinstance(data, list):
+        return cast(list[dict[str, Any]], data)
+    raise ValueError('updates json must be a dict or list')
+
+
+def _cmd_agent_apply(cfg: SuiteConfig, args: argparse.Namespace) -> int:
+    # Load updates data
+    try:
+        updates_data = _read_updates_json(args.updates_json)
+    except Exception as exc:
+        print(f"[agent-apply] failed to read updates: {exc}", file=sys.stderr)
+        return 2
+
+    # Apply updates to ISSUES.md and docs
+    try:
+        result = apply_agent_updates(cfg, updates_data)
+    except Exception as exc:
+        print(f"[agent-apply] failed to apply updates: {exc}", file=sys.stderr)
+        return 2
+
+    changed_files = result.get('changed_files', []) if isinstance(result, dict) else []
+    print(f"[agent-apply] updated files: {', '.join(changed_files) if changed_files else 'none'}")
+
+    # Optionally run sync
+    if not args.no_sync:
+        do_apply = bool(args.apply)
+        # Default behavior: respect status when agent applies (closes issues)
+        respect_status = bool(getattr(args, 'respect_status', True))
+        dry_run = not do_apply or bool(args.dry_run_sync)
+        try:
+            summary = sync_with_summary(
+                cfg,
+                dry_run=dry_run,
+                update=True,
+                respect_status=respect_status,
+                preflight=False,
+                summary_path=args.summary_json,
+                prune=False,
+            )
+            totals = summary.get('totals') if isinstance(summary, dict) else None
+            if isinstance(totals, dict):
+                print('[agent-apply] sync totals', json.dumps(totals))
+        except Exception as exc:
+            print(f"[agent-apply] sync failed: {exc}", file=sys.stderr)
+            return 2
+    return 0
+
+
 def _slugify(title: str) -> str:
     base = re.sub(r'[^a-zA-Z0-9-_]+', '-', title.strip().lower()).strip('-')
     if not base:
@@ -371,21 +459,18 @@ def _extract_issue_fields(it: dict[str, Any]) -> tuple[str, str, list[str], str 
 def _render_issue_block(
     slug: str, title: str, body: str, labels: list[str], milestone: str | None, status: str | None
 ) -> list[str]:
-    lines: list[str] = [f'## [slug: {slug}]', '', '```yaml', f'title: {title}']
-    if milestone:
-        lines.append(f'milestone: {milestone}')
-    if labels:
-        lines.append('labels: [' + ', '.join(labels) + ']')
-    if status:
-        lines.append(f'status: {status}')
+    # Preserve import-time trimming but use shared renderer for formatting
     trimmed = re.sub(r'<!--\s*issuesuite:slug=[^>]+-->\s*', '', body)[:400].replace('```', '`\n`')
-    if trimmed:
-        lines.append('body: |')
-        for ln in trimmed.splitlines()[:20]:
-            lines.append(f'  {ln}')
-    lines.append('```')
-    lines.append('')
-    return lines
+    if trimmed and not trimmed.endswith('\n'):
+        trimmed += '\n'
+    return render_issue_block(
+        slug=slug,
+        title=title,
+        labels=labels or None,
+        milestone=milestone,
+        status=status,
+        body=trimmed,
+    )
 
 
 def _cmd_import(cfg: SuiteConfig, args: argparse.Namespace) -> int:
@@ -533,6 +618,7 @@ def main(argv: list[str] | None = None) -> int:
         'summary': lambda: _cmd_summary(cfg, args),
         'sync': lambda: _cmd_sync(cfg, args),
         'ai-context': lambda: _cmd_ai_context(cfg, args),
+        'agent-apply': lambda: _cmd_agent_apply(cfg, args),
         'schema': lambda: _cmd_schema(cfg, args),
         'validate': lambda: _cmd_validate(cfg),
         'setup': lambda: _cmd_setup(args),

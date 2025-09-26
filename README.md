@@ -36,6 +36,7 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
 - AI tooling: generated JSON Schemas for export, change summary, and AI context (+ `issuesuite.schemas.get_schemas()`)
 - AI mode (safety): `ISSUESUITE_AI_MODE=1` forces all syncs into dry-run (no mutations) even if `--dry-run` omitted
 - AI context export: `issuesuite ai-context` emits structured JSON (preview of spec, config hints, env suggestions) for assistant ingestion
+- Agent updates: `issuesuite agent-apply` ingests AI/agent completion summaries and updates `ISSUES.md` (and optional docs) before syncing
 - Quiet mode: `--quiet` or `ISSUESUITE_QUIET=1` suppresses informational logging (helpful when piping JSON to other tools)
 - Debug logging via `ISSUESUITE_DEBUG=1`
 - Mock mode (`ISSUES_SUITE_MOCK=1`) for offline tests w/out GitHub API
@@ -71,6 +72,62 @@ issuesuite summary --config issue_suite.config.yaml
 # Emit schemas to default files
 issuesuite schema --config issue_suite.config.yaml
 ```
+
+### Agent Apply (update ISSUES.md from agent output)
+
+Use agent-apply to let an agent (e.g., Copilot) mark items complete and append summaries in `ISSUES.md`, then optionally run a sync.
+You can trigger this via VS Code tasks: "IssueSuite: Agent Apply (dry-run)" or "IssueSuite: Agent Apply (apply)".
+
+Basics:
+
+```bash
+# Dry-run sync by default after applying file updates
+issuesuite agent-apply --config issue_suite.config.yaml --updates-json updates.json
+
+# Apply changes to GitHub too (sets --update)
+issuesuite agent-apply --config issue_suite.config.yaml --updates-json updates.json --apply
+
+# Skip the sync step entirely (only updates local files)
+issuesuite agent-apply --config issue_suite.config.yaml --updates-json updates.json --no-sync
+```
+
+Accepted JSON shapes for updates.json (a starter example lives at `agent_updates.json`):
+
+- List of updates:
+
+  ```jsonc
+  [
+    {"slug": "api-timeouts", "completed": true, "summary": "Fixed retry jitter; added metrics."}
+  ]
+  ```
+
+- Object with `updates` array:
+
+  ```jsonc
+  {"updates": [{"external_id": "api-timeouts", "status": "closed", "comment": "Released v1.2."}]}
+  ```
+
+- Mapping of slug → update object:
+
+  ```jsonc
+  {
+    "perf-tuning": {"completed": true, "summary": "Profiling + batch writes"}
+  }
+  ```
+
+Flags and defaults:
+
+- `--apply` performs real GitHub mutations during the sync; otherwise the sync is dry-run
+- `--no-sync` avoids running sync after file updates
+- `--respect-status/--no-respect-status` controls whether closed specs trigger issue closure (default true)
+- `--dry-run-sync/--no-dry-run-sync` explicitly forces dry-run or not when combined with `--apply`
+- `--summary-json` writes the sync’s summary to a path (the VS Code tasks write to `issues_summary.json`)
+
+Notes:
+
+- agent-apply uses the same parser and a shared renderer as other commands to keep formatting consistent
+- When `completed` is true (or `status: closed`) a dated “Completion summary (YYYY-MM-DD)” section is appended to the body (marker ensured)
+- Labels and milestone are preserved unless explicitly changed by the update
 
 ### Reconcile (Spec vs Live Drift Detection)
 

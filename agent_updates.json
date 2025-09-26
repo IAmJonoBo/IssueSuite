@@ -1,0 +1,15 @@
+{
+  "updates": [
+    {
+      "slug": "example-slug",
+      "completed": true,
+      "summary": "Implementation completed by Copilot. Added tests and updated docs.",
+      "docs": [
+        {
+          "path": "docs/CHANGELOG_NOTES.md",
+          "append": "- example-slug: Implementation completed; tests added."
+        }
+      ]
+    }
+  ]
+}

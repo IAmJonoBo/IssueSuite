@@ -67,11 +67,14 @@ The VS Code integration provides:
 
 ### 1. **Tasks** (Ctrl+Shift+P → "Tasks: Run Task")
 
+- **IssueSuite: Agent Apply (dry-run)** - Apply `agent_updates.json` to `ISSUES.md` and run a dry-run sync (writes `issues_summary.json`)
+- **IssueSuite: Agent Apply (apply)** - Apply `agent_updates.json` and perform a real sync to GitHub (writes `issues_summary.json`)
 - **IssueSuite: Dry-run Sync** - Test your changes safely
 - **IssueSuite: Full Sync** - Apply changes to GitHub
 - **IssueSuite: Export** - Generate JSON exports
 - **IssueSuite: Summary** - Quick roadmap overview
 - **IssueSuite: Validate** - Check configuration and issues
+- You can also run the `agent-apply` command from the integrated terminal to apply Copilot/agent updates to `ISSUES.md` and optionally sync.
 
 ### 2. Debugging
 
@@ -86,6 +89,7 @@ The VS Code integration provides:
 ## Copilot tips
 
 - Use the provided VS Code tasks (Validate, Dry-run Sync, Full Sync, Export, Summary, Generate Schemas).
+- For post-implementation updates, have Copilot produce a small JSON and run `issuesuite agent-apply --updates-json updates.json` to mark items complete and append summaries. A starter example is provided at `agent_updates.json`.
 - Keep `ISSUES.md` in the canonical slug + YAML format (see README).
 
 ## Environment Detection

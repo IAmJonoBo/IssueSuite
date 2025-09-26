@@ -87,9 +87,7 @@ def test_mapping_persistence_mock_mode(tmp_path: Path) -> None:
     summary_any: Any = json.loads(summary_path.read_text())
     assert isinstance(summary_any, dict)
     mapping_val = summary_any.get("mapping")
-    mapping_raw: dict[Any, Any] = cast(
-        dict[Any, Any], mapping_val if isinstance(mapping_val, dict) else {}
-    )
+    mapping_raw = mapping_val if isinstance(mapping_val, dict) else {}
     mapping: dict[str, int] = {
         str(k): int(v) for k, v in mapping_raw.items() if isinstance(k, str) and isinstance(v, int)
     }
@@ -99,9 +97,7 @@ def test_mapping_persistence_mock_mode(tmp_path: Path) -> None:
     stored_any: Any = json.loads(index_file.read_text())
     assert isinstance(stored_any, dict)
     stored_map_val = stored_any.get("mapping")
-    stored_map_raw: dict[Any, Any] = cast(
-        dict[Any, Any], stored_map_val if isinstance(stored_map_val, dict) else {}
-    )
+    stored_map_raw = stored_map_val if isinstance(stored_map_val, dict) else {}
     stored_map: dict[str, int] = {
         str(k): int(v)
         for k, v in stored_map_raw.items()
@@ -129,9 +125,7 @@ def test_mapping_persistence_mock_mode(tmp_path: Path) -> None:
     summary2_any: Any = json.loads(summary_path.read_text())
     assert isinstance(summary2_any, dict)
     mapping2_val = summary2_any.get("mapping")
-    mapping2_raw: dict[Any, Any] = cast(
-        dict[Any, Any], mapping2_val if isinstance(mapping2_val, dict) else {}
-    )
+    mapping2_raw = mapping2_val if isinstance(mapping2_val, dict) else {}
     mapping2: dict[str, int] = {
         str(k): int(v) for k, v in mapping2_raw.items() if isinstance(k, str) and isinstance(v, int)
     }
