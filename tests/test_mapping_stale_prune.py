@@ -110,6 +110,6 @@ def test_stale_mapping_pruned(tmp_path: Path) -> None:
     data_any2: Any = json.loads(idx.read_text())
     mapping_val2 = data_any2.get('mapping') if isinstance(data_any2, dict) else {}
     mapping_any2 = cast(dict[Any, Any], mapping_val2 if isinstance(mapping_val2, dict) else {})
-    assert (
-        'keep-one' in mapping_any2 and 'stale-two' not in mapping_any2
-    ), 'stale slug should be pruned'
+    assert 'keep-one' in mapping_any2 and 'stale-two' not in mapping_any2, (
+        'stale slug should be pruned'
+    )
