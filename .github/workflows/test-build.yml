@@ -37,10 +37,9 @@ jobs:
           pip install dist/*.whl
           issuesuite --help
 
-      - name: Test pipx installation (Python 3.11 only)
+      - name: Test pipx run from local wheel (Python 3.11 only)
         if: matrix.python-version == '3.11'
         run: |
           python -m pip install pipx
-          pipx install dist/*.whl
-          # Prefer invoking via pipx to avoid PATH ambiguity
-          pipx run issuesuite --version
+          # Run directly from the locally built wheel to avoid PyPI lookups
+          pipx run --spec "dist/*.whl" issuesuite --version
