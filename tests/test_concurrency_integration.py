@@ -1,9 +1,6 @@
-import asyncio
-import os
 import pytest
-from pathlib import Path
-from issuesuite import IssueSuite, load_config
 
+from issuesuite import IssueSuite, load_config
 
 CONFIG_WITH_CONCURRENCY = """
 version: 1
@@ -48,71 +45,110 @@ concurrency:
 """
 
 # Large roadmap to trigger concurrency
-LARGE_ISSUES = """## 001 | First Issue
-labels: bug
----
-First issue body
+LARGE_ISSUES = """## [slug: first-issue]
+```yaml
+title: First Issue
+labels: [bug]
+body: |
+  First issue body
+```
 
-## 002 | Second Issue  
-labels: enhancement
----
-Second issue body
+## [slug: second-issue]
+```yaml
+title: Second Issue
+labels: [enhancement]
+body: |
+  Second issue body
+```
 
-## 003 | Third Issue
-labels: documentation
----
-Third issue body
+## [slug: third-issue]
+```yaml
+title: Third Issue
+labels: [documentation]
+body: |
+  Third issue body
+```
 
-## 004 | Fourth Issue
-labels: bug, high-priority
----
-Fourth issue body
+## [slug: fourth-issue]
+```yaml
+title: Fourth Issue
+labels: [bug, high-priority]
+body: |
+  Fourth issue body
+```
 
-## 005 | Fifth Issue
-labels: enhancement
----
-Fifth issue body
+## [slug: fifth-issue]
+```yaml
+title: Fifth Issue
+labels: [enhancement]
+body: |
+  Fifth issue body
+```
 
-## 006 | Sixth Issue
-labels: bug
----
-Sixth issue body
+## [slug: sixth-issue]
+```yaml
+title: Sixth Issue
+labels: [bug]
+body: |
+  Sixth issue body
+```
 
-## 007 | Seventh Issue
-labels: enhancement
----
-Seventh issue body
+## [slug: seventh-issue]
+```yaml
+title: Seventh Issue
+labels: [enhancement]
+body: |
+  Seventh issue body
+```
 
-## 008 | Eighth Issue
-labels: documentation
----
-Eighth issue body
+## [slug: eighth-issue]
+```yaml
+title: Eighth Issue
+labels: [documentation]
+body: |
+  Eighth issue body
+```
 
-## 009 | Ninth Issue
-labels: bug
----
-Ninth issue body
+## [slug: ninth-issue]
+```yaml
+title: Ninth Issue
+labels: [bug]
+body: |
+  Ninth issue body
+```
 
-## 010 | Tenth Issue
-labels: enhancement
----
-Tenth issue body
+## [slug: tenth-issue]
+```yaml
+title: Tenth Issue
+labels: [enhancement]
+body: |
+  Tenth issue body
+```
 
-## 011 | Eleventh Issue
-labels: bug
----
-Eleventh issue body
+## [slug: eleventh-issue]
+```yaml
+title: Eleventh Issue
+labels: [bug]
+body: |
+  Eleventh issue body
+```
 
-## 012 | Twelfth Issue
-labels: enhancement
----
-Twelfth issue body
+## [slug: twelfth-issue]
+```yaml
+title: Twelfth Issue
+labels: [enhancement]
+body: |
+  Twelfth issue body
+```
 """
 
-SMALL_ISSUES = """## 001 | Single Issue
-labels: bug
----
-Single issue body
+SMALL_ISSUES = """## [slug: single-issue]
+```yaml
+title: Single Issue
+labels: [bug]
+body: |
+  Single issue body
+```
 """
 
 

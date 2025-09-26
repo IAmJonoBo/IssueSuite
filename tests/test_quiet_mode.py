@@ -4,6 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+
 def run_cli(*args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     cmd = [sys.executable, '-m', 'issuesuite.cli', *args]
     proc_env = os.environ.copy()
@@ -14,7 +15,7 @@ def run_cli(*args: str, env: dict[str, str] | None = None) -> subprocess.Complet
 def test_ai_context_quiet_suppresses_logs(tmp_path: Path) -> None:
     cfg = tmp_path / 'issue_suite.config.yaml'
     cfg.write_text('version: 1\nrepository: example/repo\n')
-    (tmp_path / 'ISSUES.md').write_text('# Roadmap\n\n## Feature: Example\n- [ ] Task one\n')
+    (tmp_path / 'ISSUES.md').write_text('# Roadmap\n\n## [slug: example-feature]\n```yaml\ntitle: Example Feature\nlabels: [feature]\nbody: |\n  Task one\n```\n')
 
     # Without quiet we may see recommendation logs (best-effort heuristic)
     res_no_quiet = run_cli('ai-context', '--config', str(cfg))

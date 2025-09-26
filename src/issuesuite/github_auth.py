@@ -10,10 +10,10 @@ import json
 import os
 import subprocess
 import time
-from pathlib import Path  
-from typing import Dict, Optional, Any
 from dataclasses import dataclass
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
 
 from .logging import get_logger
 
@@ -22,9 +22,9 @@ from .logging import get_logger
 class GitHubAppConfig:
     """Configuration for GitHub App authentication."""
     enabled: bool
-    app_id: Optional[str]
-    private_key_path: Optional[str]
-    installation_id: Optional[str]
+    app_id: str | None
+    private_key_path: str | None
+    installation_id: str | None
     token_cache_path: str = '.github_app_token.json'
 
 
@@ -35,8 +35,8 @@ class GitHubAppTokenManager:
         self.config = config
         self.mock = mock
         self.logger = get_logger()
-        self._cached_token = None
-        self._token_expires_at = None
+        self._cached_token: str | None = None
+        self._token_expires_at: datetime | None = None
         
     def is_enabled(self) -> bool:
         """Check if GitHub App authentication is enabled and configured."""
@@ -47,7 +47,7 @@ class GitHubAppTokenManager:
             self.config.installation_id
         )
     
-    def get_token(self) -> Optional[str]:
+    def get_token(self) -> str | None:
         """Get a valid GitHub App installation token."""
         if not self.is_enabled():
             return None
@@ -69,7 +69,7 @@ class GitHubAppTokenManager:
     
     def _is_token_valid(self) -> bool:
         """Check if the current token is valid and not expired."""
-        if not self._cached_token or not self._token_expires_at:
+        if self._cached_token is None or self._token_expires_at is None:
             return False
         
         # Add 5 minute buffer before expiration
@@ -86,9 +86,10 @@ class GitHubAppTokenManager:
             with cache_path.open('r') as f:
                 data = json.load(f)
             
-            self._cached_token = data.get('token')
+            token_val = data.get('token')
+            self._cached_token = str(token_val) if isinstance(token_val, str) else None
             expires_str = data.get('expires_at')
-            if expires_str:
+            if isinstance(expires_str, str) and expires_str:
                 self._token_expires_at = datetime.fromisoformat(expires_str)
             
             self.logger.debug("Loaded cached GitHub App token")
@@ -99,7 +100,7 @@ class GitHubAppTokenManager:
     
     def _save_cached_token(self) -> None:
         """Save token to cache file."""
-        if not self._cached_token or not self._token_expires_at:
+        if not self._cached_token or self._token_expires_at is None:
             return
         
         try:
@@ -119,7 +120,7 @@ class GitHubAppTokenManager:
         except Exception as e:
             self.logger.log_error("Failed to cache token", error=str(e))
     
-    def _generate_new_token(self) -> Optional[str]:
+    def _generate_new_token(self) -> str | None:
         """Generate a new installation token."""
         try:
             # Generate JWT for App authentication
@@ -132,11 +133,11 @@ class GitHubAppTokenManager:
             if not installation_token:
                 return None
             
-            self._cached_token = installation_token['token']
+            self._cached_token = str(installation_token['token'])
             
             # Parse expiration time
             expires_str = installation_token.get('expires_at')
-            if expires_str:
+            if isinstance(expires_str, str) and expires_str:
                 # GitHub uses ISO format: 2025-01-01T10:00:00Z
                 self._token_expires_at = datetime.fromisoformat(
                     expires_str.replace('Z', '+00:00')
@@ -148,10 +149,13 @@ class GitHubAppTokenManager:
             # Cache the token
             self._save_cached_token()
             
-            self.logger.log_operation("github_app_token_generated", 
-                                    app_id=self.config.app_id,
-                                    installation_id=self.config.installation_id,
-                                    expires_at=self._token_expires_at.isoformat())
+            expires_iso = self._token_expires_at.isoformat() if self._token_expires_at else ""
+            self.logger.log_operation(
+                "github_app_token_generated",
+                app_id=self.config.app_id,
+                installation_id=self.config.installation_id,
+                expires_at=expires_iso,
+            )
             
             return self._cached_token
             
@@ -159,9 +163,12 @@ class GitHubAppTokenManager:
             self.logger.log_error("Failed to generate GitHub App token", error=str(e))
             return None
     
-    def _generate_jwt(self) -> Optional[str]:
+    def _generate_jwt(self) -> str | None:
         """Generate JWT for GitHub App authentication."""
         try:
+            if not self.config.private_key_path:
+                self.logger.log_error("Private key path not configured")
+                return None
             private_key_path = Path(self.config.private_key_path)
             if not private_key_path.exists():
                 self.logger.log_error(f"Private key file not found: {private_key_path}")
@@ -212,10 +219,13 @@ class GitHubAppTokenManager:
             self.logger.log_error("Failed to generate JWT", error=str(e))
             return None
     
-    def _get_installation_token(self, jwt_token: str) -> Optional[Dict[str, Any]]:
+    def _get_installation_token(self, jwt_token: str) -> dict[str, Any] | None:
         """Get installation token using JWT."""
         try:
             # Use GitHub CLI with the JWT token
+            if not self.config.installation_id:
+                self.logger.log_error("Installation ID not configured")
+                return None
             cmd = [
                 'gh', 'api', 
                 f'/app/installations/{self.config.installation_id}/access_tokens',
@@ -225,7 +235,7 @@ class GitHubAppTokenManager:
             ]
             
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            token_data = json.loads(result.stdout)
+            token_data: dict[str, Any] = json.loads(result.stdout)
             
             self.logger.debug("Retrieved installation token", 
                             installation_id=self.config.installation_id)
@@ -261,7 +271,7 @@ class GitHubAppTokenManager:
             # Verify authentication
             result = subprocess.run([
                 'gh', 'auth', 'status'
-            ], capture_output=True, text=True)
+            ], capture_output=True, text=True, check=False)
             
             if result.returncode == 0:
                 self.logger.log_operation("github_cli_configured", 
@@ -315,9 +325,9 @@ def setup_github_app_auth(app_id: str, private_key_path: str, installation_id: s
 def is_github_app_configured(config: GitHubAppConfig) -> bool:
     """Check if GitHub App is properly configured."""
     return (
-        config.enabled and
-        bool(config.app_id) and
-        bool(config.private_key_path) and
-        bool(config.installation_id) and
-        Path(config.private_key_path).exists() if config.private_key_path else False
+        config.enabled
+        and bool(config.app_id)
+        and bool(config.private_key_path)
+        and bool(config.installation_id)
+        and (Path(config.private_key_path).exists() if config.private_key_path else False)
     )

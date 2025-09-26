@@ -1,10 +1,7 @@
 import json
-import os
-from pathlib import Path
-from unittest.mock import patch
-from issuesuite import IssueSuite, load_config
-from issuesuite.logging import configure_logging, StructuredLogger
 
+from issuesuite import IssueSuite, load_config
+from issuesuite.logging import StructuredLogger, configure_logging
 
 CONFIG_WITH_JSON_LOGGING = """
 version: 1
@@ -42,10 +39,13 @@ logging:
   level: DEBUG
 """
 
-ISSUES = """## 001 | Demo Issue
-labels: test-label
----
-Body text
+ISSUES = """## [slug: demo-issue]
+```yaml
+title: Demo Issue
+labels: [test-label]
+body: |
+    Body text
+```
 """
 
 

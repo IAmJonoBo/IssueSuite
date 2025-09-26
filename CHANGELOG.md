@@ -10,24 +10,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added (Unreleased)
 
+- (placeholder)
+
+### Changed (Unreleased)
+
+- (placeholder)
+
+### Internal (Unreleased)
+
+- (placeholder)
+
+## [0.1.8] - 2025-09-26
+
+### Fixed (0.1.8)
+
+- Eliminated recursion/stall in concurrent sync path by switching to explicit sequential fallback when an event loop is active.
+- Isolated project v2 “real mode” tests to bypass session-wide mock, restoring expected behavior for CLI calls.
+
+### Internal (0.1.8)
+
+- Ruff lint improvements: import order cleanups, mypy-friendly type tweaks, and per-file test ignores for non-critical rules.
+- Minor concurrency polish: async-safe subprocess usage fallback, typed helpers, and constants for worker thresholds.
+
+## [0.1.7] - 2025-09-26
+
+### Added (0.1.7)
+
 - AI mode via `ISSUESUITE_AI_MODE=1` forcing dry-run safety for all sync/summary/export operations.
 - `ai-context` CLI command producing structured JSON (spec preview, config hints, env flags, recommendations) for AI assistant ingestion.
 - Test coverage for AI mode enforcement and ai-context export.
 - Pre-commit configuration with Ruff (autofix), mypy, fast pytest subset.
 - Quiet mode flag `--quiet` and `ISSUESUITE_QUIET=1` environment variable to suppress incidental logging for clean JSON piping.
+- Enriched sync summary metadata: `mapping_present`, `mapping_size`, optional `mapping_snapshot` (small mappings) exposing index state for future reconcile/import features.
+- `ai-context` mapping enrichment fields: `mapping.present`, `mapping.size`, `mapping.snapshot_included`, conditional `mapping.snapshot`.
+- Deterministic issue spec slug markers `<!-- issuesuite:slug=<slug> -->` auto-inserted for idempotent parsing.
+- Strict parser for new canonical spec format (slug heading + fenced YAML) with comprehensive edge‑case tests.
+- JSON Schema for AI context (`ai_context.schema.json`) with CLI emission and library access via `issuesuite.schemas.get_schemas()`.
+- Programmatic `get_ai_context(cfg, preview=...)` API returning structured AI context document.
+- Optional milestone enforcement (`milestone_required` config flag) ensuring every spec declares a milestone (default off for backward compatibility).
+- Centralized retry abstraction (`issuesuite.retry.run_with_retries`) for GitHub CLI transient errors (rate limit / abuse / secondary rate limit) with env overrides `ISSUESUITE_RETRY_ATTEMPTS`, `ISSUESUITE_RETRY_BASE`.
+- Dedicated retry unit tests covering transient success path, non-transient immediate failure, and transient exhaustion.
+- Error taxonomy & redaction scaffold (`errors.py`) with `classify_error` and `redact` helpers.
+- Structured sync failure logging enriched with error classification metadata (category, transient, original_type).
+- AI context document now includes `errors` section (categories + retry strategy/overrides).
+- Config option `schema_ai_context_file` under `ai:` to customize emitted AI context schema filename.
+- Tests for programmatic AI context structure and schema emission.
 
-### Changed (Unreleased)
+### Changed (0.1.7)
 
 - Ruff configuration with per-file complexity ignore for CLI dispatcher (`PLR0915`).
 - Refactored `setup` subcommand into smaller helper functions reducing complexity.
+- Hard migration to canonical spec format: `## [slug: <id>]` followed by fenced `yaml` block; legacy numbered heading format removed (now raises error with actionable guidance).
 
-### Internal (Unreleased)
+### Internal (0.1.7)
 
 - README updated with AI integration guidance and sample `ai-context` output.
 - Added per-file ignore instead of further refactor to keep CLI command registration explicit.
 - Added context manager `_QuietLogs` for suppressing logger output when quiet mode enabled.
+- Set `milestone_required` default to `false` to avoid unexpected failures in existing configurations.
+- Integrated classification in `core.IssueSuite.sync` error path.
+- Added helper utilities `_load_index_mapping`, `_truncate_body_diffs`, `_iter_updated_entries` to reduce orchestrator complexity and prepare for reconcile logic.
 
 ## [0.1.5] - 2025-09-26
+
+## [0.1.6] - 2025-09-26
+
+### Added (0.1.6)
+
+- Project v2 integration groundwork: persistent project/field cache with TTL + disable flag.
+- Single-select option name → ID mapping (case-insensitive) in project field updates.
+- Tests: caching reuse, option mapping (case-insensitive), restored `_get_issue_id` behavior.
+
+### Changed (0.1.6)
+
+- Refactored project assigner to smaller helpers (`_apply_field_mappings`).
+- Consolidated duplicate / corrupted `project.py` after refactor attempts.
+
+### Fixed (0.1.6)
+
+- Restored missing `_get_issue_id` method required by existing test suite.
+
 
 ### Added (Legacy StratMaster)
 

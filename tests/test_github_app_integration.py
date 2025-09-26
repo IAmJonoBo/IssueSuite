@@ -1,7 +1,4 @@
-import os
-from pathlib import Path
 from issuesuite import IssueSuite, load_config
-
 
 CONFIG_WITH_GITHUB_APP = """
 version: 1
@@ -46,10 +43,13 @@ logging:
   level: INFO
 """
 
-ISSUES = """## 001 | Test Issue
-labels: bug
----
-Test issue body
+ISSUES = """## [slug: test-issue]
+```yaml
+title: Test Issue
+labels: [bug]
+body: |
+  Test issue body
+```
 """
 
 
@@ -243,5 +243,5 @@ logging:
     
     # Check for error logs
     captured = capsys.readouterr() 
-    output = captured.out + captured.err
+    captured.out + captured.err
     # In mock mode OFF, may get authentication errors, but shouldn't crash

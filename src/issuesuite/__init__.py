@@ -13,34 +13,22 @@ The CLI delegates to this library to allow installing via pip into other reposit
 
 from __future__ import annotations
 
-import sys
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING or sys.version_info >= (3, 10):
-    from .config import SuiteConfig, load_config
-    from .core import IssueSpec, IssueSuite
+from .ai_context import get_ai_context  # new public helper
+from .config import SuiteConfig, load_config
+from .core import IssueSpec, IssueSuite
 
 # Version constant (sync manually with pyproject when extracted as standalone project)
-__version__ = "0.1.5"
+__version__ = "0.1.8"
 
-
-def __getattr__(name: str):
+def __getattr__(name: str) -> object:
     """Lazy loading of modules to improve import performance."""
     if name == "load_config":
-        from .config import load_config
-
         return load_config
     elif name == "SuiteConfig":
-        from .config import SuiteConfig
-
         return SuiteConfig
     elif name == "IssueSuite":
-        from .core import IssueSuite
-
         return IssueSuite
     elif name == "IssueSpec":
-        from .core import IssueSpec
-
         return IssueSpec
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
@@ -50,5 +38,6 @@ __all__ = [
     "SuiteConfig",
     "IssueSuite",
     "IssueSpec",
+    "get_ai_context",
     "__version__",
 ]

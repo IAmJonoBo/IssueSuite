@@ -1,0 +1,28 @@
+{
+  "project_id": "mock_project_123",
+  "fields": {
+    "Status": {
+      "id": "field_status",
+      "type": "single_select",
+      "options": {
+        "Todo": "opt_status_todo",
+        "In Progress": "opt_status_in_progress",
+        "Done": "opt_status_done"
+      }
+    },
+    "Priority": {
+      "id": "field_priority",
+      "type": "single_select",
+      "options": {
+        "P0": "opt_priority_p0",
+        "P1": "opt_priority_p1",
+        "P2": "opt_priority_p2"
+      }
+    },
+    "Assignee": {
+      "id": "field_assignee",
+      "type": "assignees"
+    }
+  },
+  "ts": 1758895950.8918998
+}

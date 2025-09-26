@@ -6,6 +6,8 @@ Subcommands:
   export    -> export parsed issues list to JSON
   summary   -> human-readable quick listing
   schema    -> write JSON Schemas for export & summary
+    import    -> generate draft ISSUES.md from live repository issues
+    reconcile -> compare live issues against local specs (no mutation)
 
 Designed to be dependency-light; heavy validation can be layered externally.
 """
@@ -21,12 +23,17 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+from . import schemas as schema_module
+from .ai_context import get_ai_context
 from .config import SuiteConfig, load_config
 from .core import IssueSuite
 from .env_auth import create_env_auth_manager
+from .github_issues import IssuesClient, IssuesClientConfig
 from .orchestrator import sync_with_summary
+from .reconcile import format_report, reconcile
 
 CONFIG_DEFAULT = 'issue_suite.config.yaml'
+REPO_HELP = 'Override target repository (owner/repo)'
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -40,23 +47,47 @@ def _build_parser() -> argparse.ArgumentParser:
 
     ps = sub.add_parser('sync', help='Sync issues to GitHub (create/update/close)')
     ps.add_argument('--config', default=CONFIG_DEFAULT)
+    ps.add_argument('--repo', help=REPO_HELP)
     ps.add_argument('--update', action='store_true')
+    ps.add_argument('--apply', action='store_true', help='Alias for --update (creates/updates)')
     ps.add_argument('--dry-run', action='store_true')
     ps.add_argument('--respect-status', action='store_true')
     ps.add_argument('--preflight', action='store_true')
     ps.add_argument('--summary-json')
+    ps.add_argument('--plan-json', help='When used with --dry-run, writes only the plan actions to a JSON file')
+    ps.add_argument('--prune', action='store_true', help='Close issues not present in specs (removed)')
+    ps.add_argument('--project-owner', help='Override project owner (for future GraphQL)')
+    ps.add_argument('--project-number', type=int, help='Override project number')
 
     pe = sub.add_parser('export', help='Export issues to JSON')
     pe.add_argument('--config', default=CONFIG_DEFAULT)
+    pe.add_argument('--repo', help=REPO_HELP)
     pe.add_argument('--output')
     pe.add_argument('--pretty', action='store_true')
 
     psm = sub.add_parser('summary', help='Quick summary of parsed specs')
     psm.add_argument('--config', default=CONFIG_DEFAULT)
+    psm.add_argument('--repo', help=REPO_HELP)
     psm.add_argument('--limit', type=int, default=20)
+
+    imp = sub.add_parser('import', help='Generate draft ISSUES.md from live issues')
+    imp.add_argument('--config', default=CONFIG_DEFAULT)
+    imp.add_argument('--repo', help=REPO_HELP)
+    imp.add_argument('--output', default='ISSUES.import.md', help='Output markdown file (default: ISSUES.import.md)')
+    imp.add_argument('--limit', type=int, default=500, help='Max issues to import (default 500)')
+
+    rec = sub.add_parser('reconcile', help='Detect drift between local specs and live issues')
+    rec.add_argument('--config', default=CONFIG_DEFAULT)
+    rec.add_argument('--repo', help=REPO_HELP)
+    rec.add_argument('--limit', type=int, default=500, help='Max issues to fetch for comparison (default 500)')
+
+    doc = sub.add_parser('doctor', help='Run diagnostics (auth, repo access, config)')
+    doc.add_argument('--config', default=CONFIG_DEFAULT)
+    doc.add_argument('--repo', help=REPO_HELP)
 
     aictx = sub.add_parser('ai-context', help='Emit machine-readable context JSON for AI tooling')
     aictx.add_argument('--config', default=CONFIG_DEFAULT)
+    aictx.add_argument('--repo', help=REPO_HELP)
     aictx.add_argument('--output', help='Output file (defaults to stdout)')
     aictx.add_argument('--preview', type=int, default=5, help='Preview first N specs')
     aictx.add_argument('--quiet', action='store_true', help='Suppress informational logging (env: ISSUESUITE_QUIET=1)')
@@ -64,10 +95,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sch = sub.add_parser('schema', help='Emit JSON Schema files')
     sch.add_argument('--config', default=CONFIG_DEFAULT)
+    sch.add_argument('--repo', help=REPO_HELP)
     sch.add_argument('--stdout', action='store_true')
 
     val = sub.add_parser('validate', help='Basic parse + id pattern validation')
     val.add_argument('--config', default=CONFIG_DEFAULT)
+    val.add_argument('--repo', help=REPO_HELP)
 
 
     # Setup command for VS Code and online integration
@@ -119,6 +152,12 @@ def _cmd_summary(cfg: SuiteConfig, args: argparse.Namespace) -> int:
 
 
 def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
+    # Alias: --apply implies --update for ergonomics
+    if getattr(args, 'apply', False) and not getattr(args, 'update', False):
+        try:
+            args.update = True
+        except Exception:
+            pass
     summary = sync_with_summary(
         cfg,
         dry_run=args.dry_run,
@@ -126,36 +165,36 @@ def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
         respect_status=args.respect_status,
         preflight=args.preflight,
         summary_path=args.summary_json,
+        prune=args.prune,
     )
-    print('[sync] totals', json.dumps(summary['totals']))
+    totals = summary.get('totals') if isinstance(summary, dict) else None
+    if isinstance(totals, dict):
+        print('[sync] totals', json.dumps(totals))
+    # Optionally emit plan JSON (subset) when requested and available
+    if args.dry_run and getattr(args, 'plan_json', None):
+        plan = summary.get('plan') if isinstance(summary, dict) else None
+        if isinstance(plan, list):
+            try:
+                Path(args.plan_json).write_text(json.dumps({'plan': plan}, indent=2) + '\n')
+                print(f"[sync] plan -> {args.plan_json}")
+            except Exception as exc:  # pragma: no cover - filesystem edge
+                print(f"[sync] failed to write plan json: {exc}", file=sys.stderr)
     return 0
 
 
-def _schemas() -> dict[str, dict[str, object]]:
-    export_schema: dict[str, object] = {
-        '$schema': 'http://json-schema.org/draft-07/schema#',
-        'title': 'IssueExport',
-        'type': 'array',
-        'items': {'type': 'object'},
-    }
-    summary_schema: dict[str, object] = {
-        '$schema': 'http://json-schema.org/draft-07/schema#',
-        'title': 'IssueChangeSummary',
-        'type': 'object',
-        'required': ['schemaVersion','generated_at','dry_run','totals','changes'],
-    }
-    return {'export': export_schema, 'summary': summary_schema}
-
-
 def _cmd_schema(cfg: SuiteConfig, args: argparse.Namespace) -> int:
-    schemas = _schemas()
+    schemas = schema_module.get_schemas()
     if args.stdout:
         print(json.dumps(schemas, indent=2))
         return 0
     try:
         Path(cfg.schema_export_file).write_text(json.dumps(schemas['export'], indent=2) + '\n')
         Path(cfg.schema_summary_file).write_text(json.dumps(schemas['summary'], indent=2) + '\n')
-        print(f"[schema] wrote {cfg.schema_export_file}, {cfg.schema_summary_file}")
+        if 'ai_context' in schemas and getattr(cfg, 'schema_ai_context_file', None):
+            Path(cfg.schema_ai_context_file).write_text(json.dumps(schemas['ai_context'], indent=2) + '\n')
+            print(f"[schema] wrote {cfg.schema_export_file}, {cfg.schema_summary_file}, {cfg.schema_ai_context_file}")
+        else:
+            print(f"[schema] wrote {cfg.schema_export_file}, {cfg.schema_summary_file}")
         return 0
     except Exception as e:  # pragma: no cover - rare filesystem error
         print(f"[schema] ERROR: {e}", file=sys.stderr)
@@ -259,79 +298,162 @@ def _cmd_validate(cfg: SuiteConfig) -> int:
 
 def _cmd_ai_context(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     """Emit a JSON document summarizing current IssueSuite state for AI assistants."""
-    quiet = args.quiet or os.environ.get('ISSUESUITE_QUIET') == '1'
-    if quiet:
-        with _QuietLogs():
-            suite = IssueSuite(cfg)
-            specs = suite.parse()
-    else:
-        suite = IssueSuite(cfg)
-        specs = suite.parse()
-    ai_mode = os.environ.get('ISSUESUITE_AI_MODE') == '1'
-    mock_mode = os.environ.get('ISSUES_SUITE_MOCK') == '1'
-    debug = os.environ.get('ISSUESUITE_DEBUG') == '1'
-    preview_specs: list[dict[str, object]] = []
-    for s in specs[:args.preview]:
-        preview_specs.append({
-            'external_id': s.external_id,
-            'title': s.title,
-            'hash': s.hash,
-            'labels': s.labels,
-            'milestone': s.milestone,
-            'status': s.status,
-        })
-    safe_sync = f'issuesuite sync --dry-run --update --config {args.config}'
-    if ai_mode:
-        safe_sync += '  # AI mode forces dry-run'
-    doc: dict[str, object] = {
-        'schemaVersion': 'ai-context/1',
-        'type': 'issuesuite.ai-context',
-        'spec_count': len(specs),
-        'preview': preview_specs,
-        'config': {
-            'dry_run_default': cfg.dry_run_default,
-            'ensure_labels_enabled': cfg.ensure_labels_enabled,
-            'ensure_milestones_enabled': cfg.ensure_milestones_enabled,
-            'truncate_body_diff': cfg.truncate_body_diff,
-            'concurrency_enabled': cfg.concurrency_enabled,
-            'concurrency_max_workers': cfg.concurrency_max_workers,
-            'performance_benchmarking': cfg.performance_benchmarking,
-        },
-        'env': {
-            'ai_mode': ai_mode,
-            'mock_mode': mock_mode,
-            'debug_logging': debug,
-        },
-        # Project integration metadata (optional, non-breaking addition)
-        'project': {
-            'enabled': getattr(cfg, 'project_enable', False),
-            'number': getattr(cfg, 'project_number', None),
-            'field_mappings': getattr(cfg, 'project_field_mappings', {}) or {},
-            'has_mappings': bool(getattr(cfg, 'project_field_mappings', {}) or {}),
-        },
-        'recommended': {
-            'safe_sync': safe_sync,
-            'export': f'issuesuite export --config {args.config} --pretty',
-            'summary': f'issuesuite summary --config {args.config}',
-            'usage': [
-                'Use safe_sync for read-only diffing in AI mode',
-                'Call export for full structured spec list when preview insufficient',
-                'Prefer summary for quick human-readable validation before sync'
-            ],
-            'env': [
-                'ISSUESUITE_AI_MODE=1 to force dry-run safety',
-                'ISSUES_SUITE_MOCK=1 for offline parsing without GitHub API',
-                'ISSUESUITE_DEBUG=1 for verbose debugging output'
-            ],
-        }
-    }
+    # Leverage shared library function for single source of truth
+    doc = get_ai_context(cfg, preview=args.preview)
     out_text = json.dumps(doc, indent=2) + '\n'
     if args.output:
         Path(args.output).write_text(out_text)
     else:
-        # Write directly to stdout without extra logging
         sys.stdout.write(out_text)
     return 0
+
+
+def _slugify(title: str) -> str:
+    base = re.sub(r'[^a-zA-Z0-9-_]+', '-', title.strip().lower()).strip('-')
+    if not base:
+        base = 'issue'
+    return base[:50]
+
+
+def _extract_issue_fields(it: dict[str, Any]) -> tuple[str, str, list[str], str | None, str | None]:
+    title = str(it.get('title') or '').strip() or 'Untitled'
+    body = str(it.get('body') or '').strip()
+    labels_raw: list[str] = []
+    for lbl in (it.get('labels') or []):
+        if isinstance(lbl, dict):
+            name = lbl.get('name')
+            if isinstance(name, str) and name:
+                labels_raw.append(name)
+    ms = it.get('milestone')
+    milestone_title = ms.get('title') if isinstance(ms, dict) and isinstance(ms.get('title'), str) else None
+    state_val = str(it.get('state') or '').lower()
+    status = state_val if state_val in {'open', 'closed'} else None
+    return title, body, labels_raw, milestone_title, status
+
+
+def _render_issue_block(slug: str, title: str, body: str, labels: list[str], milestone: str | None, status: str | None) -> list[str]:
+    lines: list[str] = [f'## [slug: {slug}]', '', '```yaml', f'title: {title}']
+    if milestone:
+        lines.append(f'milestone: {milestone}')
+    if labels:
+        lines.append('labels: [' + ', '.join(labels) + ']')
+    if status:
+        lines.append(f'status: {status}')
+    trimmed = re.sub(r'<!--\s*issuesuite:slug=[^>]+-->\s*', '', body)[:400].replace('```', '`\n`')
+    if trimmed:
+        lines.append('body: |')
+        for ln in trimmed.splitlines()[:20]:
+            lines.append(f'  {ln}')
+    lines.append('```')
+    lines.append('')
+    return lines
+
+
+def _cmd_import(cfg: SuiteConfig, args: argparse.Namespace) -> int:
+    client_cfg = IssuesClientConfig(repo=args.repo or cfg.github_repo, dry_run=False, mock=os.environ.get('ISSUES_SUITE_MOCK') == '1')
+    client = IssuesClient(client_cfg)
+    issues = client.list_existing()
+    if not issues:
+        print('[import] no issues fetched (empty or auth problem)')
+        return 1
+    lines: list[str] = []
+    count = 0
+    seen_slugs: set[str] = set()
+    for it in issues:
+        if count >= args.limit:
+            break
+        title, body, labels_list, milestone_title, status = _extract_issue_fields(it)
+        slug = _slugify(title)
+        base = slug
+        idx = 2
+        while slug in seen_slugs:
+            slug = f'{base}-{idx}'
+            idx += 1
+        seen_slugs.add(slug)
+        lines.extend(_render_issue_block(slug, title, body, labels_list, milestone_title, status))
+        count += 1
+    out_path = Path(args.output)
+    out_path.write_text('\n'.join(lines).rstrip() + '\n')
+    print(f'[import] wrote {count} issues -> {out_path}')
+    if count < len(issues):
+        print(f'[import] (truncated to {count} of {len(issues)})')
+    return 0
+
+
+def _cmd_reconcile(cfg: SuiteConfig, args: argparse.Namespace) -> int:
+    # Parse local specs
+    suite = IssueSuite(cfg)
+    try:
+        specs = suite.parse()
+    except Exception as exc:  # pragma: no cover - parse error path
+        print(f"[reconcile] failed to parse specs: {exc}", file=sys.stderr)
+        return 2
+    # Fetch live issues (respect mock & dry-run semantics by using IssuesClient directly)
+    client = IssuesClient(IssuesClientConfig(repo=args.repo or cfg.github_repo, dry_run=False, mock=os.environ.get('ISSUES_SUITE_MOCK') == '1'))
+    live = client.list_existing()[: args.limit]
+    rep = reconcile(specs=specs, live_issues=live)
+    for line in format_report(rep):
+        print(line)
+    return 0 if bool(rep.get('in_sync')) else 2
+
+
+def _doctor_repo_check(repo: str | None, problems: list[str]) -> None:
+    print(f"[doctor] repo: {repo or 'None'}")
+    if not repo:
+        problems.append('No repository configured (github_repo)')
+
+
+def _doctor_token_check(warnings: list[str]) -> None:
+    token = os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN')
+    print(f"[doctor] token: {'present' if token else 'missing'}")
+    if not token:
+        warnings.append('No GH_TOKEN/GITHUB_TOKEN environment variable detected (may rely on gh auth)')
+
+
+def _doctor_env_flags() -> tuple[bool, bool]:
+    mock = os.environ.get('ISSUES_SUITE_MOCK') == '1'
+    dry = os.environ.get('ISSUESUITE_DRY_FORCE') == '1'
+    if mock:
+        print('[doctor] mock mode detected (ISSUES_SUITE_MOCK=1)')
+    if dry:
+        print('[doctor] global dry-run override (ISSUESUITE_DRY_FORCE=1)')
+    return mock, dry
+
+
+def _doctor_issue_list(repo: str | None, mock: bool, problems: list[str]) -> None:
+    if repo and not mock:
+        try:
+            client = IssuesClient(IssuesClientConfig(repo=repo, dry_run=False, mock=False))
+            issues = client.list_existing()
+            print(f"[doctor] list_existing ok: fetched {len(issues)} issues")
+        except Exception as exc:  # pragma: no cover - external env dependent
+            problems.append(f'Failed to list issues: {exc}')
+
+
+def _doctor_emit_results(warnings: list[str], problems: list[str]) -> int:
+    if warnings:
+        print('[doctor] warnings:')
+        for w in warnings:
+            print(f'  - {w}')
+    if problems:
+        print('[doctor] problems:')
+        for p in problems:
+            print(f'  - {p}')
+        return 2
+    print('[doctor] ok')
+    return 0
+
+
+def _cmd_doctor(cfg: SuiteConfig, args: argparse.Namespace) -> int:
+    """Run lightweight diagnostics (auth, repo access, env flags)."""
+    problems: list[str] = []
+    warnings: list[str] = []
+    repo = args.repo or cfg.github_repo
+    _doctor_repo_check(repo, problems)
+    _doctor_token_check(warnings)
+    mock, _ = _doctor_env_flags()
+    _doctor_issue_list(repo, mock, problems)
+    return _doctor_emit_results(warnings, problems)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -339,24 +461,39 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     # Global quiet env fallback
     if not getattr(args, 'quiet', False) and os.environ.get('ISSUESUITE_QUIET') == '1':
-        args.quiet = True  # type: ignore[attr-defined]
+        args.quiet = True
     cfg = _load_cfg(args.config)
-    if args.cmd == 'export':
-        return _cmd_export(cfg, args)
-    if args.cmd == 'summary':
-        return _cmd_summary(cfg, args)
-    if args.cmd == 'sync':
-        return _cmd_sync(cfg, args)
-    if args.cmd == 'ai-context':
-        return _cmd_ai_context(cfg, args)
-    if args.cmd == 'schema':
-        return _cmd_schema(cfg, args)
-    if args.cmd == 'validate':
-        return _cmd_validate(cfg)
-    if args.cmd == 'setup':
-        return _cmd_setup(args)
-    parser.print_help()
-    return 1
+    # Apply repo override if provided
+    if getattr(args, 'repo', None):
+        # SuiteConfig is a dataclass; mutate attribute directly (safe for ephemeral CLI use)
+        cfg.github_repo = args.repo
+    # Apply project number override (sync only for now)
+    if args.cmd == 'sync' and getattr(args, 'project_number', None) is not None:
+        try:
+            pn = int(args.project_number)
+            if pn > 0:
+                cfg.project_number = pn
+                cfg.project_enable = True  # ensure project logic executes if user supplies it
+        except (TypeError, ValueError):  # pragma: no cover - defensive
+            pass
+    # Dispatch table to reduce branching complexity
+    handlers: dict[str, Any] = {
+        'export': lambda: _cmd_export(cfg, args),
+        'summary': lambda: _cmd_summary(cfg, args),
+        'sync': lambda: _cmd_sync(cfg, args),
+        'ai-context': lambda: _cmd_ai_context(cfg, args),
+        'schema': lambda: _cmd_schema(cfg, args),
+        'validate': lambda: _cmd_validate(cfg),
+        'setup': lambda: _cmd_setup(args),
+        'import': lambda: _cmd_import(cfg, args),
+        'reconcile': lambda: _cmd_reconcile(cfg, args),
+        'doctor': lambda: _cmd_doctor(cfg, args),
+    }
+    handler = handlers.get(args.cmd)
+    if handler is None:  # pragma: no cover - argparse enforces valid choices
+        parser.print_help()
+        return 1
+    return int(handler())
 
 
 if __name__ == '__main__':  # pragma: no cover

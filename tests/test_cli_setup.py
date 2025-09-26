@@ -1,9 +1,6 @@
 import os
-from pathlib import Path
-from unittest.mock import patch
 
 from issuesuite.cli import main
-
 
 CONFIG = """
 version: 1

@@ -1,0 +1,38 @@
+name: IssueSuite Sync
+on:
+  push:
+    branches: [main, v2]
+    paths:
+      - ISSUES.md
+      - pyproject.toml
+      - src/**
+      - .github/workflows/issuesuite-sync.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+  repository-projects: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      ISSUESUITE_DEBUG: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install IssueSuite (editable)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+      - name: Dry-run sync
+        run: issuesuite sync --dry-run --repo ${{ github.repository }} --summary-json issues_summary.json
+      - name: Apply sync
+        run: issuesuite sync --update --repo ${{ github.repository }} --summary-json issues_summary.json
+      - name: Upload summary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: issuesuite-summary
+          path: issues_summary.json
+          if-no-files-found: warn

@@ -1,9 +1,12 @@
-import os
-import pytest
-from unittest.mock import patch, MagicMock
+import subprocess
+from typing import Any
+from unittest.mock import MagicMock, patch
+
 from issuesuite.project import (
-    ProjectConfig, GitHubProjectAssigner, NoopProjectAssigner, 
-    build_project_assigner
+    GitHubProjectAssigner,
+    NoopProjectAssigner,
+    ProjectConfig,
+    build_project_assigner,
 )
 
 
@@ -199,8 +202,10 @@ def test_project_field_mapping_with_none_values(monkeypatch):
 
 
 @patch('subprocess.run')
-def test_github_project_assigner_get_issue_id_real_mode(mock_run):
+def test_github_project_assigner_get_issue_id_real_mode(mock_run: MagicMock, monkeypatch: Any) -> None:
     """Test getting issue ID in real mode (not mock)."""
+    # Ensure mock mode is disabled for this test
+    monkeypatch.setenv('ISSUES_SUITE_MOCK', '0')
     # Setup mock subprocess result
     mock_result = MagicMock()
     mock_result.stdout = 'MDU6SXNzdWUxMjM0NTY3ODk=\n'
@@ -220,9 +225,10 @@ def test_github_project_assigner_get_issue_id_real_mode(mock_run):
 
 
 @patch('subprocess.run')
-def test_github_project_assigner_get_issue_id_error(mock_run):
+def test_github_project_assigner_get_issue_id_error(mock_run: MagicMock, monkeypatch: Any) -> None:
     """Test getting issue ID when GitHub CLI fails."""
-    import subprocess
+    # Ensure mock mode is disabled for this test to exercise the real path
+    monkeypatch.setenv('ISSUES_SUITE_MOCK', '0')
     mock_run.side_effect = subprocess.CalledProcessError(1, 'gh')
     
     config = ProjectConfig(enabled=True, number=123, field_mappings={})

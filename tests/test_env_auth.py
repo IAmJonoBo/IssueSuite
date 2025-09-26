@@ -1,7 +1,5 @@
 import os
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from issuesuite.env_auth import (
     EnvAuthConfig,
@@ -202,7 +200,7 @@ def test_dotenv_loading_with_file(mock_load_dotenv, tmp_path):
     original_cwd = os.getcwd()
     os.chdir(tmp_path)
     try:
-        manager = EnvironmentAuthManager(config)
+        EnvironmentAuthManager(config)
         mock_load_dotenv.assert_called_once()
     finally:
         os.chdir(original_cwd)

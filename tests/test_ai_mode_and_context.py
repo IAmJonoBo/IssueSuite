@@ -31,7 +31,7 @@ def test_ai_mode_forces_dry_run(tmp_path: Path, monkeypatch: Any) -> None:
     # Minimal config + ISSUES.md
     config = tmp_path / "issue_suite.config.yaml"
     config.write_text("""version: 1\nrepository: example/repo\n""")
-    (tmp_path / "ISSUES.md").write_text("""# Roadmap\n\n## Feature: Example\n- [ ] Task one\n""")
+    (tmp_path / "ISSUES.md").write_text("""# Roadmap\n\n## [slug: example-feature]\n```yaml\ntitle: Example Feature\nlabels: [feature]\nbody: |\n  Task one\n```\n""")
 
     env = {"ISSUESUITE_AI_MODE": "1", "ISSUES_SUITE_MOCK": "1"}
 
@@ -47,7 +47,7 @@ def test_ai_mode_forces_dry_run(tmp_path: Path, monkeypatch: Any) -> None:
 def test_ai_context_command_structure(tmp_path: Path, monkeypatch: Any) -> None:
     config = tmp_path / "issue_suite.config.yaml"
     config.write_text("""version: 1\nrepository: example/repo\n""")
-    (tmp_path / "ISSUES.md").write_text("""# Roadmap\n\n## Feature: Example\n- [ ] Task one\n""")
+    (tmp_path / "ISSUES.md").write_text("""# Roadmap\n\n## [slug: example-feature]\n```yaml\ntitle: Example Feature\nlabels: [feature]\nbody: |\n  Task one\n```\n""")
 
     env = {"ISSUES_SUITE_MOCK": "1"}
     res = run_cli(env, "ai-context", "--config", str(config))

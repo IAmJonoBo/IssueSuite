@@ -10,13 +10,23 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-try:  # optional dependency; tests patch this symbol
-    from dotenv import load_dotenv  # type: ignore
-except Exception:  # pragma: no cover
-    def load_dotenv(*_a: Any, **_kw: Any) -> None:  # type: ignore
-        raise ImportError("python-dotenv not installed")
-
 from .logging import get_logger
+
+try:  # optional dependency; tests patch this symbol
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover
+    from os import PathLike
+    from typing import IO
+
+    def load_dotenv(
+        dotenv_path: str | PathLike[str] | None = None,
+        stream: IO[str] | None = None,
+        verbose: bool = False,
+        override: bool = False,
+        interpolate: bool = True,
+        encoding: str | None = None,
+    ) -> bool:
+        raise ImportError("python-dotenv not installed")
 
 
 @dataclass
@@ -54,14 +64,14 @@ class EnvironmentAuthManager:
             dotenv_path = self.config.dotenv_path or '.env'
             env_file = Path(dotenv_path)
             if env_file.exists():
-                load_dotenv(env_file)  # type: ignore[arg-type]
+                load_dotenv(str(env_file))
                 self._dotenv_loaded = True
                 self.logger.debug(f"Loaded environment variables from {env_file}")
             else:
                 for location in ['.env', '.env.local', '.venv/.env']:
                     env_path = Path(location)
                     if env_path.exists():
-                        load_dotenv(env_path)  # type: ignore[arg-type]
+                        load_dotenv(str(env_path))
                         self._dotenv_loaded = True
                         self.logger.debug(f"Loaded environment variables from {env_path}")
                         break

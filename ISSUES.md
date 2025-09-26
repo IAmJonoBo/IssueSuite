@@ -4,7 +4,6 @@ This file is the canonical definition of desired GitHub Issues and (optionally) 
 
 Each issue is expressed as a Markdown heading followed immediately by a fenced YAML block.
 
-
 Conventions:
 
 - Heading level 2 (##) defines a unique slug via bracket notation: `## [slug: some-slug]`
@@ -16,12 +15,11 @@ Conventions:
   - assignees (list[str], optional)
   - milestone (string, optional)
   - project (mapping, optional):
-      owner: "@org-or-user"  # org or user handle (prefix @ for clarity)
-      number: 1               # GitHub Project (new) project number
-      fields:                 # Mapping of Project field name -> value / option name
-        Status: Todo
-  Priority: High
-
+    owner: "@org-or-user" # org or user handle (prefix @ for clarity)
+    number: 1 # GitHub Project (new) project number
+    fields: # Mapping of Project field name -> value / option name
+    Status: Todo
+    Priority: High
 
 A hidden marker will be injected into created issue bodies: `<!-- issuesuite:slug=<slug> -->`.
 

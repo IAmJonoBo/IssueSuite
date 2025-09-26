@@ -1,7 +1,4 @@
-import os 
-from pathlib import Path
 from issuesuite import IssueSuite, load_config
-
 
 CONFIG_WITH_PROJECT = """
 version: 1
@@ -27,11 +24,14 @@ logging:
   level: INFO
 """
 
-ISSUES = """## 001 | Demo Issue
-labels: bug, enhancement
+ISSUES = """## [slug: demo-issue]
+```yaml
+title: Demo Issue
+labels: [bug, enhancement]
 milestone: Sprint 1
----
-Body text for the issue
+body: |
+  Body text for the issue
+```
 """
 
 

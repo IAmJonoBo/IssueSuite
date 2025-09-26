@@ -1,6 +1,4 @@
-import os
 from issuesuite import IssueSuite, load_config
-from pathlib import Path
 
 CONFIG = """
 version: 1
@@ -17,10 +15,14 @@ behavior: {}
 ai: {}
 """
 
-ISSUES = """## 001 | Demo
-labels: alpha
----
-Body
+ISSUES = """## [slug: demo]
+```yaml
+title: Demo Issue
+labels: [alpha]
+status: open
+body: |
+  Body
+```
 """
 
 def test_debug_logging_emits(monkeypatch, tmp_path, capsys):

@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "issuesuite"
-version = "0.1.5"  # Set at extraction time; keep in sync with issuesuite.__version__
+version = "0.1.8"  # Keep in sync with issuesuite.__version__
 description = "Declarative GitHub Issues automation: validate, sync, export, and report from a single ISSUES.md file"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
@@ -45,11 +45,13 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0.0",
-  "pytest-asyncio>=0.21.0",
+  "pytest-asyncio>=1.2.0",
   "ruff>=0.5.0",
   "mypy>=1.8.0",
+  "types-psutil>=7.0.0.20250822",
+  "types-PyYAML>=6.0.12.20240917",
   "build>=1.0.0",
-  "twine>=5.0.0",
+  "twine>=6.2.0",
 ]
 schemas = [
   "jsonschema>=4.0.0,<5",
@@ -58,15 +60,15 @@ env = [
   "python-dotenv>=1.0.0",
 ]
 performance = [
-  "psutil>=5.9.0",
+  "psutil>=7.1.0",
 ]
 vscode = [
   "python-dotenv>=1.0.0",
-  "psutil>=5.9.0",
+  "psutil>=7.1.0",
 ]
 all = [
   "python-dotenv>=1.0.0",
-  "psutil>=5.9.0",
+  "psutil>=7.1.0",
   "jsonschema>=4.0.0,<5",
 ]
 
@@ -96,6 +98,15 @@ ignore = ["E501", "PLR0913", "PLR0911"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/issuesuite/cli.py" = ["PLR0915"]  # allow higher function complexity for CLI command dispatcher
+"src/issuesuite/core.py" = ["PLR0915", "PLR0912"]  # parser + aggregation intentionally verbose
+"src/issuesuite/orchestrator.py" = ["PLR0915"]  # enrichment logic intentionally linear/complex
+"tests/**/*.py" = [
+  "PLR2004",  # magic values in tests are fine
+  "F401",     # unused imports in tests
+  "F841",     # assigned but unused in tests
+  "I001",     # import order in tests
+  "E741",     # ambiguous variable names in tests (e.g., list comps)
+]
 
 [tool.ruff.format]
 quote-style = "preserve"
@@ -112,3 +123,10 @@ python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+exclude = ["tests/.*"]
+strict_optional = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+no_implicit_optional = true
+show_error_codes = true

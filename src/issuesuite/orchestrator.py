@@ -1,21 +1,132 @@
-from __future__ import annotations
-
 """High-level orchestration utilities bridging legacy script CLI and library.
 
-This module centralizes sync behavior (hash state + mapping + summary JSON)
-so the top-level `scripts/issue_suite.py` can delegate instead of duplicating
-logic. It intentionally mirrors existing summary JSON shape.
+Centralizes sync behavior (hash state + mapping + summary JSON) while keeping
+public API surface minimal. The enriched summary mirrors prior script output
+with additional metadata for AI and future reconcile features.
 """
+
+from __future__ import annotations
 
 import json
 import os
-from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 from .config import SuiteConfig
 from .core import IssueSuite
+
+# Threshold for including full mapping snapshot inline in enriched summary output
+MAPPING_SNAPSHOT_THRESHOLD = 500
+
+
+# --- Typed schema objects -------------------------------------------------
+
+class ChangeEntry(TypedDict, total=False):
+    external_id: str
+    action: str  # created / updated / closed / unchanged (if ever exposed)
+    diff: dict[str, Any]
+
+class ChangeSet(TypedDict, total=False):
+    created: list[ChangeEntry]
+    updated: list[ChangeEntry]
+    closed: list[ChangeEntry]
+
+class Totals(TypedDict):
+    created: int
+    updated: int
+    closed: int
+    unchanged: int
+    parsed: int
+
+class BaseSummary(TypedDict, total=False):
+    totals: Totals
+    changes: ChangeSet
+    mapping: dict[str, int]
+
+class EnrichedSummary(BaseSummary, total=False):
+    schemaVersion: int
+    generated_at: str
+    dry_run: bool
+    ai_mode: bool
+    mapping_present: bool
+    mapping_size: int
+    mapping_snapshot: dict[str, int]
+    # last_error is optional and only present when sync failed
+    last_error: Any
+
+# -------------------------------------------------------------------------
+
+
+def _iter_updated_entries(summary: dict[str, Any]) -> list[dict[str, Any]]:  # retain dynamic helper
+    """Return list of updated change entries (each a dict) or empty list.
+
+    This isolates dynamic JSON shape handling so type/lint noise is localized.
+    """
+    changes = summary.get("changes")
+    if not isinstance(changes, dict):
+        return []
+    updated_any = changes.get("updated")
+    if not isinstance(updated_any, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for entry in updated_any:
+        if isinstance(entry, dict):  # narrow type
+            out.append(entry)  # safe append
+    return out
+
+
+def _load_index_mapping(cfg: SuiteConfig) -> dict[str, int]:
+    """Load existing index mapping; non-fatal on any error."""
+    idx_file = cfg.source_file.parent / ".issuesuite" / "index.json"
+    if not idx_file.exists():
+        return {}
+    try:
+        raw: Any = json.loads(idx_file.read_text())
+    except Exception:
+        return {}
+    if not isinstance(raw, dict):  # defensive
+        return {}
+    raw_map: Any = raw.get("mapping")
+    if not isinstance(raw_map, dict):
+        return {}
+    result: dict[str, int] = {}
+    for k, v in raw_map.items():
+        try:
+            result[str(k)] = int(v)  # cast numeric-like values
+        except Exception:
+            continue
+    return result
+
+
+def _truncate_body_diffs(summary: dict[str, Any], truncate: int | None) -> None:
+    """Apply body diff truncation in-place respecting configured limit."""
+    if not truncate:
+        return
+    for entry in _iter_updated_entries(summary):
+        diff_obj_any = entry.get("diff")
+        if not isinstance(diff_obj_any, dict):
+            continue
+        body_diff_any = diff_obj_any.get("body_diff")
+        if not isinstance(body_diff_any, list):
+            continue
+        if len(body_diff_any) <= truncate:
+            continue
+        diff_obj_any["body_diff"] = [str(x) for x in body_diff_any[:truncate]] + ["... (truncated)"]
+
+
+def _persist_mapping(
+    cfg: SuiteConfig,
+    mapping: dict[str, int],
+    *,
+    mapping_path: str | None,
+) -> None:
+    """Persist mapping to legacy path and canonical index.json."""
+    legacy_mp = Path(mapping_path or cfg.mapping_file)
+    legacy_mp.write_text(json.dumps(mapping, indent=2) + "\n")
+    index_dir = cfg.source_file.parent / ".issuesuite"
+    index_dir.mkdir(exist_ok=True)
+    (index_dir / "index.json").write_text(json.dumps({"mapping": mapping}, indent=2) + "\n")
 
 
 def sync_with_summary(
@@ -27,48 +138,75 @@ def sync_with_summary(
     preflight: bool,
     summary_path: str | None = None,
     mapping_path: str | None = None,
-) -> dict[str, Any]:
-    """Run a sync using IssueSuite and emit mapping/state + summary JSON.
+    prune: bool = False,
+) -> EnrichedSummary:
+    """Run a sync and emit enriched summary JSON + (optional) mapping persistence.
 
-    Returns the summary dict (same shape used previously by script).
+    Kept intentionally linear; complex branches factored into helpers.
     """
-    suite = IssueSuite(cfg)
     ai_mode = os.environ.get("ISSUESUITE_AI_MODE") == "1"
-    # In AI mode we always force dry-run to guarantee side-effect free operation for tooling
     effective_dry_run = True if ai_mode else dry_run
-    # Run underlying sync to get base summary (without body diffs standardized)
-    summary = suite.sync(
+
+    suite = IssueSuite(cfg)
+    summary_raw = suite.sync(
         dry_run=effective_dry_run,
         update=update,
         respect_status=respect_status,
         preflight=preflight,
+        prune=prune,
     )
 
-    # Ensure any updated/created items have truncated diffs per config (if present)
-    truncate = cfg.truncate_body_diff
-    for updated in summary.get("changes", {}).get("updated", []):
-        diff_obj: MutableMapping[str, Any] = updated.get("diff") or {}
-        body_diff = diff_obj.get("body_diff")
-        if isinstance(body_diff, list):  # refine type
-            bd_list: list[str] = [str(x) for x in body_diff]
-            if truncate and len(bd_list) > truncate:
-                updated["diff"]["body_diff"] = bd_list[:truncate] + ["... (truncated)"]
+    # Merge existing mapping (from prior runs) with this run's mapping and prune stale.
+    index_mapping = _load_index_mapping(cfg)
+    latest_mapping_raw = summary_raw.get("mapping")
+    latest_mapping: dict[str, int] = {}
+    if isinstance(latest_mapping_raw, dict):
+        for k, v in latest_mapping_raw.items():
+            try:
+                latest_mapping[str(k)] = int(v)  # cast numeric-ish
+            except Exception:
+                continue
+    # Determine current slugs (parsed specs count in summary_raw if present or derive from mapping)
+    current_slugs: set[str] = set()
+    if latest_mapping:
+        current_slugs.update(latest_mapping.keys())
+    # Prune any stale entries (slugs not present anymore)
+    if index_mapping:
+        stale = [k for k in index_mapping.keys() if k not in current_slugs and current_slugs]
+        if stale:
+            for k in stale:
+                index_mapping.pop(k, None)
+    if latest_mapping:
+        index_mapping.update(latest_mapping)
 
-    # Persist mapping if provided by core sync (external_id -> issue number)
-    if not dry_run:
-        mapping: dict[str, int] = summary.get("mapping", {}) or {}
-        mp = Path(mapping_path or cfg.mapping_file)
-        mp.write_text(json.dumps(mapping, indent=2) + "\n")
+    # Truncate body diffs if configured
+    _truncate_body_diffs(summary_raw, cfg.truncate_body_diff)
 
-    # augment summary with schemaVersion & timestamp to align with script format
-    summary_enriched: dict[str, Any] = {
-        "schemaVersion": cfg.schema_version,
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "dry_run": effective_dry_run,
-        "ai_mode": ai_mode,
-        **summary,
+    # Persist mapping only if not an effective dry-run (write merged/pruned set)
+    if not effective_dry_run and index_mapping:
+        _persist_mapping(cfg, index_mapping, mapping_path=mapping_path)
+
+    # summary_raw is a plain dict produced by IssueSuite.sync; selective unpack
+    # Note: dynamic dict assembly; rely on runtime shape not strict static typing here.
+    enriched: EnrichedSummary = {
+        'schemaVersion': cfg.schema_version,
+        'generated_at': datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        'dry_run': effective_dry_run,
+        'ai_mode': ai_mode,
+        'mapping_present': bool(index_mapping),
+        'mapping_size': len(index_mapping),
+        'totals': summary_raw.get('totals', {}),
+        'changes': summary_raw.get('changes', {}),
+        'mapping': summary_raw.get('mapping', {}),
     }
+    if index_mapping and len(index_mapping) <= MAPPING_SNAPSHOT_THRESHOLD:
+        enriched["mapping_snapshot"] = dict(index_mapping)
 
+    # Attach last error if surfaced by suite (only populated on failure path, so none on success)
+    if getattr(suite, '_last_error', None):  # attribute is best-effort internal
+        le = suite._last_error  # may be None
+        if isinstance(le, dict):
+            enriched['last_error'] = le
     sp = Path(summary_path or cfg.summary_json)
-    sp.write_text(json.dumps(summary_enriched, indent=2) + "\n")
-    return summary_enriched
+    sp.write_text(json.dumps(enriched, indent=2) + "\n")
+    return enriched

@@ -1,10 +1,9 @@
 from __future__ import annotations
-import re
-import json
+
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, cast
 
 try:
     import yaml  # type: ignore
@@ -28,13 +27,13 @@ class SuiteConfig:
     id_pattern: str
     milestone_required: bool
     auto_status_label: bool
-    milestone_pattern: Optional[str]
-    github_repo: Optional[str]
+    milestone_pattern: str | None
+    github_repo: str | None
     project_enable: bool
-    project_number: Optional[int]
-    project_field_mappings: Dict[str, str]
-    inject_labels: List[str]
-    ensure_milestones_list: List[str]
+    project_number: int | None
+    project_field_mappings: dict[str, str]
+    inject_labels: list[str]
+    ensure_milestones_list: list[str]
     ensure_labels_enabled: bool
     ensure_milestones_enabled: bool
     summary_json: str
@@ -48,6 +47,7 @@ class SuiteConfig:
     emit_change_events: bool
     schema_export_file: str
     schema_summary_file: str
+    schema_ai_context_file: str
     schema_version: int
     # Logging configuration
     logging_json_enabled: bool
@@ -59,16 +59,16 @@ class SuiteConfig:
     concurrency_max_workers: int
     # GitHub App configuration
     github_app_enabled: bool
-    github_app_id: Optional[str]
-    github_app_private_key_path: Optional[str]
-    github_app_installation_id: Optional[str]
+    github_app_id: str | None
+    github_app_private_key_path: str | None
+    github_app_installation_id: str | None
     # Environment authentication configuration
     env_auth_enabled: bool
     env_auth_load_dotenv: bool
-    env_auth_dotenv_path: Optional[str]
+    env_auth_dotenv_path: str | None
 
 
-def _resolve_env_var(value: Any, env_var_name: Optional[str] = None) -> Any:
+def _resolve_env_var(value: Any, env_var_name: str | None = None) -> Any:
     """Resolve environment variable if value starts with $."""
     if isinstance(value, str) and value.startswith('$'):
         env_name = env_var_name or value[1:]  # Remove $ prefix
@@ -82,19 +82,19 @@ def load_config(path: str | Path) -> SuiteConfig:
         raise ConfigError(f'Configuration file not found: {p}')
     if yaml is None:
         raise ConfigError('PyYAML not installed; pip install PyYAML')
-    raw = yaml.safe_load(p.read_text()) or {}
-    src = raw.get('source', {})
-    gh = raw.get('github', {})
-    defaults = raw.get('defaults', {})
-    out = raw.get('output', {})
-    behavior = raw.get('behavior', {})
-    ai = raw.get('ai', {})
-    project = gh.get('project', {}) or {}
-    logging_config = raw.get('logging', {})
-    performance_config = raw.get('performance', {})
-    concurrency_config = raw.get('concurrency', {})
-    github_app = gh.get('app', {}) or {}
-    env_auth = raw.get('environment', {}) or {}
+    raw = cast(dict[str, Any], yaml.safe_load(p.read_text()) or {})
+    src = cast(dict[str, Any], raw.get('source', {}) or {})
+    gh = cast(dict[str, Any], raw.get('github', {}) or {})
+    defaults = cast(dict[str, Any], raw.get('defaults', {}) or {})
+    out = cast(dict[str, Any], raw.get('output', {}) or {})
+    behavior = cast(dict[str, Any], raw.get('behavior', {}) or {})
+    ai = cast(dict[str, Any], raw.get('ai', {}) or {})
+    project = cast(dict[str, Any], gh.get('project', {}) or {})
+    logging_config = cast(dict[str, Any], raw.get('logging', {}) or {})
+    performance_config = cast(dict[str, Any], raw.get('performance', {}) or {})
+    concurrency_config = cast(dict[str, Any], raw.get('concurrency', {}) or {})
+    github_app = cast(dict[str, Any], gh.get('app', {}) or {})
+    env_auth = cast(dict[str, Any], raw.get('environment', {}) or {})
     
     # Resolve environment variables in GitHub App configuration
     github_app_id = _resolve_env_var(github_app.get('app_id'), 'GITHUB_APP_ID')
@@ -108,8 +108,10 @@ def load_config(path: str | Path) -> SuiteConfig:
     return SuiteConfig(
         version=int(raw.get('version', 1)),
         source_file=p.parent / src.get('file', 'ISSUES.md'),
-        id_pattern=src.get('id_pattern', '^[0-9]{3}$'),
-        milestone_required=bool(src.get('milestone_required', True)),
+    # New slug-based format default: lowercase alnum plus hyphen/underscore
+    id_pattern=src.get('id_pattern', '^[a-z0-9][a-z0-9-_]*$'),
+        # Milestone enforcement is opt-in; default False to preserve backward compatibility.
+        milestone_required=bool(src.get('milestone_required', False)),
         auto_status_label=bool(src.get('auto_status_label', True)),
         milestone_pattern=src.get('milestone_pattern'),
         github_repo=gh.get('repo'),
@@ -131,6 +133,7 @@ def load_config(path: str | Path) -> SuiteConfig:
         emit_change_events=bool(behavior.get('emit_change_events', False)),
         schema_export_file=ai.get('schema_export_file', 'issue_export.schema.json'),
         schema_summary_file=ai.get('schema_summary_file', 'issue_change_summary.schema.json'),
+    schema_ai_context_file=ai.get('schema_ai_context_file', 'ai_context.schema.json'),
         schema_version=int(ai.get('schema_version', 1)),
         # Logging configuration
         logging_json_enabled=bool(logging_config.get('json_enabled', False)),

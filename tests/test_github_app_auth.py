@@ -1,14 +1,16 @@
 import json
 import os
 import subprocess
-import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-from datetime import datetime, timezone, timedelta
+from unittest.mock import MagicMock, patch
 
 from issuesuite.github_auth import (
-    GitHubAppConfig, GitHubAppTokenManager, create_github_app_manager,
-    setup_github_app_auth, is_github_app_configured
+    GitHubAppConfig,
+    GitHubAppTokenManager,
+    create_github_app_manager,
+    is_github_app_configured,
+    setup_github_app_auth,
 )
 
 
@@ -334,7 +336,7 @@ def test_setup_github_app_auth_failure():
                 installation_id='67890',
                 mock=True
             )
-            assert False, "Should have raised RuntimeError"
+            raise AssertionError("Should have raised RuntimeError")
         except RuntimeError as e:
             assert "Failed to configure GitHub App authentication" in str(e)
 

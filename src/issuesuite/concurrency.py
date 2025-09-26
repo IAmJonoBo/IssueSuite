@@ -7,10 +7,13 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import json
 import subprocess
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from types import TracebackType
+from typing import Any, TypeVar
 
 from .logging import get_logger
 
@@ -34,27 +37,36 @@ class AsyncGitHubClient:
         self.config = concurrency_config
         self.mock = mock
         self.logger = get_logger()
-        self._executor = None
+        self._executor: ThreadPoolExecutor | None = None
         
-    def __enter__(self):
+    def __enter__(self) -> AsyncGitHubClient:
         if self.config.enabled:
             self._executor = ThreadPoolExecutor(max_workers=self.config.max_workers)
         return self
         
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+    exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         if self._executor:
             self._executor.shutdown(wait=True)
     
-    async def __aenter__(self):
-        if self.config.enabled:
-            self._executor = ThreadPoolExecutor(max_workers=self.config.max_workers)
-        return self
+    async def __aenter__(self) -> AsyncGitHubClient:
+        # Delegate to sync __enter__ to avoid duplicate logic
+        return self.__enter__()
         
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self._executor:
-            self._executor.shutdown(wait=True)
+    async def __aexit__(
+        self,
+    exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        # Delegate to sync __exit__ to avoid duplicate logic
+        self.__exit__(exc_type, exc_val, exc_tb)
     
-    async def _run_command_async(self, cmd: List[str]) -> Tuple[bool, str]:
+    async def _run_command_async(self, cmd: list[str]) -> tuple[bool, str]:
         """Run a command asynchronously."""
         if self.mock:
             # Simulate some work
@@ -62,17 +74,26 @@ class AsyncGitHubClient:
             return True, f"MOCK: {' '.join(cmd)}"
             
         if not self.config.enabled or not self._executor:
-            # Fallback to synchronous execution
+            # Fallback to background thread to avoid blocking event loop
+            loop = asyncio.get_event_loop()
             try:
-                result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                result = await loop.run_in_executor(
+                    None,
+                    functools.partial(
+                        subprocess.run,
+                        cmd,
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                    ),
+                )
                 return True, result.stdout
             except subprocess.CalledProcessError as e:
                 return False, f"Error: {e}"
         
         # Run in thread pool
-        loop = asyncio.get_event_loop()
         try:
-            result = await loop.run_in_executor(
+            result = await asyncio.get_event_loop().run_in_executor(
                 self._executor,
                 functools.partial(subprocess.run, cmd, capture_output=True, text=True, check=True)
             )
@@ -81,8 +102,8 @@ class AsyncGitHubClient:
             return False, f"Error: {e}"
     
     async def create_issue_async(self, title: str, body: str, 
-                               labels: Optional[List[str]] = None,
-                               milestone: Optional[str] = None) -> Tuple[bool, str]:
+                               labels: list[str] | None = None,
+                               milestone: str | None = None) -> tuple[bool, str]:
         """Create an issue asynchronously."""
         cmd = ['gh', 'issue', 'create', '--title', title, '--body', body]
         if labels:
@@ -93,9 +114,9 @@ class AsyncGitHubClient:
         self.logger.debug("Creating issue async", title=title[:50])
         return await self._run_command_async(cmd)
     
-    async def update_issue_async(self, issue_number: int, body: Optional[str] = None,
-                               labels: Optional[List[str]] = None,
-                               milestone: Optional[str] = None) -> Tuple[bool, str]:
+    async def update_issue_async(self, issue_number: int, body: str | None = None,
+                               labels: list[str] | None = None,
+                               milestone: str | None = None) -> tuple[bool, str]:
         """Update an issue asynchronously."""
         success = True
         messages = []
@@ -121,12 +142,12 @@ class AsyncGitHubClient:
             
         return success, '\n'.join(messages)
     
-    async def close_issue_async(self, issue_number: int) -> Tuple[bool, str]:
+    async def close_issue_async(self, issue_number: int) -> tuple[bool, str]:
         """Close an issue asynchronously."""
         cmd = ['gh', 'issue', 'close', str(issue_number)]
         return await self._run_command_async(cmd)
     
-    async def get_issues_async(self) -> Tuple[bool, List[Dict[str, Any]]]:
+    async def get_issues_async(self) -> tuple[bool, list[dict[str, Any]]]:
         """Get all issues asynchronously."""
         cmd = ['gh', 'issue', 'list', '--state', 'all', '--limit', '1000', '--json',
                'number,title,body,labels,milestone,state']
@@ -134,7 +155,6 @@ class AsyncGitHubClient:
         success, output = await self._run_command_async(cmd)
         if success and not self.mock:
             try:
-                import json
                 issues = json.loads(output)
                 return True, issues
             except json.JSONDecodeError:
@@ -154,9 +174,13 @@ class ConcurrentProcessor:
         self.mock = mock
         self.logger = get_logger()
     
-    async def process_specs_concurrent(self, specs: List[Any], 
-                                     processor_func: Callable,
-                                     *args, **kwargs) -> List[Any]:
+    async def process_specs_concurrent(
+        self,
+        specs: list[Any],
+        processor_func: Callable[..., Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> list[Any]:
         """Process specs concurrently using async processing."""
         if not self.config.enabled or len(specs) <= 1:
             # Fallback to sequential processing
@@ -188,8 +212,13 @@ class ConcurrentProcessor:
         
         return results
     
-    async def _process_batch_async(self, batch: List[Any], processor_func: Callable,
-                                 *args, **kwargs) -> List[Any]:
+    async def _process_batch_async(
+        self,
+        batch: list[Any],
+        processor_func: Callable[..., Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> list[Any]:
         """Process a batch of specs asynchronously."""
         if not self.config.enabled:
             return [processor_func(spec, *args, **kwargs) for spec in batch]
@@ -206,7 +235,7 @@ class ConcurrentProcessor:
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
         # Handle any exceptions
-        processed_results = []
+        processed_results: list[Any] = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 self.logger.log_error(f"Error processing spec {batch[i]}", error=str(result))
@@ -217,8 +246,13 @@ class ConcurrentProcessor:
         
         return processed_results
     
-    async def _run_processor_async(self, processor_func: Callable, spec: Any, 
-                                 *args, **kwargs) -> Any:
+    async def _run_processor_async(
+        self,
+        processor_func: Callable[..., Any],
+        spec: Any,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
         """Run a processor function asynchronously."""
         # If the processor function is already async, run it directly
         if asyncio.iscoroutinefunction(processor_func):
@@ -239,9 +273,9 @@ def create_concurrent_processor(config: ConcurrencyConfig, mock: bool = False) -
     return ConcurrentProcessor(config, mock)
 
 
-async def run_concurrent_sync(specs: List[Any], processor_func: Callable,
+async def run_concurrent_sync(specs: list[Any], processor_func: Callable[..., Any],
                             concurrency_config: ConcurrencyConfig,
-                            mock: bool = False, *args, **kwargs) -> List[Any]:
+                            mock: bool = False, *args: Any, **kwargs: Any) -> list[Any]:
     """Convenience function to run concurrent sync."""
     processor = create_concurrent_processor(concurrency_config, mock)
     return await processor.process_specs_concurrent(specs, processor_func, *args, **kwargs)
@@ -255,11 +289,14 @@ def enable_concurrency_for_large_roadmaps(spec_count: int, threshold: int = 10) 
 
 def get_optimal_worker_count(spec_count: int, max_workers: int = 4) -> int:
     """Get optimal worker count based on spec count."""
-    if spec_count <= 5:
+    small_threshold = 5
+    medium_threshold = 20
+    large_threshold = 50
+    if spec_count <= small_threshold:
         return 1
-    elif spec_count <= 20:
+    elif spec_count <= medium_threshold:
         return min(2, max_workers)
-    elif spec_count <= 50:
+    elif spec_count <= large_threshold:
         return min(3, max_workers)
     else:
         return max_workers

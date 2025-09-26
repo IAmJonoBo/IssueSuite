@@ -1,12 +1,15 @@
 import json
 import time
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 from issuesuite.benchmarking import (
-    BenchmarkConfig, PerformanceBenchmark, PerformanceMetric, BenchmarkResult,
-    create_benchmark, benchmark_operation, analyze_performance_trends,
-    get_performance_recommendations
+    BenchmarkConfig,
+    BenchmarkResult,
+    PerformanceBenchmark,
+    PerformanceMetric,
+    analyze_performance_trends,
+    benchmark_operation,
+    create_benchmark,
+    get_performance_recommendations,
 )
 
 

@@ -1,7 +1,11 @@
-import os
-import subprocess
-from issuesuite import IssueSuite, load_config
+from __future__ import annotations
 
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from issuesuite import IssueSuite, load_config
 
 CFG = """\
 version: 1
@@ -17,36 +21,45 @@ behavior: {}
 ai: {}
 """
 
-ISSUES = """## 001 | Mock
-labels: a,b
----
-Body
+ISSUES = """## [slug: mock]
+```yaml
+title: Mock Issue
+labels: [a, b]
+status: open
+body: |
+  Body
+```
 """
 
 
-class Capture:
-    def __init__(self):
-        self.calls = []
-    def __call__(self, *args, **kwargs):  # mimic subprocess funcs
-        self.calls.append(args[0])
-        return ''
+class Capture:  # test helper
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def record(
+        self, command: str, *rest: str
+    ) -> str:  # simplified signature for lint happiness
+        self.calls.append(command)
+        return ""
 
 
-def test_mock_mode_skips_all_gh(monkeypatch, tmp_path, capsys):
-    (tmp_path / 'ISSUES.md').write_text(ISSUES)
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
+def test_mock_mode_skips_all_gh(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "ISSUES.md").write_text(ISSUES)
+    cfg_path = tmp_path / "issue_suite.config.yaml"
     cfg_path.write_text(CFG)
-    monkeypatch.setenv('ISSUES_SUITE_MOCK', '1')
+    monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
     cfg = load_config(cfg_path)
     suite = IssueSuite(cfg)
 
     capture = Capture()
     # If mock mode fails, these would be invoked; we intercept to ensure they are NOT called.
-    monkeypatch.setattr(subprocess, 'check_call', capture)
-    monkeypatch.setattr(subprocess, 'check_output', capture)
+    monkeypatch.setattr(subprocess, "check_call", capture.record)
+    monkeypatch.setattr(subprocess, "check_output", capture.record)
 
     suite.sync(dry_run=False, update=True, respect_status=False, preflight=True)
     out = capsys.readouterr().out
-    # Expect mock create output, but no gh command captured
-    assert 'MOCK create:' in out
+    # Expect mock create output (now prints full gh command), but no real gh calls captured via subprocess
+    assert "MOCK gh issue create" in out
     assert capture.calls == []

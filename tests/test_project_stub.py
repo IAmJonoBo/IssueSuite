@@ -1,4 +1,4 @@
-from issuesuite.project import ProjectConfig, build_project_assigner, NoopProjectAssigner
+from issuesuite.project import NoopProjectAssigner, ProjectConfig, build_project_assigner
 
 
 def test_build_project_assigner_disabled():
