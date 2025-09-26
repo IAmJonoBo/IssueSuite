@@ -10,6 +10,7 @@ print(summary['totals'])
 
 The CLI delegates to this library to allow installing via pip into other repositories.
 """
+
 from __future__ import annotations
 
 import sys
@@ -20,30 +21,34 @@ if TYPE_CHECKING or sys.version_info >= (3, 10):
     from .core import IssueSpec, IssueSuite
 
 # Version constant (sync manually with pyproject when extracted as standalone project)
-__version__ = '0.1.5'
+__version__ = "0.1.5"
 
 
 def __getattr__(name: str):
     """Lazy loading of modules to improve import performance."""
-    if name == 'load_config':
+    if name == "load_config":
         from .config import load_config
+
         return load_config
-    elif name == 'SuiteConfig':
+    elif name == "SuiteConfig":
         from .config import SuiteConfig
+
         return SuiteConfig
-    elif name == 'IssueSuite':
+    elif name == "IssueSuite":
         from .core import IssueSuite
+
         return IssueSuite
-    elif name == 'IssueSpec':
+    elif name == "IssueSpec":
         from .core import IssueSpec
+
         return IssueSpec
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
 __all__ = [
-    'load_config',
-    'SuiteConfig',
-    'IssueSuite',
-    'IssueSpec',
-    '__version__',
+    "load_config",
+    "SuiteConfig",
+    "IssueSuite",
+    "IssueSpec",
+    "__version__",
 ]

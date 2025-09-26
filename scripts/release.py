@@ -17,12 +17,10 @@ Usage examples:
 from __future__ import annotations
 
 import argparse
-import os
 import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
 PKG_INIT = ROOT / 'src' / 'issuesuite' / '__init__.py'
@@ -31,6 +29,8 @@ CHANGELOG = ROOT / 'CHANGELOG.md'
 
 VERSION_RE = re.compile(r"^__version__\s*=\s*['\"]([^'\"]+)['\"]", re.MULTILINE)
 PYPROJECT_VERSION_RE = re.compile(r"^version\s*=\s*['\"]([^'\"]+)['\"]", re.MULTILINE)
+
+VERSION_PARTS = 3  # semantic version segments: major.minor.patch
 
 
 def read_version_from_init() -> str:
@@ -49,14 +49,18 @@ def parse_args() -> argparse.Namespace:
     g.add_argument('--patch', action='store_true')
     p.add_argument('version', nargs='?', help='Explicit version (overrides semantic flags)')
     p.add_argument('--no-tests', action='store_true', help='Skip running test suite')
+    p.add_argument('--no-lint', action='store_true', help='Skip ruff & mypy checks')
+    p.add_argument('--prerelease', help='Append prerelease tag (e.g. rc1, beta1)')
+    p.add_argument('--skip-changelog', action='store_true', help='Do not modify CHANGELOG')
     p.add_argument('--push', action='store_true', help='Push commit and tag to origin')
+    p.add_argument('--create-github-release', action='store_true', help='Create GitHub release via gh CLI (requires gh auth)')
     p.add_argument('--dry-run', action='store_true', help='Do not write files or run git commands')
     return p.parse_args()
 
 
 def bump_semantic(current: str, major: bool, minor: bool, patch: bool) -> str:
     parts = current.split('.')
-    if len(parts) != 3:
+    if len(parts) != VERSION_PARTS:
         raise SystemExit(f'Unexpected version format: {current}')
     major_v, minor_v, patch_v = map(int, parts)
     if major:
@@ -69,11 +73,14 @@ def bump_semantic(current: str, major: bool, minor: bool, patch: bool) -> str:
 
 def determine_new_version(args: argparse.Namespace, current: str) -> str:
     if args.version:
-        return args.version
-    if args.major or args.minor or args.patch:
-        return bump_semantic(current, args.major, args.minor, args.patch)
-    # default to patch bump if nothing provided
-    return bump_semantic(current, False, False, True)
+        base = args.version
+    elif args.major or args.minor or args.patch:
+        base = bump_semantic(current, args.major, args.minor, args.patch)
+    else:
+        base = bump_semantic(current, False, False, True)
+    if args.prerelease:
+        base = f"{base}-{args.prerelease}"
+    return base
 
 
 def update_init(version: str, dry_run: bool) -> None:
@@ -128,6 +135,18 @@ def run_tests(dry_run: bool) -> None:
         raise SystemExit('Tests failed, aborting release')
 
 
+def run_quality_checks(dry_run: bool) -> None:
+    if dry_run:
+        print('[dry-run] Would run ruff & mypy')
+        return
+    print('Running ruff lint...')
+    if subprocess.call([sys.executable, '-m', 'ruff', 'check', 'src/issuesuite']) != 0:
+        raise SystemExit('Ruff lint failed')
+    print('Running mypy...')
+    if subprocess.call([sys.executable, '-m', 'mypy', 'src/issuesuite']) != 0:
+        raise SystemExit('mypy failed')
+
+
 def git_commit_tag(version: str, dry_run: bool, push: bool) -> None:
     if dry_run:
         print(f'[dry-run] Would git add/commit/tag v{version}')
@@ -142,6 +161,17 @@ def git_commit_tag(version: str, dry_run: bool, push: bool) -> None:
         subprocess.check_call(['git', 'push', 'origin', f'v{version}'])
 
 
+def gh_release(version: str, dry_run: bool) -> None:
+    notes = f"Release v{version}\n\nSee CHANGELOG for details."
+    if dry_run:
+        print(f'[dry-run] Would create GitHub release v{version}')
+        return
+    try:
+        subprocess.check_call(['gh', 'release', 'create', f'v{version}', '--notes', notes])
+    except Exception as e:  # pragma: no cover
+        print(f'Warning: failed to create GitHub release: {e}')
+
+
 def main() -> None:
     args = parse_args()
     current = read_version_from_init()
@@ -152,10 +182,15 @@ def main() -> None:
     print(f'Releasing {current} -> {new_version}')
     update_init(new_version, args.dry_run)
     update_pyproject(new_version, args.dry_run)
-    ensure_changelog_entry(new_version, args.dry_run)
+    if not args.skip_changelog:
+        ensure_changelog_entry(new_version, args.dry_run)
+    if not args.no_lint:
+        run_quality_checks(args.dry_run)
     if not args.no_tests:
         run_tests(args.dry_run)
     git_commit_tag(new_version, args.dry_run, args.push)
+    if args.create_github_release:
+        gh_release(new_version, args.dry_run)
     print('Done.')
 
 if __name__ == '__main__':  # pragma: no cover

@@ -8,22 +8,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No unreleased changes yet._
+### Added (Unreleased)
+
+- AI mode via `ISSUESUITE_AI_MODE=1` forcing dry-run safety for all sync/summary/export operations.
+- `ai-context` CLI command producing structured JSON (spec preview, config hints, env flags, recommendations) for AI assistant ingestion.
+- Test coverage for AI mode enforcement and ai-context export.
+- Pre-commit configuration with Ruff (autofix), mypy, fast pytest subset.
+- Quiet mode flag `--quiet` and `ISSUESUITE_QUIET=1` environment variable to suppress incidental logging for clean JSON piping.
+
+### Changed (Unreleased)
+
+- Ruff configuration with per-file complexity ignore for CLI dispatcher (`PLR0915`).
+- Refactored `setup` subcommand into smaller helper functions reducing complexity.
+
+### Internal (Unreleased)
+
+- README updated with AI integration guidance and sample `ai-context` output.
+- Added per-file ignore instead of further refactor to keep CLI command registration explicit.
+- Added context manager `_QuietLogs` for suppressing logger output when quiet mode enabled.
 
 ## [0.1.5] - 2025-09-26
 
-### Added
+### Added (Legacy StratMaster)
+
 - 0.1.1: Optional preflight auto-create flags (`ensure_labels_enabled`, `ensure_milestones_enabled`), parser equivalence & project stub tests.
 - 0.1.2: Debug logging via `ISSUESUITE_DEBUG=1` environment variable.
 - 0.1.3: Native argparse CLI (`issuesuite`), JSON schema exports, initial CLI tests, packaging workflows.
 - 0.1.4: Mock mode (`ISSUES_SUITE_MOCK=1`) skipping all GitHub CLI calls while printing `MOCK` actions.
 
-### Fixed
+### Fixed (Legacy StratMaster)
+
 - Snapshot-based VS Code secret detection to avoid false positives.
 - Module-level `load_dotenv` shim for reliable patching in tests.
 - Gated GitHub CLI calls during preflight when label/milestone ensures are disabled (prevents unnecessary subprocess usage in dry-run scenarios).
 
 ### Internal
+
 - Modernized type hints in env auth module & minor sync gating adjustments.
 - Refactored `sync` method to helper functions (maintains behavior, lowers complexity).
 
@@ -46,7 +66,7 @@ _No unreleased changes yet._
 - Performance optimizations with caching and async processing
 - Enhanced observability with event-driven metrics collection
 
-### Added
+### Added (Release 0.1.0)
 
 - Multi-agent debate system with specialized AI agents
 - Comprehensive security model with zero-trust architecture
@@ -72,7 +92,7 @@ _No unreleased changes yet._
 
 ## [0.1.0] - 2024-01-15
 
-### Added
+### Added (Initial 0.0.1)
 
 - Initial release of StratMaster platform
 - FastAPI-based REST API with comprehensive endpoints

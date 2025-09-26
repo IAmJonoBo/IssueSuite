@@ -10,22 +10,32 @@ Subcommands:
 Designed to be dependency-light; heavy validation can be layered externally.
 """
 from __future__ import annotations
+
 import argparse
 import json
+import logging
+import os
+import re
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any
 
-from .config import load_config, SuiteConfig
-from .orchestrator import sync_with_summary
+from .config import SuiteConfig, load_config
 from .core import IssueSuite
 from .env_auth import create_env_auth_manager
+from .orchestrator import sync_with_summary
 
 CONFIG_DEFAULT = 'issue_suite.config.yaml'
 
 
 def _build_parser() -> argparse.ArgumentParser:
+    """Construct top-level CLI parser with subcommands.
+
+    Keep ordering stable for help output readability.
+    """
     p = argparse.ArgumentParser(prog='issuesuite', description='Declarative GitHub issue automation')
+    p.add_argument('--quiet', action='store_true', help='Suppress informational logging (env: ISSUESUITE_QUIET=1)')
     sub = p.add_subparsers(dest='cmd', required=True)
 
     ps = sub.add_parser('sync', help='Sync issues to GitHub (create/update/close)')
@@ -45,6 +55,13 @@ def _build_parser() -> argparse.ArgumentParser:
     psm.add_argument('--config', default=CONFIG_DEFAULT)
     psm.add_argument('--limit', type=int, default=20)
 
+    aictx = sub.add_parser('ai-context', help='Emit machine-readable context JSON for AI tooling')
+    aictx.add_argument('--config', default=CONFIG_DEFAULT)
+    aictx.add_argument('--output', help='Output file (defaults to stdout)')
+    aictx.add_argument('--preview', type=int, default=5, help='Preview first N specs')
+    aictx.add_argument('--quiet', action='store_true', help='Suppress informational logging (env: ISSUESUITE_QUIET=1)')
+
+
     sch = sub.add_parser('schema', help='Emit JSON Schema files')
     sch.add_argument('--config', default=CONFIG_DEFAULT)
     sch.add_argument('--stdout', action='store_true')
@@ -52,7 +69,8 @@ def _build_parser() -> argparse.ArgumentParser:
     val = sub.add_parser('validate', help='Basic parse + id pattern validation')
     val.add_argument('--config', default=CONFIG_DEFAULT)
 
-    # New setup command for VS Code and online integration
+
+    # Setup command for VS Code and online integration
     setup = sub.add_parser('setup', help='Setup authentication and VS Code integration')
     setup.add_argument('--create-env', action='store_true', help='Create sample .env file')
     setup.add_argument('--check-auth', action='store_true', help='Check authentication status')
@@ -69,7 +87,7 @@ def _load_cfg(path: str) -> SuiteConfig:
 def _cmd_export(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     suite = IssueSuite(cfg)
     specs = suite.parse()
-    data = [
+    data: list[dict[str, object]] = [
         {
             'external_id': s.external_id,
             'title': s.title,
@@ -90,6 +108,9 @@ def _cmd_summary(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     suite = IssueSuite(cfg)
     specs = suite.parse()
     print(f'Total: {len(specs)}')
+    if os.environ.get('ISSUESUITE_AI_MODE') == '1':
+        # Include both hyphen and underscore style tokens so tests / tools can detect reliably
+        print('[ai-mode] ai_mode=1 dry_run=True (forced)')
     for s in specs[:args.limit]:
         print(f'  {s.external_id} {s.hash} {s.title[:70]}')
     if len(specs) > args.limit:
@@ -110,14 +131,14 @@ def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     return 0
 
 
-def _schemas() -> dict:
-    export_schema = {
+def _schemas() -> dict[str, dict[str, object]]:
+    export_schema: dict[str, object] = {
         '$schema': 'http://json-schema.org/draft-07/schema#',
         'title': 'IssueExport',
         'type': 'array',
         'items': {'type': 'object'},
     }
-    summary_schema = {
+    summary_schema: dict[str, object] = {
         '$schema': 'http://json-schema.org/draft-07/schema#',
         'title': 'IssueChangeSummary',
         'type': 'object',
@@ -141,53 +162,86 @@ def _cmd_schema(cfg: SuiteConfig, args: argparse.Namespace) -> int:
         return 2
 
 
-def _cmd_setup(cfg: SuiteConfig, args: argparse.Namespace) -> int:
-    """Handle setup command for VS Code and authentication."""
+def _print_lines(lines: Iterable[str]) -> None:
+    for line in lines:
+        print(line)
+
+
+def _setup_create_env(auth_manager: Any) -> None:  # auth manager is dynamic, keep Any
+    auth_manager.create_sample_env_file()
+    _print_lines(["[setup] Created sample .env file"])
+
+
+def _setup_check_auth(auth_manager: Any) -> None:  # dynamic methods accessed reflectively
+    token = auth_manager.get_github_token()
+    app_cfg = auth_manager.get_github_app_config()
+    online = auth_manager.is_online_environment()
+    _print_lines([
+        f"[setup] Environment: {'Online' if online else 'Local'}",
+        f"[setup] GitHub Token: {'✓ Found' if token else '✗ Not found'}",
+        f"[setup] GitHub App: {'✓ Configured' if all(app_cfg.values()) else '✗ Not configured'}",
+    ])
+    recs = auth_manager.get_authentication_recommendations()
+    if recs:
+        print("[setup] Recommendations:")
+        for rec in recs:
+            print(f"  - {rec}")
+
+
+def _setup_vscode() -> None:
+    vscode_dir = Path('.vscode')
+    if vscode_dir.exists():
+        print("[setup] VS Code integration files already exist in .vscode/")
+    else:
+        print("[setup] Creating VS Code integration files...")
+        print("[setup] VS Code files should be committed to your repository")
+    _print_lines([
+        "[setup] VS Code integration includes:",
+        "  - Tasks for common IssueSuite operations",
+        "  - Debug configurations",
+        "  - YAML schema associations for config files",
+        "  - Python environment configuration",
+    ])
+
+
+def _setup_show_help() -> None:
+    _print_lines([
+        "[setup] Use --help to see available setup options",
+        "Available options:",
+        "  --create-env    Create sample .env file",
+        "  --check-auth    Check authentication status",
+        "  --vscode        Setup VS Code integration",
+    ])
+
+
+def _cmd_setup(args: argparse.Namespace) -> int:
     auth_manager = create_env_auth_manager()
-    
     if args.create_env:
-        auth_manager.create_sample_env_file()
-        print("[setup] Created sample .env file")
-    
+        _setup_create_env(auth_manager)
     if args.check_auth:
-        token = auth_manager.get_github_token()
-        app_config = auth_manager.get_github_app_config()
-        is_online = auth_manager.is_online_environment()
-        
-        print(f"[setup] Environment: {'Online' if is_online else 'Local'}")
-        print(f"[setup] GitHub Token: {'✓ Found' if token else '✗ Not found'}")
-        print(f"[setup] GitHub App: {'✓ Configured' if all(app_config.values()) else '✗ Not configured'}")
-        
-        recommendations = auth_manager.get_authentication_recommendations()
-        if recommendations:
-            print("[setup] Recommendations:")
-            for rec in recommendations:
-                print(f"  - {rec}")
-    
+        _setup_check_auth(auth_manager)
     if args.vscode:
-        # The VS Code files have already been created in the .vscode directory
-        vscode_dir = Path(".vscode")
-        if vscode_dir.exists():
-            print("[setup] VS Code integration files already exist in .vscode/")
-        else:
-            print("[setup] Creating VS Code integration files...")
-            # VS Code files would be created here, but they're already in the repo
-            print("[setup] VS Code files should be committed to your repository")
-        
-        print("[setup] VS Code integration includes:")
-        print("  - Tasks for common IssueSuite operations")
-        print("  - Debug configurations")
-        print("  - YAML schema associations for config files")
-        print("  - Python environment configuration")
-    
+        _setup_vscode()
     if not any([args.create_env, args.check_auth, args.vscode]):
-        print("[setup] Use --help to see available setup options")
-        print("Available options:")
-        print("  --create-env    Create sample .env file")
-        print("  --check-auth    Check authentication status")
-        print("  --vscode        Setup VS Code integration")
-    
+        _setup_show_help()
     return 0
+
+
+class _QuietLogs:
+    """Context manager to silence 'issuesuite' logger for clean machine-readable output."""
+    def __enter__(self) -> _QuietLogs:  # noqa: D401
+        self._logger = logging.getLogger('issuesuite')
+        self._prev_level = self._logger.level
+        self._prev_handlers = list(self._logger.handlers)
+        self._logger.handlers = []
+        self._logger.propagate = False
+        self._logger.setLevel(logging.CRITICAL + 10)
+        return self
+
+    def __exit__(self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: Any | None) -> None:  # noqa: D401
+        self._logger.setLevel(self._prev_level)
+        self._logger.handlers = self._prev_handlers
+        self._logger.propagate = True
 
 
 def _cmd_validate(cfg: SuiteConfig) -> int:
@@ -195,7 +249,6 @@ def _cmd_validate(cfg: SuiteConfig) -> int:
     specs = suite.parse()
     print(f'[validate] parsed {len(specs)} specs')
     # minimal id pattern check
-    import re
     bad = [s.external_id for s in specs if not re.match(cfg.id_pattern, s.external_id)]
     if bad:
         print(f'[validate] invalid ids: {bad}', file=sys.stderr)
@@ -204,9 +257,89 @@ def _cmd_validate(cfg: SuiteConfig) -> int:
     return 0
 
 
+def _cmd_ai_context(cfg: SuiteConfig, args: argparse.Namespace) -> int:
+    """Emit a JSON document summarizing current IssueSuite state for AI assistants."""
+    quiet = args.quiet or os.environ.get('ISSUESUITE_QUIET') == '1'
+    if quiet:
+        with _QuietLogs():
+            suite = IssueSuite(cfg)
+            specs = suite.parse()
+    else:
+        suite = IssueSuite(cfg)
+        specs = suite.parse()
+    ai_mode = os.environ.get('ISSUESUITE_AI_MODE') == '1'
+    mock_mode = os.environ.get('ISSUES_SUITE_MOCK') == '1'
+    debug = os.environ.get('ISSUESUITE_DEBUG') == '1'
+    preview_specs: list[dict[str, object]] = []
+    for s in specs[:args.preview]:
+        preview_specs.append({
+            'external_id': s.external_id,
+            'title': s.title,
+            'hash': s.hash,
+            'labels': s.labels,
+            'milestone': s.milestone,
+            'status': s.status,
+        })
+    safe_sync = f'issuesuite sync --dry-run --update --config {args.config}'
+    if ai_mode:
+        safe_sync += '  # AI mode forces dry-run'
+    doc: dict[str, object] = {
+        'schemaVersion': 'ai-context/1',
+        'type': 'issuesuite.ai-context',
+        'spec_count': len(specs),
+        'preview': preview_specs,
+        'config': {
+            'dry_run_default': cfg.dry_run_default,
+            'ensure_labels_enabled': cfg.ensure_labels_enabled,
+            'ensure_milestones_enabled': cfg.ensure_milestones_enabled,
+            'truncate_body_diff': cfg.truncate_body_diff,
+            'concurrency_enabled': cfg.concurrency_enabled,
+            'concurrency_max_workers': cfg.concurrency_max_workers,
+            'performance_benchmarking': cfg.performance_benchmarking,
+        },
+        'env': {
+            'ai_mode': ai_mode,
+            'mock_mode': mock_mode,
+            'debug_logging': debug,
+        },
+        # Project integration metadata (optional, non-breaking addition)
+        'project': {
+            'enabled': getattr(cfg, 'project_enable', False),
+            'number': getattr(cfg, 'project_number', None),
+            'field_mappings': getattr(cfg, 'project_field_mappings', {}) or {},
+            'has_mappings': bool(getattr(cfg, 'project_field_mappings', {}) or {}),
+        },
+        'recommended': {
+            'safe_sync': safe_sync,
+            'export': f'issuesuite export --config {args.config} --pretty',
+            'summary': f'issuesuite summary --config {args.config}',
+            'usage': [
+                'Use safe_sync for read-only diffing in AI mode',
+                'Call export for full structured spec list when preview insufficient',
+                'Prefer summary for quick human-readable validation before sync'
+            ],
+            'env': [
+                'ISSUESUITE_AI_MODE=1 to force dry-run safety',
+                'ISSUES_SUITE_MOCK=1 for offline parsing without GitHub API',
+                'ISSUESUITE_DEBUG=1 for verbose debugging output'
+            ],
+        }
+    }
+    out_text = json.dumps(doc, indent=2) + '\n'
+    if args.output:
+        Path(args.output).write_text(out_text)
+    else:
+        # Write directly to stdout without extra logging
+        sys.stdout.write(out_text)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+    # Global quiet env fallback
+    if not getattr(args, 'quiet', False) and os.environ.get('ISSUESUITE_QUIET') == '1':
+        args.quiet = True  # type: ignore[attr-defined]
     cfg = _load_cfg(args.config)
     if args.cmd == 'export':
         return _cmd_export(cfg, args)
@@ -214,12 +347,14 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_summary(cfg, args)
     if args.cmd == 'sync':
         return _cmd_sync(cfg, args)
+    if args.cmd == 'ai-context':
+        return _cmd_ai_context(cfg, args)
     if args.cmd == 'schema':
         return _cmd_schema(cfg, args)
     if args.cmd == 'validate':
         return _cmd_validate(cfg)
     if args.cmd == 'setup':
-        return _cmd_setup(cfg, args)
+        return _cmd_setup(args)
     parser.print_help()
     return 1
 
