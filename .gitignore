@@ -44,6 +44,9 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage.*
 
 # Translations
 *.mo
@@ -99,6 +102,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.env.*
 
 # Spyder project settings
 .spyderproject
@@ -126,6 +130,26 @@ issues_mapping.json
 .issues_sync.lock
 issue_export.schema.json
 issue_change_summary.schema.json
+.issuesuite_cache/
+performance_report.json
+issues_*_report.json
+*.benchmark.json
+*.perf.json
 
 # Packaging artifacts
 test-dist/
+site/
+dist/
+build/
+*.tar.gz
+*.whl
+
+# Node/npm caches (if docs or tooling use it)
+node_modules/
+npm-debug.log*
+
+# macOS noise
+.DS_Store
+
+# VS Code workspace settings
+.vscode/
