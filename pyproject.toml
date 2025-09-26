@@ -11,7 +11,7 @@ requires = [ "setuptools>=68", "wheel" ]
 
 [project]
 name = "issuesuite"
-version = "0.1.8" # Keep in sync with issuesuite.__version__
+version = "0.1.9" # Keep in sync with issuesuite.__version__
 description = "Declarative GitHub Issues automation: validate, sync, export, and report from a single ISSUES.md file"
 readme = { file = "README.md", content-type = "text/markdown" }
 keywords = [ "automation", "cli", "declarative", "devops", "github", "issues", "project-management", "roadmap" ]

@@ -18,7 +18,7 @@ from .config import SuiteConfig, load_config
 from .core import IssueSpec, IssueSuite
 
 # Version constant (sync manually with pyproject when extracted as standalone project)
-__version__ = "0.1.8"
+__version__ = "0.1.9"
 
 
 def __getattr__(name: str) -> object:

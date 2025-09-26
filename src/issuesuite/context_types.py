@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Any, TypedDict
 
-from typing_extensions import NotRequired
-
 # Typed structures for AI context output
 
 
@@ -11,7 +9,8 @@ class AIContextMapping(TypedDict, total=False):
     present: bool
     size: int
     snapshot_included: bool
-    snapshot: NotRequired[dict[str, int] | None]
+    # Optional when present, contains snapshot sizes by section; None if omitted
+    snapshot: dict[str, int] | None
 
 
 class AIContextConfig(TypedDict):
