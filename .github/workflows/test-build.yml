@@ -44,4 +44,5 @@ jobs:
           python -m pip install pipx
           # Run directly from the locally built wheel to avoid PyPI lookups
           # Use shell expansion to resolve the exact wheel path (avoid quoting the glob)
-          pipx run --spec dist/*.whl issuesuite --version
+          # Invoke with --help (our CLI has no global --version flag)
+          pipx run --spec dist/*.whl issuesuite --help
