@@ -17,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ISSUESUITE_DEBUG: 1
+      # Expose the workflow token for GitHub API/gh auth used by IssueSuite
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
