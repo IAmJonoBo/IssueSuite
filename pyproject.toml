@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 requires = [ "setuptools>=68", "wheel" ]
 
-[project]
+[project] # trigger-ci
 name = "issuesuite"
 version = "0.1.9" # Keep in sync with issuesuite.__version__
 description = "Declarative GitHub Issues automation: validate, sync, export, and report from a single ISSUES.md file"
