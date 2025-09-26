@@ -143,13 +143,14 @@ class EnvironmentAuthManager:
 
     def is_online_environment(self) -> bool:
         """Detect if running in an online environment (VS Code, Codespaces, etc.)."""
+        # Only treat interactive developer environments as "online".
+        # Avoid generic CI indicators (e.g., CI/GITHUB_ACTIONS) so tests and local
+        # automation don’t get misclassified as online workspaces.
         online_indicators = [
             'CODESPACES',  # GitHub Codespaces
-            'VSCODE_IPC_HOOK',  # VS Code
-            'VSCODE_PID',  # VS Code
+            'VSCODE_IPC_HOOK',  # VS Code desktop/web
+            'VSCODE_PID',  # VS Code desktop/web
             'GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN',  # Codespaces
-            'CI',  # CI/CD environments
-            'GITHUB_ACTIONS',  # GitHub Actions
         ]
 
         for indicator in online_indicators:
