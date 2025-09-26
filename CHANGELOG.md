@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (placeholder)
 
+## [0.1.10] - 2025-09-26
+
+### Changed (0.1.10)
+
+- Bump version for docs/tasks/workflow updates and minor polish since 0.1.9.
+
+### Fixed (0.1.10)
+
+- Minor documentation nits and VS Code tasks deduplication.
+
 ## [0.1.9] - 2025-09-26
 
 ### Changed (0.1.9)
