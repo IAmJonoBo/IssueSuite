@@ -175,6 +175,17 @@
 				"panel": "shared"
 			},
 			"problemMatcher": []
+		},
+		{
+			"label": "IssueSuite: Validate",
+			"type": "shell",
+			"command": "${workspaceFolder}/.venv/bin/issuesuite",
+			"args": [
+				"validate",
+				"--config",
+				"${workspaceFolder}/issue_suite.config.yaml"
+			],
+			"group": "build"
 		}
 	]
 }
