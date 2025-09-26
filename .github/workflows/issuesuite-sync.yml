@@ -31,6 +31,17 @@ jobs:
           pip install -e .
       - name: Dry-run sync
         run: issuesuite sync --dry-run --repo ${{ github.repository }} --summary-json issues_summary.json
+      - name: Ensure labels and milestone exist
+        run: |
+          set -e
+          # Create labels used in ISSUES.md if they don't exist; ignore if already present
+          gh label create meta --color BFD4F2 --description "Meta tasks" || true
+          gh label create feature --color A2EEEF --description "New feature" || true
+          gh label create projects --color A9DCC9 --description "Projects integration" || true
+          gh label create enhancement --color A2EEEF --description "Enhancement" || true
+          gh label create ai --color FEF2C0 --description "AI related" || true
+          # Ensure milestone 'Backlog' exists
+          gh api -X POST repos/${{ github.repository }}/milestones -f title='Backlog' >/dev/null 2>&1 || true
       - name: Apply sync
         run: issuesuite sync --update --repo ${{ github.repository }} --summary-json issues_summary.json
       - name: Upload summary artifact
