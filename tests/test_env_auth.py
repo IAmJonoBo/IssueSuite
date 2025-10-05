@@ -261,13 +261,13 @@ def test_custom_token_variable(monkeypatch):
 def test_custom_app_variables(monkeypatch):
     """Test using custom GitHub App environment variables."""
     monkeypatch.setenv("CUSTOM_APP_ID", "999")
-    monkeypatch.setenv("CUSTOM_PRIVATE_KEY", "/custom/key")
+    monkeypatch.setenv("CUSTOM_APP_KEY_PATH", "/custom/key")
     monkeypatch.setenv("CUSTOM_INSTALLATION_ID", "888")
 
     config = EnvAuthConfig(
         load_dotenv=False,
         github_app_id_var="CUSTOM_APP_ID",
-        github_app_private_key_var="CUSTOM_PRIVATE_KEY",
+        github_app_private_key_var="CUSTOM_APP_KEY_PATH",  # pragma: allowlist secret - placeholder env var name
         github_app_installation_id_var="CUSTOM_INSTALLATION_ID",
     )
     manager = EnvironmentAuthManager(config)

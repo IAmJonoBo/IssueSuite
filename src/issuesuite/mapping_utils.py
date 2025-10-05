@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from .config import SuiteConfig
 
 MAPPING_SNAPSHOT_THRESHOLD = 500
+
+
+logger = logging.getLogger(__name__)
 
 
 def load_mapping_snapshot(cfg: SuiteConfig) -> dict[str, int]:
@@ -29,7 +33,8 @@ def load_mapping_snapshot(cfg: SuiteConfig) -> dict[str, int]:
     for k, v in mapping.items():
         try:
             out[str(k)] = int(v)  # bools and numeric-like strings will coerce
-        except Exception:
+        except Exception as exc:
+            logger.debug("Skipping non-numeric mapping value %s=%s: %s", k, v, exc)
             continue
     return out
 

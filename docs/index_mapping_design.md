@@ -19,10 +19,10 @@ Maintain a durable mapping from `external_id` (spec slug) to GitHub issue number
   "version": 1,
   "generated_at": "2025-09-26T12:00:00Z",
   "repo": "<owner>/<repo>",
-  "entries": {
-    "api-timeouts": { "issue": 123, "hash": "abc123def4567890" },
-    "search-caching": { "issue": 124, "hash": "def456abc7890123" }
-  }
+    "entries": {
+      "api-timeouts": { "issue": 123, "hash": "abc123" },
+      "search-caching": { "issue": 124, "hash": "def456" }
+    }
 }
 ```
 

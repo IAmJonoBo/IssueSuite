@@ -133,6 +133,7 @@ issue_change_summary.schema.json
 .issuesuite_cache/
 performance_report.json
 issues_*_report.json
+quality_gate_report.json
 *.benchmark.json
 *.perf.json
 

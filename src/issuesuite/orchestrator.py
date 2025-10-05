@@ -8,6 +8,7 @@ with additional metadata for AI and future reconcile features.
 from __future__ import annotations
 
 import json
+import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,6 +16,8 @@ from typing import Any, TypedDict
 
 from .config import SuiteConfig
 from .core import IssueSuite
+
+logger = logging.getLogger(__name__)
 
 # Threshold for including full mapping snapshot inline in enriched summary output
 MAPPING_SNAPSHOT_THRESHOLD = 500
@@ -100,7 +103,8 @@ def _load_index_mapping(cfg: SuiteConfig) -> dict[str, int]:
     for k, v in raw_map.items():
         try:
             result[str(k)] = int(v)  # cast numeric-like values
-        except Exception:
+        except Exception as exc:
+            logger.debug('Skipping invalid mapping entry %s: %s', k, exc)
             continue
     return result
 
@@ -170,7 +174,8 @@ def sync_with_summary(
         for k, v in latest_mapping_raw.items():
             try:
                 latest_mapping[str(k)] = int(v)  # cast numeric-ish
-            except Exception:
+            except Exception as exc:
+                logger.debug('Skipping non-numeric mapping entry %s: %s', k, exc)
                 continue
     # Determine current slugs (parsed specs count in summary_raw if present or derive from mapping)
     current_slugs: set[str] = set()

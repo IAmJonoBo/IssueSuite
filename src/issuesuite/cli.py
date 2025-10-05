@@ -207,10 +207,7 @@ def _cmd_summary(cfg: SuiteConfig, args: argparse.Namespace) -> int:
 def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     # Alias: --apply implies --update for ergonomics
     if getattr(args, 'apply', False) and not getattr(args, 'update', False):
-        try:
-            args.update = True
-        except Exception:
-            pass
+        args.update = True
     summary = sync_with_summary(
         cfg,
         dry_run=args.dry_run,
