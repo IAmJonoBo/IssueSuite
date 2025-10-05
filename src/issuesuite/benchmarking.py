@@ -6,17 +6,26 @@ and benchmarking capabilities with reporting and analysis.
 
 from __future__ import annotations
 
+import argparse
 import json
 import statistics
 import time
 from collections.abc import Callable, Generator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .logging import get_logger
+
+_otel_trace: Any | None
+try:  # pragma: no cover - optional dependency
+    from opentelemetry import trace as _otel_trace_mod
+except Exception:  # pragma: no cover
+    _otel_trace = None
+else:
+    _otel_trace = _otel_trace_mod
 
 # Optional system metrics dependency (module-level import for linting)
 _psutil: Any | None
@@ -31,6 +40,8 @@ else:
 SLOW_OPERATION_MS = 1000  # 1 second
 TOTAL_TIME_WARNING_MS = 10_000  # 10 seconds
 MIN_TREND_SAMPLES = 4
+
+LOGGER = get_logger()
 
 
 @dataclass
@@ -80,6 +91,7 @@ class PerformanceBenchmark:
         self._metrics: list[PerformanceMetric] = []
         self._active_timers: dict[str, float] = {}
         self._system_monitor: Any | None = None
+        self._tracer = _otel_trace.get_tracer("issuesuite.benchmark") if _otel_trace else None
 
         if config.enabled and config.collect_system_metrics and not mock:
             self._init_system_monitoring()
@@ -123,10 +135,17 @@ class PerformanceBenchmark:
         else:
             start_time = time.perf_counter()
             start_metrics = self._get_system_metrics()
+            span_cm = (
+                self._tracer.start_as_current_span(operation) if self._tracer else nullcontext()
+            )
 
             try:
                 self.logger.debug(f"Starting benchmark: {operation}")
-                yield
+                with span_cm as span:
+                    yield
+                    if span is not None:  # pragma: no cover - attribute when tracing enabled
+                        for key, value in context.items():
+                            span.set_attribute(f"issuesuite.benchmark.context.{key}", str(value))
             finally:
                 end_time = time.perf_counter()
                 duration_ms = (end_time - start_time) * 1000
@@ -155,6 +174,10 @@ class PerformanceBenchmark:
 
                 self._metrics.append(metric)
                 self.logger.log_performance(operation, duration_ms, **context)
+                if self._tracer and _otel_trace is not None:
+                    current_span = _otel_trace.get_current_span()
+                    if current_span is not None:
+                        current_span.set_attribute("issuesuite.benchmark.duration_ms", duration_ms)
 
     def start_timer(self, name: str) -> None:
         """Start a named timer."""
@@ -478,3 +501,60 @@ def get_performance_recommendations(summary: dict[str, Any]) -> list[str]:
         )
 
     return recommendations
+
+
+def check_performance_budget(report_path: str | Path, *, budget_ms: float = SLOW_OPERATION_MS) -> None:
+    """Validate that recorded performance metrics stay within the provided budget."""
+
+    path = Path(report_path)
+    if not path.exists():  # Missing report is treated as informational but not fatal
+        LOGGER.info(f"Performance report {path} missing; skipping regression check")
+        return
+
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:  # pragma: no cover - IO errors
+        raise RuntimeError(f"Failed to read performance report: {exc}") from exc
+
+    metrics = raw.get("metrics") if isinstance(raw, dict) else None
+    if not isinstance(metrics, list):
+        LOGGER.info(f"Performance report {path} contains no metrics")
+        return
+
+    violations = [
+        m
+        for m in metrics
+        if isinstance(m, dict) and float(m.get("duration_ms", 0)) > budget_ms
+    ]
+    if violations:
+        names = ", ".join(str(m.get("name")) for m in violations)
+        raise RuntimeError(
+            f"Performance budget exceeded ({budget_ms}ms) for operations: {names}"
+        )
+
+
+def _parse_args() -> Any:  # pragma: no cover - CLI convenience
+    parser = argparse.ArgumentParser(description="IssueSuite benchmarking utilities")
+    parser.add_argument("--check", action="store_true", help="Run regression checks against budget")
+    parser.add_argument(
+        "--report", default="performance_report.json", help="Path to performance report JSON"
+    )
+    parser.add_argument(
+        "--budget-ms",
+        type=float,
+        default=SLOW_OPERATION_MS,
+        help="Maximum allowed duration per metric before failing",
+    )
+    return parser.parse_args()
+
+
+def main() -> int:  # pragma: no cover - CLI entry point
+    args = _parse_args()
+    if args.check:
+        check_performance_budget(args.report, budget_ms=args.budget_ms)
+        return 0
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())

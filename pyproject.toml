@@ -40,22 +40,34 @@ classifiers = [
 ]
 dependencies = [
   "pyyaml>=6,<7",
+  "requests>=2.31,<3",
 ]
 
 optional-dependencies.all = [
   "jsonschema>=4,<5",
   "psutil>=7.1",
   "python-dotenv>=1",
+  "opentelemetry-api>=1.25",
+  "opentelemetry-sdk>=1.25",
+  "opentelemetry-exporter-otlp>=1.25",
 ]
 optional-dependencies.dev = [
   "build>=1",
+  "bandit>=1.8",
+  "detect-secrets>=1.5",
   "mypy>=1.8",
+  "pip-audit>=2.7",
   "pytest>=8",
   "pytest-asyncio>=1.2",
   "ruff==0.13.3",
   "twine>=6.2",
   "types-psutil>=7.0.0.20250822",
   "types-pyyaml>=6.0.12.20240917",
+  "types-jsonschema>=4.23.0.20240813",
+  "types-requests>=2.32.0.20240914",
+  "opentelemetry-api>=1.25",
+  "opentelemetry-sdk>=1.25",
+  "opentelemetry-exporter-otlp>=1.25",
 ]
 optional-dependencies.env = [
   "python-dotenv>=1",
@@ -65,6 +77,11 @@ optional-dependencies.performance = [
 ]
 optional-dependencies.schemas = [
   "jsonschema>=4,<5",
+]
+optional-dependencies.observability = [
+  "opentelemetry-api>=1.25",
+  "opentelemetry-sdk>=1.25",
+  "opentelemetry-exporter-otlp>=1.25",
 ]
 optional-dependencies.vscode = [
   "psutil>=7.1",

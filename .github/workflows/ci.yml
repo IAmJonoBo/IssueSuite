@@ -32,3 +32,6 @@ jobs:
           ISSUES_SUITE_MOCK: "1"
         run: |
           python -m pytest -q
+      - name: Run quality gates
+        if: matrix.python-version == '3.11'
+        run: python scripts/quality_gates.py

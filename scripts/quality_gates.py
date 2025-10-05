@@ -1,6 +1,8 @@
 """Run the IssueSuite quality gate suite."""
 from __future__ import annotations
 
+# ruff: noqa: I001 - sys.path manipulation is required before importing project modules
+
 import json
 import sys
 from collections.abc import Sequence
@@ -18,8 +20,11 @@ from issuesuite.quality_gates import (  # noqa: E402
 )
 
 
-def main() -> int:
-    gates = [
+SECRETS_BASELINE = PROJECT_ROOT / ".secrets.baseline"
+
+
+def build_default_gates() -> list[Gate]:
+    return [
         Gate(
             name="Tests",
             command=[
@@ -34,12 +39,43 @@ def main() -> int:
         Gate(name="Lint", command=["ruff", "check"]),
         Gate(name="Type Check", command=["mypy", "src"]),
         Gate(name="Security", command=["bandit", "-r", "src"]),
-        Gate(name="Secrets", command=["detect-secrets", "scan"]),
+        Gate(
+            name="Dependencies",
+            command=[
+                sys.executable,
+                "-m",
+                "pip_audit",
+                "--strict",
+                "--progress-spinner",
+                "off",
+            ],
+            env={"PIP_AUDIT_CACHE_DISABLED": "1"},
+        ),
+        Gate(
+            name="Secrets",
+            command=[
+                "detect-secrets",
+                "scan",
+                "--baseline",
+                str(SECRETS_BASELINE),
+            ],
+        ),
+        Gate(
+            name="Performance",
+            command=[
+                sys.executable,
+                "-m",
+                "issuesuite.benchmarking",
+                "--check",
+            ],
+        ),
         Gate(name="Build", command=["python", "-m", "build"]),
     ]
 
+
+def main() -> int:
     try:
-        results = run_gates(gates)
+        results = run_gates(build_default_gates())
     except QualityGateError as exc:
         results = [*exc.prior_results, exc.result]
         print(format_summary(results), file=sys.stderr)

@@ -120,8 +120,8 @@ def test_cli_summary_export_schema_validate_sync(tmp_path):
     )
     assert rc == 0, out
     schemas = json.loads(out)
-    # Now includes ai_context schema as well
-    assert set(schemas.keys()) == {'export', 'summary', 'ai_context'}
+    # Now includes ai_context and agent update schemas as well
+    assert set(schemas.keys()) == {'export', 'summary', 'ai_context', 'agent_updates'}
 
     # validate
     rc, out = _run(

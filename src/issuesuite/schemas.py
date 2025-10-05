@@ -98,8 +98,48 @@ def get_schemas() -> dict[str, Any]:
         },
     }
 
+    agent_update_schema: dict[str, Any] = {
+        SCHEMA_KEY: SCHEMA_URL,
+        "title": "AgentUpdates",
+        "type": "array",
+        "items": {
+            "type": "object",
+            "required": ["slug"],
+            "properties": {
+                "slug": {"type": "string", "minLength": 1},
+                "external_id": {"type": "string", "minLength": 1},
+                "title": {"type": "string"},
+                "completed": {"type": "boolean"},
+                "status": {"enum": ["open", "closed"]},
+                "summary": {"type": "string"},
+                "comment": {"type": "string"},
+                "labels": {"type": "array", "items": {"type": "string"}},
+                "milestone": {"type": "string"},
+                "docs": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["path"],
+                        "properties": {
+                            "path": {"type": "string"},
+                            "append": {"type": "string"},
+                            "replace": {"type": "string"},
+                        },
+                        "additionalProperties": False,
+                    },
+                },
+            },
+            "anyOf": [
+                {"required": ["slug"]},
+                {"required": ["external_id"]},
+            ],
+            "additionalProperties": False,
+        },
+    }
+
     return {
         "export": export_schema,
         "summary": summary_schema,
         "ai_context": ai_context_schema,
+        "agent_updates": agent_update_schema,
     }

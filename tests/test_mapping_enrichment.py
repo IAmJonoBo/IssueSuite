@@ -3,6 +3,8 @@ import os
 import subprocess
 from pathlib import Path
 
+from issuesuite.index_store import IndexDocument, persist_index_document
+
 # Constants used across tests (avoid magic numbers)
 SMALL_MAPPING_SIZE = 2
 LARGE_MAPPING_THRESHOLD_EXCEEDED = 501  # threshold (500) + 1
@@ -44,8 +46,9 @@ def test_ai_context_includes_mapping_snapshot(tmp_path, monkeypatch):
     # Create minimal index.json with small mapping
     issues_dir = tmp_path / '.issuesuite'
     issues_dir.mkdir(exist_ok=True)
-    (issues_dir / 'index.json').write_text(
-        json.dumps({'mapping': {'alpha': 101, 'beta': 202}}, indent=2)
+    persist_index_document(
+        issues_dir / 'index.json',
+        IndexDocument(entries={'alpha': {'issue': 101}, 'beta': {'issue': 202}}, repo='acme/widgets'),
     )
     monkeypatch.chdir(tmp_path)
 
@@ -67,8 +70,11 @@ def test_ai_context_large_mapping_excludes_snapshot(tmp_path, monkeypatch):
     issues_dir = tmp_path / '.issuesuite'
     issues_dir.mkdir(exist_ok=True)
     # Generate mapping > threshold (501 entries)
-    large_map = {f'id{i}': i for i in range(0, LARGE_MAPPING_THRESHOLD_EXCEEDED)}
-    (issues_dir / 'index.json').write_text(json.dumps({'mapping': large_map}))
+    large_entries = {f'id{i}': {'issue': i} for i in range(0, LARGE_MAPPING_THRESHOLD_EXCEEDED)}
+    persist_index_document(
+        issues_dir / 'index.json',
+        IndexDocument(entries=large_entries, repo='acme/widgets'),
+    )
     monkeypatch.chdir(tmp_path)
 
     out = run_cli(['ai-context', '--config', CONFIG, '--preview', '1'])
@@ -89,7 +95,10 @@ def test_sync_summary_mapping_fields(tmp_path, monkeypatch):
     # Pre-seed mapping file
     issues_dir = tmp_path / '.issuesuite'
     issues_dir.mkdir(exist_ok=True)
-    (issues_dir / 'index.json').write_text(json.dumps({'mapping': {'x': 1}}, indent=2))
+    persist_index_document(
+        issues_dir / 'index.json',
+        IndexDocument(entries={'x': {'issue': 1}}, repo='acme/widgets'),
+    )
     monkeypatch.chdir(tmp_path)
 
     env = os.environ.copy()
