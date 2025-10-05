@@ -52,7 +52,7 @@ optional-dependencies.dev = [
   "mypy>=1.8",
   "pytest>=8",
   "pytest-asyncio>=1.2",
-  "ruff==0.13.2",
+  "ruff==0.13.3",
   "twine>=6.2",
   "types-psutil>=7.0.0.20250822",
   "types-pyyaml>=6.0.12.20240917",
