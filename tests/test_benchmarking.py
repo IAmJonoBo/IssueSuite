@@ -1,13 +1,17 @@
 import json
 import time
 
+import pytest
+
 from issuesuite.benchmarking import (
     BenchmarkConfig,
     BenchmarkResult,
     PerformanceBenchmark,
     PerformanceMetric,
+    SLOW_OPERATION_MS,
     analyze_performance_trends,
     benchmark_operation,
+    check_performance_budget,
     create_benchmark,
     get_performance_recommendations,
 )
@@ -124,6 +128,35 @@ def test_record_metric():
     assert metric.name == 'manual_metric'
     assert metric.duration_ms == 123.45
     assert metric.context['test_param'] == 'test_value'
+
+
+def test_check_performance_budget(tmp_path):
+    report = tmp_path / 'performance_report.json'
+    report.write_text(
+        json.dumps(
+            {
+                'metrics': [
+                    {'name': 'fast-op', 'duration_ms': 10},
+                    {'name': 'near-threshold', 'duration_ms': SLOW_OPERATION_MS - 1},
+                ]
+            }
+        )
+    )
+
+    check_performance_budget(report)
+
+    report.write_text(
+        json.dumps(
+            {
+                'metrics': [
+                    {'name': 'slow-op', 'duration_ms': SLOW_OPERATION_MS + 5},
+                ]
+            }
+        )
+    )
+
+    with pytest.raises(RuntimeError):
+        check_performance_budget(report)
 
 
 def test_benchmark_function():

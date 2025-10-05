@@ -96,13 +96,11 @@ def test_mapping_persistence_mock_mode(tmp_path: Path) -> None:
     assert index_file.exists(), "index.json should be written"
     stored_any: Any = json.loads(index_file.read_text())
     assert isinstance(stored_any, dict)
-    stored_map_val = stored_any.get("mapping")
-    stored_map_raw = stored_map_val if isinstance(stored_map_val, dict) else {}
-    stored_map: dict[str, int] = {
-        str(k): int(v)
-        for k, v in stored_map_raw.items()
-        if isinstance(k, str) and isinstance(v, int)
-    }
+    stored_entries = stored_any.get("entries") if isinstance(stored_any.get("entries"), dict) else {}
+    stored_map: dict[str, int] = {}
+    for k, v in stored_entries.items():
+        if isinstance(v, dict) and isinstance(v.get("issue"), int):
+            stored_map[str(k)] = int(v["issue"])
     assert len(stored_map) == len(mapping)
 
     # Second sync should reuse mapping and potentially add none (no changes)

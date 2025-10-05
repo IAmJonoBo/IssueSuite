@@ -32,6 +32,7 @@ from .config import SuiteConfig, load_config
 from .core import IssueSuite
 from .env_auth import create_env_auth_manager
 from .github_issues import IssuesClient, IssuesClientConfig
+from .observability import configure_telemetry
 from .orchestrator import sync_with_summary
 from .parser import render_issue_block
 from .reconcile import format_report, reconcile
@@ -151,6 +152,16 @@ def _build_parser() -> argparse.ArgumentParser:
     au.add_argument(
         '--summary-json',
         help='Optional path to write sync summary json (passed through to sync)',
+    )
+    au.add_argument(
+        '--require-approval',
+        action='store_true',
+        help='Require explicit --approve acknowledgement before applying agent updates',
+    )
+    au.add_argument(
+        '--approve',
+        action='store_true',
+        help='Acknowledge review approval when used with --require-approval',
     )
 
     # Setup command for VS Code and online integration
@@ -393,6 +404,10 @@ def _cmd_agent_apply(cfg: SuiteConfig, args: argparse.Namespace) -> int:
         print(f"[agent-apply] failed to read updates: {exc}", file=sys.stderr)
         return 2
 
+    if getattr(args, 'require_approval', False) and not getattr(args, 'approve', False):
+        print('[agent-apply] approval required: rerun with --approve after review', file=sys.stderr)
+        return 3
+
     # Apply updates to ISSUES.md and docs
     try:
         result = apply_agent_updates(cfg, updates_data)
@@ -592,6 +607,13 @@ def _cmd_doctor(cfg: SuiteConfig, args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+    exporter = os.environ.get('ISSUESUITE_OTEL_EXPORTER')
+    if exporter:
+        configure_telemetry(
+            service_name=os.environ.get('ISSUESUITE_SERVICE_NAME', 'issuesuite-cli'),
+            exporter='otlp' if exporter.lower() == 'otlp' else 'console',
+            endpoint=os.environ.get('ISSUESUITE_OTEL_ENDPOINT'),
+        )
     # Global quiet env fallback
     if not getattr(args, 'quiet', False) and os.environ.get('ISSUESUITE_QUIET') == '1':
         args.quiet = True

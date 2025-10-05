@@ -28,8 +28,14 @@ import shutil
 import subprocess  # nosec B404 - subprocess is required for GitHub CLI invocation
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
+from .github_rest import (
+    DEFAULT_API_URL,
+    DEFAULT_GRAPHQL_URL,
+    GitHubAPIError,
+    GitHubRestClient,
+)
 from .retry import run_with_retries
 
 NUMBER_PATTERN = re.compile(r"/issues/(\d+)")
@@ -53,10 +59,15 @@ class IssuesClient:
     # Class-level mock counter for deterministic fabricated issue numbers in mock mode
     _mock_counter: int = 1000
 
-    def __init__(self, cfg: IssuesClientConfig):
+    def __init__(self, cfg: IssuesClientConfig, rest_client: GitHubRestClient | None = None):
         self.cfg = cfg
         self._env_quiet = os.environ.get("ISSUESUITE_QUIET") == "1"
         self._gh_path = shutil.which("gh")
+        self._rest_client: GitHubRestClient | None
+        if rest_client is not None:
+            self._rest_client = rest_client
+        else:
+            self._rest_client = self._build_rest_client()
 
     # --- internal helpers -------------------------------------------------
     def _base_cmd(self, *parts: str) -> list[str]:
@@ -93,6 +104,23 @@ class IssuesClient:
         labels: Iterable[str] | None = None,
         milestone: str | None = None,
     ) -> int | None:
+        rest_client = self._get_rest_client()
+        if rest_client is not None:
+            if self.cfg.dry_run:
+                print("DRY-RUN REST POST /issues", title)
+                return None
+            try:
+                return rest_client.create_issue(
+                    title=title,
+                    body=body,
+                    labels=labels,
+                    milestone=milestone,
+                )
+            except GitHubAPIError as exc:  # pragma: no cover - network failures
+                if not self._env_quiet:
+                    print(f"[rest] create_issue fallback to gh: {exc}")
+            # fall back to CLI path
+
         cmd = self._base_cmd("issue", "create", "--title", title, "--body", body)
         label_list = list(labels or [])
         if label_list:
@@ -121,6 +149,23 @@ class IssuesClient:
         labels: Iterable[str] | None = None,
         milestone: str | None = None,
     ) -> None:
+        rest_client = self._get_rest_client()
+        if rest_client is not None:
+            if self.cfg.dry_run:
+                print(f"DRY-RUN REST PATCH /issues/{number}")
+                return
+            try:
+                rest_client.update_issue(
+                    number=number,
+                    body=body,
+                    labels=labels,
+                    milestone=milestone,
+                )
+                return
+            except GitHubAPIError as exc:  # pragma: no cover
+                if not self._env_quiet:
+                    print(f"[rest] update_issue fallback to gh: {exc}")
+
         # GitHub CLI edit semantics: adding labels with --add-label merges; we may
         # want full reconciliation later (remove extraneous) via --remove-label.
         label_list = list(labels or [])
@@ -144,9 +189,32 @@ class IssuesClient:
             )
 
     def close_issue(self, *, number: int) -> None:
+        rest_client = self._get_rest_client()
+        if rest_client is not None:
+            if self.cfg.dry_run:
+                print(f"DRY-RUN REST PATCH /issues/{number} state=closed")
+                return
+            try:
+                rest_client.close_issue(number=number)
+                return
+            except GitHubAPIError as exc:  # pragma: no cover
+                if not self._env_quiet:
+                    print(f"[rest] close_issue fallback to gh: {exc}")
         self._run(self._base_cmd("issue", "close", str(number)))
 
     def list_existing(self) -> list[dict[str, Any]]:
+        rest_client = self._get_rest_client()
+        if rest_client is not None:
+            try:
+                data = rest_client.list_issues(state="all")
+            except GitHubAPIError as exc:  # pragma: no cover
+                if not self._env_quiet:
+                    print(f"[rest] list_issues fallback to gh: {exc}")
+            else:
+                return [self._normalize_issue(entry) for entry in data]
+        return self._list_existing_via_cli()
+
+    def _list_existing_via_cli(self) -> list[dict[str, Any]]:
         cmd = self._base_cmd(
             "issue",
             "list",
@@ -173,13 +241,69 @@ class IssuesClient:
             raise
         if not out.strip():
             return []
+        return self._parse_issue_list(out)
+
+    @staticmethod
+    def _parse_issue_list(payload: str) -> list[dict[str, Any]]:
         try:
-            data = json.loads(out)
-            if isinstance(data, list):
-                return cast(list[dict[str, Any]], data)
-            return []
+            data = json.loads(payload)
         except Exception:  # pragma: no cover - defensive
             return []
+        if not isinstance(data, list):
+            return []
+        filtered: list[dict[str, Any]] = []
+        for entry in data:
+            if isinstance(entry, dict):
+                filtered.append(entry)
+        return filtered
+
+    # --- REST helpers --------------------------------------------------
+    def _get_rest_client(self) -> GitHubRestClient | None:
+        if self.cfg.mock:
+            return None
+        return self._rest_client
+
+    def _build_rest_client(self) -> GitHubRestClient | None:
+        token = (
+            os.environ.get("ISSUESUITE_GITHUB_TOKEN")
+            or os.environ.get("GITHUB_TOKEN")
+            or os.environ.get("GH_TOKEN")
+        )
+        disable = os.environ.get("ISSUESUITE_REST_DISABLED") == "1"
+        if disable or not token or not self.cfg.repo or self.cfg.mock:
+            return None
+        base_url = os.environ.get("ISSUESUITE_GITHUB_API", DEFAULT_API_URL)
+        graphql_url = os.environ.get("ISSUESUITE_GITHUB_GRAPHQL", DEFAULT_GRAPHQL_URL)
+        return GitHubRestClient(token=token, repo=self.cfg.repo, base_url=base_url, graphql_url=graphql_url)
+
+    @staticmethod
+    def _normalize_issue(entry: dict[str, Any]) -> dict[str, Any]:
+        labels: list[str] = []
+        raw_labels = entry.get("labels")
+        if isinstance(raw_labels, list):
+            for lbl in raw_labels:
+                if isinstance(lbl, dict):
+                    name = lbl.get("name")
+                    if isinstance(name, str):
+                        labels.append(name)
+                elif isinstance(lbl, str):
+                    labels.append(lbl)
+        milestone = entry.get("milestone")
+        milestone_title: str | None = None
+        if isinstance(milestone, dict):
+            mt = milestone.get("title")
+            if isinstance(mt, str):
+                milestone_title = mt
+        elif isinstance(milestone, str):
+            milestone_title = milestone
+        return {
+            "number": entry.get("number"),
+            "title": entry.get("title"),
+            "body": entry.get("body", ""),
+            "labels": labels,
+            "milestone": milestone_title,
+            "state": entry.get("state"),
+        }
 
 
 __all__ = [

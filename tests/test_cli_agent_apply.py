@@ -120,3 +120,91 @@ def test_agent_apply_defaults_respect_status_and_dryrun(tmp_path):
     )
     assert rc == 0, out
     assert "[agent-apply] sync totals" in out
+
+def test_agent_apply_requires_explicit_approval(tmp_path):
+    (tmp_path / "ISSUES.md").write_text(SAMPLE_ISSUES)
+    (tmp_path / "issue_suite.config.yaml").write_text(MIN_CONFIG)
+    updates_path = tmp_path / "updates.json"
+    updates_path.write_text(
+        json.dumps({"updates": [{"slug": "done-item", "completed": True}]})
+    )
+
+    env = os.environ.copy()
+    env["ISSUES_SUITE_MOCK"] = "1"
+
+    rc, out = _run(
+        [
+            sys.executable,
+            "-m",
+            "issuesuite.cli",
+            "agent-apply",
+            "--config",
+            "issue_suite.config.yaml",
+            "--updates-json",
+            str(updates_path),
+            "--require-approval",
+        ],
+        tmp_path,
+        env,
+    )
+    assert rc == 3
+    assert "approval required" in out
+
+
+def test_agent_apply_accepts_updates_via_stdin(tmp_path):
+    (tmp_path / "ISSUES.md").write_text(SAMPLE_ISSUES)
+    (tmp_path / "issue_suite.config.yaml").write_text(MIN_CONFIG)
+
+    env = os.environ.copy()
+    env["ISSUES_SUITE_MOCK"] = "1"
+
+    updates = json.dumps({"updates": [{"slug": "done-item", "completed": True}]})
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "issuesuite.cli",
+            "agent-apply",
+            "--config",
+            "issue_suite.config.yaml",
+            "--no-sync",
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        input=updates,
+        env=env,
+        check=False,
+    )
+    combined = proc.stdout + proc.stderr
+    assert proc.returncode == 0, combined
+    assert "updated files" in combined
+
+
+def test_agent_apply_rejects_invalid_json_input(tmp_path):
+    (tmp_path / "ISSUES.md").write_text(SAMPLE_ISSUES)
+    (tmp_path / "issue_suite.config.yaml").write_text(MIN_CONFIG)
+
+    env = os.environ.copy()
+    env["ISSUES_SUITE_MOCK"] = "1"
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "issuesuite.cli",
+            "agent-apply",
+            "--config",
+            "issue_suite.config.yaml",
+            "--no-sync",
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        input="not-json",
+        env=env,
+        check=False,
+    )
+    combined = proc.stdout + proc.stderr
+    assert proc.returncode == 2
+    assert "failed to read updates" in combined

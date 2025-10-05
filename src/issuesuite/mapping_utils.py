@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
 from .config import SuiteConfig
+from .index_store import load_index_document
 
 MAPPING_SNAPSHOT_THRESHOLD = 500
 
@@ -18,24 +18,14 @@ def load_mapping_snapshot(cfg: SuiteConfig) -> dict[str, int]:
     Returns empty dict on any error or absence. Values coerced to int when possible.
     """
     idx = cfg.source_file.parent / ".issuesuite" / "index.json"
-    if not idx.exists():
-        return {}
-    try:
-        raw: Any = json.loads(idx.read_text())
-    except Exception:  # pragma: no cover
-        return {}
-    if not isinstance(raw, dict):
-        return {}
-    mapping = raw.get("mapping")
-    if not isinstance(mapping, dict):
-        return {}
+    doc = load_index_document(idx)
     out: dict[str, int] = {}
-    for k, v in mapping.items():
+    for slug, entry in doc.entries.items():
+        issue_value: Any = entry.get("issue") if isinstance(entry, dict) else entry
         try:
-            out[str(k)] = int(v)  # bools and numeric-like strings will coerce
+            out[str(slug)] = int(issue_value)
         except Exception as exc:
-            logger.debug("Skipping non-numeric mapping value %s=%s: %s", k, v, exc)
-            continue
+            logger.debug("Skipping non-numeric mapping value %s=%s: %s", slug, entry, exc)
     return out
 
 

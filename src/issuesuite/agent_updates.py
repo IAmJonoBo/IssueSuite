@@ -1,4 +1,4 @@
-from __future__ import annotations  # isort: skip_file
+from __future__ import annotations
 
 import datetime as _dt
 import json
@@ -8,6 +8,17 @@ from typing import Any, cast
 
 from .config import SuiteConfig
 from .parser import parse_issues, render_yaml_block_from_fields
+from .schemas import get_schemas
+
+Draft7Validator: Any | None
+_AGENT_UPDATE_VALIDATOR: Any | None = None
+_DOC_ALLOWED_KEYS = {"path", "append", "replace"}
+try:  # pragma: no cover - optional dependency import guard
+    from jsonschema import Draft7Validator as _Draft7Validator
+except Exception:  # pragma: no cover
+    Draft7Validator = None
+else:
+    Draft7Validator = _Draft7Validator
 
 
 def _now_date() -> str:
@@ -69,6 +80,72 @@ def _normalize_updates(data: Any) -> list[dict[str, Any]]:
         except Exception:
             return []
     return []
+
+
+def _format_error_path(parts: list[Any]) -> str:
+    return "/".join(str(p) for p in parts)
+
+
+def _collect_manual_validation_errors(updates: list[Any]) -> list[str]:
+    errors: list[str] = []
+    for idx, upd in enumerate(updates):
+        if not isinstance(upd, dict):
+            errors.append(f"{idx}: update must be an object")
+            continue
+        slug = upd.get('slug')
+        external_id = upd.get('external_id')
+        if not isinstance(slug, str) or not slug.strip():
+            if not isinstance(external_id, str) or not external_id.strip():
+                errors.append(f"{idx}: missing slug or external_id")
+        docs = upd.get('docs')
+        if docs is None:
+            continue
+        if not isinstance(docs, list):
+            errors.append(f"{idx}/docs: must be an array of objects")
+            continue
+        for doc_idx, doc in enumerate(docs):
+            if not isinstance(doc, dict):
+                errors.append(f"{idx}/docs/{doc_idx}: must be an object")
+                continue
+            path = doc.get('path')
+            if not isinstance(path, str) or not path.strip():
+                errors.append(f"{idx}/docs/{doc_idx}/path: must be a non-empty string")
+            for key in ('append', 'replace'):
+                if key in doc and doc[key] is not None and not isinstance(doc[key], str):
+                    errors.append(f"{idx}/docs/{doc_idx}/{key}: must be a string")
+            extra = sorted(k for k in doc.keys() if k not in _DOC_ALLOWED_KEYS)
+            if extra:
+                errors.append(
+                    f"{idx}/docs/{doc_idx}: unsupported keys {', '.join(extra)}"
+                )
+    return errors
+
+
+def _validate_updates(updates: list[dict[str, Any]]) -> None:
+    all_errors: list[str] = []
+    all_errors.extend(_collect_manual_validation_errors(cast(list[Any], updates)))
+
+    if _AGENT_UPDATE_VALIDATOR is not None:
+        schema_errors = sorted(
+            _AGENT_UPDATE_VALIDATOR.iter_errors(updates),
+            key=lambda err: list(err.path),
+        )
+        for err in schema_errors:
+            location = _format_error_path(list(err.path))
+            if location:
+                message = f"{location}: {err.message}"
+            else:
+                message = err.message
+            all_errors.append(message)
+
+    if all_errors:
+        deduped: list[str] = []
+        seen: set[str] = set()
+        for msg in all_errors:
+            if msg not in seen:
+                deduped.append(msg)
+                seen.add(msg)
+        raise ValueError("Agent update validation failed: " + "; ".join(deduped))
 
 
 def _build_index(lines: list[str]) -> dict[str, tuple[int, int, list[str]]]:
@@ -151,6 +228,7 @@ def apply_agent_updates(
     by_slug: dict[str, Any] = {s.external_id: s for s in specs}
 
     updates_list = _normalize_updates(updates)
+    _validate_updates(updates_list)
     changed_files, not_found = _apply_updates_to_issues_and_docs(
         issues_path, lines, index, updates_list, by_slug
     )
@@ -244,3 +322,8 @@ def _apply_updates_to_issues_and_docs(  # noqa: C901, PLR0912, PLR0915
 __all__ = [
     'apply_agent_updates',
 ]
+if Draft7Validator is not None:
+    try:
+        _AGENT_UPDATE_VALIDATOR = Draft7Validator(get_schemas()["agent_updates"])
+    except Exception:  # pragma: no cover - validation optional fallback
+        _AGENT_UPDATE_VALIDATOR = None

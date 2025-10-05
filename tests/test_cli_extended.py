@@ -1,0 +1,213 @@
+import json
+import textwrap
+from pathlib import Path
+
+import pytest
+
+from issuesuite.cli import main
+from issuesuite.github_issues import IssuesClient
+
+
+SAMPLE_ISSUES = textwrap.dedent(
+    """\
+## [slug: extended-alpha]
+```yaml
+title: Extended Alpha
+labels: [alpha]
+milestone: "M1: Real-Time Foundation"
+status: open
+body: |
+  Alpha body
+```
+
+## [slug: extended-beta]
+```yaml
+title: Extended Beta
+labels: [beta]
+milestone: "M2: Performance & Validation"
+status: closed
+body: |
+  Beta body
+```
+"""
+)
+
+
+CONFIG_WITH_REPO = textwrap.dedent(
+    """\
+version: 1
+source:
+  file: ISSUES.md
+  id_pattern: "^[a-z0-9][a-z0-9-_]*$"
+defaults:
+  inject_labels: []
+  ensure_labels_enabled: false
+  ensure_milestones_enabled: false
+behavior:
+  truncate_body_diff: 50
+ai:
+  schema_export_file: issue_export.schema.json
+  schema_summary_file: issue_change_summary.schema.json
+  schema_version: 1
+github:
+  repo: acme/widgets
+"""
+)
+
+
+CONFIG_NO_REPO = textwrap.dedent(
+    """\
+version: 1
+source:
+  file: ISSUES.md
+  id_pattern: "^[a-z0-9][a-z0-9-_]*$"
+defaults:
+  inject_labels: []
+  ensure_labels_enabled: false
+  ensure_milestones_enabled: false
+behavior:
+  truncate_body_diff: 50
+ai:
+  schema_export_file: issue_export.schema.json
+  schema_summary_file: issue_change_summary.schema.json
+  schema_version: 1
+"""
+)
+
+
+@pytest.fixture
+def fixture_repo(tmp_path: Path) -> Path:
+    (tmp_path / "ISSUES.md").write_text(SAMPLE_ISSUES)
+    (tmp_path / "issue_suite.config.yaml").write_text(CONFIG_WITH_REPO)
+    return tmp_path
+
+
+def test_cli_ai_context_writes_file_and_configures_telemetry(
+    fixture_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ctx_path = fixture_repo / "ai_context.json"
+    telemetry_calls: dict[str, object] = {}
+
+    def _fake_configure(**kwargs: object) -> None:
+        telemetry_calls.update(kwargs)
+
+    monkeypatch.setenv("ISSUESUITE_OTEL_EXPORTER", "console")
+    monkeypatch.setenv("ISSUESUITE_SERVICE_NAME", "issuesuite-tests")
+    monkeypatch.setenv("ISSUESUITE_OTEL_ENDPOINT", "http://otel.local")
+    monkeypatch.setattr("issuesuite.cli.configure_telemetry", _fake_configure)
+
+    rc = main(
+        [
+            "ai-context",
+            "--config",
+            str(fixture_repo / "issue_suite.config.yaml"),
+            "--preview",
+            "1",
+            "--output",
+            str(ctx_path),
+        ]
+    )
+
+    assert rc == 0
+    assert telemetry_calls["exporter"] == "console"
+
+    doc = json.loads(ctx_path.read_text())
+    assert doc["spec_count"] == 2
+    assert len(doc["preview"]) == 1
+
+
+def test_cli_import_generates_markdown_with_unique_slugs(
+    fixture_repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    sample_issues = [
+        {
+            "title": "Alpha Launch",
+            "body": "Alpha body",
+            "labels": [{"name": "bug"}],
+            "milestone": {"title": "Sprint 1"},
+            "state": "open",
+        },
+        {
+            "title": "Alpha Launch",
+            "body": "",
+            "labels": [],
+            "milestone": None,
+            "state": "open",
+        },
+        {
+            "title": "Beta Work",
+            "body": "Beta body",
+            "labels": ["beta"],
+            "milestone": {"title": "Sprint 2"},
+            "state": "closed",
+        },
+    ]
+
+    monkeypatch.setattr(IssuesClient, "list_existing", lambda self: sample_issues)
+
+    output_path = fixture_repo / "imported.md"
+    rc = main(
+        [
+            "import",
+            "--config",
+            str(fixture_repo / "issue_suite.config.yaml"),
+            "--output",
+            str(output_path),
+            "--limit",
+            "2",
+        ]
+    )
+
+    assert rc == 0
+    captured = capsys.readouterr()
+    assert "[import] wrote 2 issues" in captured.out
+    assert "(truncated to 2" in captured.out
+
+    content = output_path.read_text()
+    assert "slug: alpha-launch" in content
+    assert "slug: alpha-launch-2" in content
+
+
+def test_cli_reconcile_detects_drift(
+    fixture_repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(IssuesClient, "list_existing", lambda self: [])
+
+    rc = main(
+        [
+            "reconcile",
+            "--config",
+            str(fixture_repo / "issue_suite.config.yaml"),
+            "--limit",
+            "10",
+        ]
+    )
+
+    assert rc == 2
+    captured = capsys.readouterr()
+    assert "[reconcile] Drift items" in captured.out
+    assert "spec_only" in captured.out
+
+
+def test_cli_doctor_reports_warnings_and_problems(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "ISSUES.md").write_text(SAMPLE_ISSUES)
+    (tmp_path / "issue_suite.config.yaml").write_text(CONFIG_NO_REPO)
+
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GH_TOKEN", raising=False)
+    monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
+
+    rc = main([
+        "doctor",
+        "--config",
+        str(tmp_path / "issue_suite.config.yaml"),
+    ])
+
+    assert rc == 2
+    captured = capsys.readouterr()
+    assert "[doctor] repo: None" in captured.out
+    assert "mock mode detected" in captured.out
+    assert "[doctor] warnings" in captured.out
+    assert "[doctor] problems" in captured.out

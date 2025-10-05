@@ -10,12 +10,14 @@ from __future__ import annotations
 import json
 import logging
 import os
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TypedDict
 
 from .config import SuiteConfig
 from .core import IssueSuite
+from .index_store import IndexDocument, load_index_document, persist_index_document
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +62,7 @@ class EnrichedSummary(BaseSummary, total=False):
     mapping_present: bool
     mapping_size: int
     mapping_snapshot: dict[str, int]
+    mapping_signature: str
     # last_error is optional and only present when sync failed
     last_error: Any
 
@@ -85,28 +88,12 @@ def _iter_updated_entries(summary: dict[str, Any]) -> list[dict[str, Any]]:  # r
     return out
 
 
-def _load_index_mapping(cfg: SuiteConfig) -> dict[str, int]:
-    """Load existing index mapping; non-fatal on any error."""
+def _load_index_document(cfg: SuiteConfig) -> IndexDocument:
     idx_file = cfg.source_file.parent / ".issuesuite" / "index.json"
-    if not idx_file.exists():
-        return {}
-    try:
-        raw: Any = json.loads(idx_file.read_text())
-    except Exception:
-        return {}
-    if not isinstance(raw, dict):  # defensive
-        return {}
-    raw_map: Any = raw.get("mapping")
-    if not isinstance(raw_map, dict):
-        return {}
-    result: dict[str, int] = {}
-    for k, v in raw_map.items():
-        try:
-            result[str(k)] = int(v)  # cast numeric-like values
-        except Exception as exc:
-            logger.debug('Skipping invalid mapping entry %s: %s', k, exc)
-            continue
-    return result
+    doc = load_index_document(idx_file)
+    if not doc.repo and cfg.github_repo:
+        doc.repo = cfg.github_repo
+    return doc
 
 
 def _truncate_body_diffs(summary: dict[str, Any], truncate: int | None) -> None:
@@ -125,18 +112,78 @@ def _truncate_body_diffs(summary: dict[str, Any], truncate: int | None) -> None:
         diff_obj_any["body_diff"] = [str(x) for x in body_diff_any[:truncate]] + ["... (truncated)"]
 
 
+def _resolve_output_path(base_dir: Path, candidate: str | os.PathLike[str]) -> Path:
+    path = Path(candidate)
+    if not path.is_absolute():
+        path = base_dir / path
+    return path
+
+
 def _persist_mapping(
     cfg: SuiteConfig,
     mapping: dict[str, int],
     *,
     mapping_path: str | None,
 ) -> None:
-    """Persist mapping to legacy path and canonical index.json."""
-    legacy_mp = Path(mapping_path or cfg.mapping_file)
-    legacy_mp.write_text(json.dumps(mapping, indent=2) + "\n")
-    index_dir = cfg.source_file.parent / ".issuesuite"
+    """Persist mapping to legacy path and canonical signed index document."""
+    base_dir = cfg.source_file.parent
+    legacy_target = mapping_path or cfg.mapping_file
+    legacy_mp = _resolve_output_path(base_dir, legacy_target)
+    legacy_mp.parent.mkdir(parents=True, exist_ok=True)
+    legacy_mp.write_text(json.dumps(mapping, indent=2) + "\n", encoding="utf-8")
+    index_dir = base_dir / ".issuesuite"
     index_dir.mkdir(exist_ok=True)
-    (index_dir / "index.json").write_text(json.dumps({"mapping": mapping}, indent=2) + "\n")
+    index_path = index_dir / "index.json"
+    mirror_env = os.environ.get("ISSUESUITE_INDEX_MIRROR")
+    mirror_path = None
+    if mirror_env:
+        mirror_candidate = _resolve_output_path(base_dir, mirror_env)
+        mirror_candidate.parent.mkdir(parents=True, exist_ok=True)
+        mirror_path = mirror_candidate
+    doc = IndexDocument(entries={k: {"issue": v} for k, v in mapping.items()}, repo=cfg.github_repo)
+    persist_index_document(index_path, doc, mirror=mirror_path)
+
+
+def _normalize_mapping(
+    source: Any,
+    *,
+    context: str,
+    value_getter: Callable[[Any], Any] | None = None,
+) -> dict[str, int]:
+    """Coerce a mapping-like object into ``slug -> issue`` integers."""
+
+    if not isinstance(source, dict):
+        return {}
+
+    result: dict[str, int] = {}
+    for raw_key, raw_value in source.items():
+        candidate = raw_value
+        if value_getter is not None:
+            try:
+                candidate = value_getter(raw_value)
+            except Exception:  # pragma: no cover - defensive guard
+                logger.debug(
+                    "Skipping mapping entry %s from %s due to value getter error",
+                    raw_key,
+                    context,
+                )
+                continue
+        try:
+            result[str(raw_key)] = int(candidate)
+        except (TypeError, ValueError):
+            logger.debug("Skipping invalid mapping entry %s from %s", raw_key, context)
+    return result
+
+
+def _prune_stale_entries(mapping: dict[str, int], active_slugs: set[str]) -> None:
+    """Remove mapping entries that no longer appear in the active slug set."""
+
+    if not mapping or not active_slugs:
+        return
+
+    for slug in list(mapping.keys()):
+        if slug not in active_slugs:
+            mapping.pop(slug, None)
 
 
 def sync_with_summary(
@@ -167,26 +214,18 @@ def sync_with_summary(
     )
 
     # Merge existing mapping (from prior runs) with this run's mapping and prune stale.
-    index_mapping = _load_index_mapping(cfg)
-    latest_mapping_raw = summary_raw.get("mapping")
-    latest_mapping: dict[str, int] = {}
-    if isinstance(latest_mapping_raw, dict):
-        for k, v in latest_mapping_raw.items():
-            try:
-                latest_mapping[str(k)] = int(v)  # cast numeric-ish
-            except Exception as exc:
-                logger.debug('Skipping non-numeric mapping entry %s: %s', k, exc)
-                continue
-    # Determine current slugs (parsed specs count in summary_raw if present or derive from mapping)
-    current_slugs: set[str] = set()
-    if latest_mapping:
-        current_slugs.update(latest_mapping.keys())
-    # Prune any stale entries (slugs not present anymore)
-    if index_mapping:
-        stale = [k for k in index_mapping.keys() if k not in current_slugs and current_slugs]
-        if stale:
-            for k in stale:
-                index_mapping.pop(k, None)
+    index_doc = _load_index_document(cfg)
+    index_mapping = _normalize_mapping(
+        index_doc.entries,
+        context="index document",
+        value_getter=lambda value: value.get("issue") if isinstance(value, dict) else value,
+    )
+    latest_mapping = _normalize_mapping(
+        summary_raw.get("mapping"),
+        context="sync summary",
+    )
+    current_slugs = set(latest_mapping)
+    _prune_stale_entries(index_mapping, current_slugs)
     if latest_mapping:
         index_mapping.update(latest_mapping)
 
@@ -206,6 +245,7 @@ def sync_with_summary(
         'ai_mode': ai_mode,
         'mapping_present': bool(index_mapping),
         'mapping_size': len(index_mapping),
+        'mapping_signature': getattr(index_doc, 'signature', ''),
         'totals': summary_raw.get('totals', {}),
         'changes': summary_raw.get('changes', {}),
         'mapping': summary_raw.get('mapping', {}),
@@ -218,6 +258,9 @@ def sync_with_summary(
         le = suite._last_error  # may be None
         if isinstance(le, dict):
             enriched['last_error'] = le
-    sp = Path(summary_path or cfg.summary_json)
-    sp.write_text(json.dumps(enriched, indent=2) + "\n")
+    base_dir = cfg.source_file.parent
+    target_summary = summary_path or cfg.summary_json
+    sp = _resolve_output_path(base_dir, target_summary)
+    sp.parent.mkdir(parents=True, exist_ok=True)
+    sp.write_text(json.dumps(enriched, indent=2) + "\n", encoding="utf-8")
     return enriched
