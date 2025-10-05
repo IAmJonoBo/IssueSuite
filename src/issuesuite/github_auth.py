@@ -1,7 +1,8 @@
 """GitHub App authentication integration for IssueSuite.
 
 Provides GitHub App token management with automatic renewal,
-JWT generation, and installation token handling.
+JWT generation, and installation token handling, including
+graceful fallbacks when the GitHub CLI is unavailable.
 """
 
 from __future__ import annotations
@@ -9,7 +10,8 @@ from __future__ import annotations
 import base64
 import json
 import os
-import subprocess
+import shutil
+import subprocess  # nosec B404 - GitHub CLI interactions require subprocess
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -17,6 +19,13 @@ from pathlib import Path
 from typing import Any
 
 from .logging import get_logger
+
+
+def _gh_command(*args: str) -> list[str]:
+    """Return a GitHub CLI command preferring the absolute path when available."""
+    gh_path = shutil.which('gh')
+    base = gh_path if gh_path else 'gh'
+    return [base, *args]
 
 
 @dataclass
@@ -175,21 +184,37 @@ class GitHubAppTokenManager:
                 return None
 
             # For security, we'll use GitHub CLI if available, otherwise use simple JWT
-            try:
-                # Try using GitHub CLI for JWT generation (more secure)
-                result = subprocess.run(
-                    ['gh', 'auth', 'status', '--show-token'],
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
+            gh_cli = shutil.which('gh')
+            if gh_cli:
+                try:
+                    result = subprocess.run(  # nosec B603 - fixed GitHub CLI arguments
+                        [gh_cli, 'auth', 'status', '--show-token'],
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                    )
 
-                # If gh CLI is already authenticated, we might not need App auth
-                if result.returncode == 0:
-                    self.logger.debug("GitHub CLI already authenticated")
+                    # If gh CLI is already authenticated, we might not need App auth
+                    if result.returncode == 0:
+                        self.logger.debug(
+                            "GitHub CLI already authenticated",
+                            gh_path=gh_cli,
+                        )
 
-            except subprocess.CalledProcessError:
-                pass
+                except subprocess.CalledProcessError as exc:
+                    self.logger.debug(
+                        "GitHub CLI authentication status check failed",
+                        gh_path=gh_cli,
+                        error=(exc.stderr or str(exc)),
+                    )
+                except OSError as exc:
+                    self.logger.debug(
+                        "GitHub CLI invocation failed",
+                        gh_path=gh_cli,
+                        error=str(exc),
+                    )
+            else:
+                self.logger.debug("GitHub CLI not found; skipping auth status probe")
 
             # Generate basic JWT (simplified for demo)
             # In production, use a proper JWT library like PyJWT
@@ -225,7 +250,6 @@ class GitHubAppTokenManager:
                 self.logger.log_error("Installation ID not configured")
                 return None
             cmd = [
-                'gh',
                 'api',
                 f'/app/installations/{self.config.installation_id}/access_tokens',
                 '--method',
@@ -236,7 +260,12 @@ class GitHubAppTokenManager:
                 'Accept: application/vnd.github.v3+json',
             ]
 
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            result = subprocess.run(  # nosec B603 B607 - arguments are fully controlled
+                _gh_command(*cmd),
+                capture_output=True,
+                text=True,
+                check=True,
+            )
             token_data: dict[str, Any] = json.loads(result.stdout)
 
             self.logger.debug(
@@ -272,8 +301,11 @@ class GitHubAppTokenManager:
             os.environ['GITHUB_TOKEN'] = token
 
             # Verify authentication
-            result = subprocess.run(
-                ['gh', 'auth', 'status'], capture_output=True, text=True, check=False
+            result = subprocess.run(  # nosec B603 B607 - status check uses controlled arguments
+                _gh_command('auth', 'status'),
+                capture_output=True,
+                text=True,
+                check=False,
             )
 
             if result.returncode == 0:

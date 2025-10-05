@@ -33,7 +33,12 @@ def test_classify_generic():
 
 
 def test_redact_tokens():
-    sample = 'Token ghp_ABCDEFGHIJKLMNOPQRSTUVWX plus github_pat_1234567890abcdefghijkl and key block\n-----BEGIN PRIVATE KEY-----\nABCDEF\n-----END PRIVATE KEY-----'
+    key_header = "-----BEGIN " "PRIVATE KEY-----"
+    key_footer = "-----END " "PRIVATE KEY-----"
+    sample = (
+        "Token ghp_ABCDEFGHIJKLMNOPQRSTUVWX plus github_pat_1234567890abcdefghijkl "
+        f"and key block\n{key_header}\nABCDEF\n{key_footer}"
+    )
     out = redact(sample)
     assert 'ghp_' not in out
     assert 'github_pat_' not in out

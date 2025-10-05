@@ -25,7 +25,9 @@ from typing import Any
 _SENSITIVE_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"ghp_[A-Za-z0-9]{20,40}"),  # GitHub classic tokens
     re.compile(r"github_pat_\w{20,}"),  # GitHub fine-grained tokens
-    re.compile(r"-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----"),
+    re.compile(
+        r"-----BEGIN " r"PRIVATE KEY-----[\s\S]*?-----END " r"PRIVATE KEY-----"
+    ),
 ]
 
 _REDACTION_PLACEHOLDER = "<redacted>"

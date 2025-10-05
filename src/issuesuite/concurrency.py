@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import json
-import subprocess
+import subprocess  # nosec B404 - required for invoking GitHub CLI commands
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor

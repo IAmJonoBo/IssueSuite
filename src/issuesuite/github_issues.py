@@ -24,7 +24,8 @@ from __future__ import annotations
 import json
 import os
 import re
-import subprocess
+import shutil
+import subprocess  # nosec B404 - subprocess is required for GitHub CLI invocation
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any, cast
@@ -55,10 +56,12 @@ class IssuesClient:
     def __init__(self, cfg: IssuesClientConfig):
         self.cfg = cfg
         self._env_quiet = os.environ.get("ISSUESUITE_QUIET") == "1"
+        self._gh_path = shutil.which("gh")
 
     # --- internal helpers -------------------------------------------------
     def _base_cmd(self, *parts: str) -> list[str]:
-        cmd: list[str] = ["gh", *parts]
+        gh_base = self._gh_path if self._gh_path else "gh"
+        cmd: list[str] = [gh_base, *parts]
         if self.cfg.repo:
             cmd.extend(["-R", self.cfg.repo])
         return cmd
@@ -72,7 +75,9 @@ class IssuesClient:
             return ""
         try:
             return run_with_retries(
-                lambda: subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT)
+                lambda: subprocess.check_output(  # nosec B603 B607 - command uses controlled arguments
+                    cmd, text=True, stderr=subprocess.STDOUT
+                )
             )
         except (
             subprocess.CalledProcessError

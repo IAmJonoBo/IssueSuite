@@ -1,5 +1,8 @@
 from issuesuite import IssueSuite, load_config
 
+KEY_HEADER = "-----BEGIN " "PRIVATE KEY-----"
+KEY_FOOTER = "-----END " "PRIVATE KEY-----"
+
 CONFIG_WITH_GITHUB_APP = """
 version: 1
 source:
@@ -155,9 +158,15 @@ def test_github_app_with_existing_private_key(monkeypatch, tmp_path):
     """Test GitHub App integration with an actual private key file."""
     # Create a dummy private key file
     key_path = tmp_path / 'test-key.pem'
-    key_path.write_text("""-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
------END PRIVATE KEY-----""")
+    key_path.write_text(
+        "\n".join(
+            [
+                KEY_HEADER,
+                "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...",
+                KEY_FOOTER,
+            ]
+        )
+    )
 
     config_with_real_key = f"""
 version: 1

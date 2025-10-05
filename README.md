@@ -547,6 +547,16 @@ The parser will auto-insert the hidden marker `<!-- issuesuite:slug=<slug> -->` 
 
 Semantic versioning once extracted; `__version__` exported for tooling.
 
+## Quality gates
+
+Run the bundled helper to execute the release gate suite (tests, lint, type checks, security scan, secrets scan, build) with a minimum coverage threshold of 65%:
+
+```bash
+python scripts/quality_gates.py
+```
+
+The script prints a concise summary and writes `quality_gate_report.json` for CI dashboards.
+
 ## License
 
 MIT

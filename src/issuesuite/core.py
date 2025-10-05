@@ -4,7 +4,8 @@ import asyncio
 import json
 import os
 import re
-import subprocess
+import shutil
+import subprocess  # nosec B404 - subprocess is required for GitHub CLI invocation
 from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any, Protocol, TypedDict, cast
@@ -203,6 +204,7 @@ class IssueSuite:
         self._logger = configure_logging(
             json_logging=cfg.logging_json_enabled, level=cfg.logging_level
         )
+        self._gh_cli_path: Path | None = None
 
         # Configure environment authentication
         if cfg.env_auth_enabled:
@@ -292,6 +294,20 @@ class IssueSuite:
             print('[issuesuite]', *parts)
         # Also log via structured logger
         self._logger.debug(' '.join(str(p) for p in parts))
+
+    def _resolve_gh_cli(self) -> Path | None:
+        """Resolve the GitHub CLI executable path once per process."""
+        if self._mock:
+            return None
+        if self._gh_cli_path is not None:
+            return self._gh_cli_path
+        gh_path = shutil.which('gh')
+        if gh_path:
+            self._gh_cli_path = Path(gh_path)
+            return self._gh_cli_path
+        self._logger.debug('GitHub CLI executable not found; skipping CLI-dependent features')
+        self._gh_cli_path = None
+        return None
 
     @classmethod
     def from_config_path(cls, path: str | Path) -> IssueSuite:
@@ -608,8 +624,13 @@ class IssueSuite:
             result['mapped'] = number
             try:  # project assignment (noop currently)
                 project_assigner.assign(number, spec)
-            except Exception:  # pragma: no cover - defensive
-                pass
+            except Exception as exc:  # pragma: no cover - defensive
+                self._logger.debug(
+                    'Project assignment failed for existing issue',
+                    external_id=spec.external_id,
+                    number=number,
+                    error=str(exc),
+                )
         if respect_status and spec.status == 'closed' and match.get('state') != 'CLOSED':
             self._close(match, dry_run)
             result['closed'] = {'external_id': spec.external_id, 'number': match['number']}
@@ -630,10 +651,20 @@ class IssueSuite:
     def _gh_auth(self) -> bool:
         if self._mock:
             return False
+        gh_path = self._resolve_gh_cli()
+        if gh_path is None:
+            return False
         try:
-            subprocess.check_output(['gh', 'auth', 'status'], stderr=subprocess.STDOUT)
+            subprocess.check_output(  # nosec B603 - GitHub CLI arguments are static
+                [str(gh_path), 'auth', 'status'],
+                stderr=subprocess.STDOUT,
+            )
             return True
-        except Exception:
+        except subprocess.CalledProcessError as exc:
+            self._logger.debug('GitHub CLI auth status check failed', error=str(exc))
+            return False
+        except OSError as exc:
+            self._logger.debug('Failed to invoke GitHub CLI', error=str(exc))
             return False
 
     def _existing_issues(self) -> list[dict[str, Any]]:
@@ -708,8 +739,13 @@ class IssueSuite:
             if isinstance(num, int) and num not in matched_numbers:
                 try:
                     self._close(issue, dry_run)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    self._logger.debug(
+                        'Failed to close unmatched issue',
+                        number=num,
+                        dry_run=dry_run,
+                        error=str(exc),
+                    )
 
     def _hash_state_path(self) -> Path:
         return self.cfg.source_file.parent / self.cfg.hash_state_file
@@ -740,8 +776,13 @@ class IssueSuite:
         try:  # pragma: no cover - defensive around external project assigner
             project_assigner.assign(synthetic_number, spec)
             result['mapped'] = synthetic_number
-        except Exception:
-            pass
+        except Exception as exc:
+            self._logger.debug(
+                'Synthetic project assignment failed',
+                external_id=spec.external_id,
+                synthetic_number=synthetic_number,
+                error=str(exc),
+            )
 
     def _load_hash_state(self) -> dict[str, str]:
         p = self._hash_state_path()
@@ -785,21 +826,39 @@ class IssueSuite:
         desired = sorted(
             {label for spec in specs for label in spec.labels} | set(self.cfg.inject_labels)
         )
+        gh_path = self._resolve_gh_cli()
+        if gh_path is None:
+            self._logger.debug('Skipping label ensure; GitHub CLI not available')
+            return
         try:
-            out = subprocess.check_output(
-                ['gh', 'label', 'list', '--limit', '300', '--json', 'name', '--jq', '.[].name'],
+            out = subprocess.check_output(  # nosec B603 - static GitHub CLI arguments
+                [
+                    str(gh_path),
+                    'label',
+                    'list',
+                    '--limit',
+                    '300',
+                    '--json',
+                    'name',
+                    '--jq',
+                    '.[].name',
+                ],
                 text=True,
             )
             existing: set[str] = set(out.strip().splitlines())
-        except Exception:
+        except subprocess.CalledProcessError as exc:
+            self._logger.debug('Failed to list labels via GitHub CLI', error=str(exc))
             existing = set()
+        except OSError as exc:
+            self._logger.debug('GitHub CLI invocation failed while listing labels', error=str(exc))
+            return
         for lbl in desired:
             if lbl in existing:
                 continue
             try:
-                subprocess.check_call(
+                subprocess.check_call(  # nosec B603 - fixed GitHub CLI arguments
                     [
-                        'gh',
+                        str(gh_path),
                         'label',
                         'create',
                         lbl,
@@ -811,27 +870,45 @@ class IssueSuite:
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-            except Exception:
-                pass
+            except subprocess.CalledProcessError as exc:
+                self._logger.debug('Failed to create label via GitHub CLI', label=lbl, error=str(exc))
+            except OSError as exc:
+                self._logger.debug('GitHub CLI invocation failed while creating label', label=lbl, error=str(exc))
+                return
 
     def _ensure_milestones(self) -> None:  # pragma: no cover - network side-effects
         if self._mock:
             return
+        gh_path = self._resolve_gh_cli()
+        if gh_path is None:
+            self._logger.debug('Skipping milestone ensure; GitHub CLI not available')
+            return
         try:
-            out = subprocess.check_output(
-                ['gh', 'api', 'repos/:owner/:repo/milestones', '--paginate', '--jq', '.[].title'],
+            out = subprocess.check_output(  # nosec B603 - static GitHub CLI arguments
+                [
+                    str(gh_path),
+                    'api',
+                    'repos/:owner/:repo/milestones',
+                    '--paginate',
+                    '--jq',
+                    '.[].title',
+                ],
                 text=True,
             )
             existing: set[str] = set(out.strip().splitlines())
-        except Exception:
+        except subprocess.CalledProcessError as exc:
+            self._logger.debug('Failed to list milestones via GitHub CLI', error=str(exc))
             existing = set()
+        except OSError as exc:
+            self._logger.debug('GitHub CLI invocation failed while listing milestones', error=str(exc))
+            return
         for ms in self.cfg.ensure_milestones_list:
             if ms in existing:
                 continue
             try:
-                subprocess.check_call(
+                subprocess.check_call(  # nosec B603 - fixed GitHub CLI arguments
                     [
-                        'gh',
+                        str(gh_path),
                         'api',
                         'repos/:owner/:repo/milestones',
                         '-f',
@@ -842,8 +919,11 @@ class IssueSuite:
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-            except Exception:
-                pass
+            except subprocess.CalledProcessError as exc:
+                self._logger.debug('Failed to create milestone via GitHub CLI', milestone=ms, error=str(exc))
+            except OSError as exc:
+                self._logger.debug('GitHub CLI invocation failed while creating milestone', milestone=ms, error=str(exc))
+                return
 
     # Concurrency support methods
     async def _get_existing_issues_async(self) -> list[dict[str, Any]]:

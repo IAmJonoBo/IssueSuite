@@ -15,7 +15,8 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
+import shutil
+import subprocess  # nosec B404 - GitHub CLI interactions require subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -51,6 +52,7 @@ class GitHubProjectAssigner:
         self._cache_dir.mkdir(exist_ok=True)
         self._cache_ttl = int(os.environ.get('ISSUESUITE_PROJECT_CACHE_TTL', '3600'))
         self._no_persist = os.environ.get('ISSUESUITE_PROJECT_CACHE_DISABLE') == '1'
+        self._gh_cli_path: Path | None = None if self._mock else self._resolve_gh_cli()
 
     # ---------------- internal helpers ----------------
     def _cache_path(self) -> Path:
@@ -86,8 +88,8 @@ class GitHubProjectAssigner:
                 'ts': time.time(),
             }
             self._cache_path().write_text(json.dumps(payload, indent=2))
-        except Exception:  # pragma: no cover - best effort
-            pass
+        except Exception as exc:  # pragma: no cover - best effort
+            self.logger.debug('Failed to persist project cache', error=str(exc))
 
     def _get_project_id(self) -> str | None:
         if self._project_id:
@@ -204,9 +206,21 @@ class GitHubProjectAssigner:
         """
         if self._mock:
             return f"mock_issue_{issue_number}"
+        gh_path = self._gh_cli_path or self._resolve_gh_cli()
+        if gh_path is None:
+            gh_cmd = 'gh'
+            self.logger.debug('GitHub CLI not resolved; attempting default "gh" lookup')
+        else:
+            gh_cmd = str(gh_path)
         try:  # pragma: no cover - placeholder shell call
-            result = subprocess.run(
-                ['gh', 'api', f'repos/:owner/:repo/issues/{issue_number}', '--jq', '.node_id'],
+            result = subprocess.run(  # nosec B603 B607 - GitHub CLI invocation with controlled arguments
+                [
+                    gh_cmd,
+                    'api',
+                    f'repos/:owner/:repo/issues/{issue_number}',
+                    '--jq',
+                    '.node_id',
+                ],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -218,6 +232,17 @@ class GitHubProjectAssigner:
         except Exception as e:  # pragma: no cover - defensive
             self.logger.log_error(f"Failed to get issue ID for #{issue_number}", error=str(e))
             return None
+
+    def _resolve_gh_cli(self) -> Path | None:
+        if self._mock:
+            return None
+        gh_path = shutil.which('gh')
+        if gh_path:
+            self._gh_cli_path = Path(gh_path)
+            return self._gh_cli_path
+        self.logger.debug('GitHub CLI executable not found; project assigner limited to mock mode')
+        self._gh_cli_path = None
+        return None
 
     def _update_project_field(
         self, item_id: str, field_name: str, field_value: str | list[str]

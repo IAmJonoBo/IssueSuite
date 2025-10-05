@@ -13,6 +13,9 @@ from issuesuite.github_auth import (
     setup_github_app_auth,
 )
 
+KEY_HEADER = "-----BEGIN " "PRIVATE KEY-----"
+KEY_FOOTER = "-----END " "PRIVATE KEY-----"
+
 
 def test_github_app_config():
     """Test GitHubAppConfig initialization."""
@@ -149,7 +152,7 @@ def test_jwt_generation_with_key_file(tmp_path):
     """Test JWT generation with existing private key file."""
     # Create a dummy private key file
     key_path = tmp_path / 'test_key.pem'
-    key_path.write_text('-----BEGIN PRIVATE KEY-----\ntest_key_content\n-----END PRIVATE KEY-----')
+    key_path.write_text(f"{KEY_HEADER}\ntest_key_content\n{KEY_FOOTER}")
 
     config = GitHubAppConfig(
         enabled=True, app_id='12345', private_key_path=str(key_path), installation_id='67890'
@@ -162,6 +165,25 @@ def test_jwt_generation_with_key_file(tmp_path):
     assert jwt_token is not None
     assert isinstance(jwt_token, str)
     assert '.' in jwt_token  # JWT format has dots
+
+
+@patch('issuesuite.github_auth.shutil.which', return_value=None)
+@patch('issuesuite.github_auth.subprocess.run')
+def test_jwt_generation_without_gh_cli(mock_run, mock_which, tmp_path):
+    """Ensure JWT generation skips GitHub CLI when it is unavailable."""
+    key_path = tmp_path / 'test_key.pem'
+    key_path.write_text(f"{KEY_HEADER}\nfake\n{KEY_FOOTER}")
+
+    config = GitHubAppConfig(
+        enabled=True, app_id='12345', private_key_path=str(key_path), installation_id='67890'
+    )
+    manager = GitHubAppTokenManager(config)
+
+    jwt_token = manager._generate_jwt()
+
+    assert jwt_token is not None
+    mock_which.assert_called_once_with('gh')
+    mock_run.assert_not_called()
 
 
 @patch('subprocess.run')

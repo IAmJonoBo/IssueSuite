@@ -15,14 +15,17 @@ error messages trigger a retry; other failures propagate immediately.
 
 from __future__ import annotations
 
+import logging
 import os
 import random
 import re
-import subprocess
+import subprocess  # nosec B404 - subprocess used for retrying CLI operations
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TypeVar
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
 
@@ -75,9 +78,12 @@ def is_transient(output: str) -> bool:
     return any(tok in out_lower for tok in TRANSIENT_TOKENS)
 
 
+_RAND = random.SystemRandom()
+
+
 def _compute_sleep(attempt: int, cfg: RetryConfig, out: str) -> float:
     explicit = _extract_explicit_backoff(out)
-    backoff = cfg.base_sleep * (2 ** (attempt - 1)) + random.uniform(0, 0.25)
+    backoff = cfg.base_sleep * (2 ** (attempt - 1)) + _RAND.uniform(0, 0.25)
     sleep_for: float = explicit if explicit is not None else backoff
     max_cap_env = os.environ.get('ISSUESUITE_RETRY_MAX_SLEEP')
     if max_cap_env:
@@ -85,8 +91,12 @@ def _compute_sleep(attempt: int, cfg: RetryConfig, out: str) -> float:
             cap = float(max_cap_env)
             if cap >= 0:
                 sleep_for = min(sleep_for, cap)
-        except Exception:  # pragma: no cover
-            pass
+        except Exception as exc:  # pragma: no cover
+            logger.debug(
+                'Failed to parse ISSUESUITE_RETRY_MAX_SLEEP value %s: %s',
+                max_cap_env,
+                exc,
+            )
     return sleep_for
 
 
