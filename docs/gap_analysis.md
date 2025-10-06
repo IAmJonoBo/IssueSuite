@@ -12,6 +12,7 @@
 - **Scalable execution primitives:** Concurrency helpers support asynchronous GitHub CLI calls with batching and mocking, which is critical once specs scale into hundreds of issues.【F:src/issuesuite/concurrency.py†L1-L188】
 - **Codified quality gates:** A reusable gate runner orchestrates coverage enforcement, linting, typing, security, secrets, and build steps, making it easy to embed policy-as-code in CI.【F:scripts/quality_gates.py†L21-L68】【F:src/issuesuite/quality_gates.py†L1-L108】
 - **Design documentation:** Artifacts like the baseline quality report and index mapping design outline existing constraints and future integrations, accelerating onboarding and governance reviews.【F:docs/baseline_report.md†L1-L33】【F:docs/index_mapping_design.md†L1-L66】
+- **Offline-ready dependency governance:** The new `issuesuite.dependency_audit` command runs pip-audit when available and falls back to a curated advisory dataset so that PR gates continue to enforce dependency hygiene even on air-gapped runners.【F:src/issuesuite/dependency_audit.py†L1-L193】【F:scripts/quality_gates.py†L28-L48】
 
 ## Gap Assessment
 ### Architecture & Scalability
@@ -22,7 +23,7 @@
 ### Reliability, Observability & Performance
 - **Coverage hot spots:** Critical orchestration, CLI, mapping, and agent update modules have <50% coverage (e.g., `cli.py` 43%, `agent_updates.py` 13%, `orchestrator.py` 34%), reducing confidence when scaling to edge cases like bulk closures or partial failures.【ce7f96†L21-L45】
 - **Limited telemetry sinks:** Logging stays local to stdout with manual JSON toggles; there is no OpenTelemetry export, trace correlation, or metrics surfacing for sync throughput/latency, constraining SRE insight during incidents.【F:src/issuesuite/logging.py†L1-L137】
-- **Benchmarking disconnected from CI:** While benchmarking utilities exist, there is no automation hooking those metrics into quality gates or regression dashboards, risking unnoticed performance regressions.【F:src/issuesuite/benchmarking.py†L1-L120】【F:scripts/quality_gates.py†L21-L68】
+- **Benchmarking integrated with CI gates:** A deterministic harness now generates `performance_report.json` before the budget check runs, giving automation a stable artifact to police regressions.【F:scripts/generate_performance_report.py†L1-L43】【F:scripts/quality_gates.py†L20-L77】【F:src/issuesuite/benchmarking.py†L310-L410】
 
 ### Security & Compliance
 - **Secrets scanner noise:** `detect-secrets` flags governance docs (`Next Steps.md`), and there is no allowlist or baseline update strategy, inviting alert fatigue and potential real secret misses.【6e6bf9†L1-L71】

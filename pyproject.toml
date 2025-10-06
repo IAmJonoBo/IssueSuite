@@ -41,6 +41,7 @@ classifiers = [
 dependencies = [
   "pyyaml>=6,<7",
   "requests>=2.31,<3",
+  "packaging>=23,<25",
 ]
 
 optional-dependencies.all = [
@@ -142,3 +143,6 @@ warn_redundant_casts = true
 warn_unreachable = true
 no_implicit_optional = true
 show_error_codes = true
+
+[tool.setuptools.package-data]
+"issuesuite" = ["data/*.json"]

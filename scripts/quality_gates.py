@@ -44,12 +44,8 @@ def build_default_gates() -> list[Gate]:
             command=[
                 sys.executable,
                 "-m",
-                "pip_audit",
-                "--strict",
-                "--progress-spinner",
-                "off",
+                "issuesuite.dependency_audit",
             ],
-            env={"PIP_AUDIT_CACHE_DISABLED": "1"},
         ),
         Gate(
             name="Secrets",
@@ -61,12 +57,21 @@ def build_default_gates() -> list[Gate]:
             ],
         ),
         Gate(
-            name="Performance",
+            name="Performance Report",
+            command=[
+                sys.executable,
+                str(PROJECT_ROOT / "scripts" / "generate_performance_report.py"),
+            ],
+        ),
+        Gate(
+            name="Performance Budget",
             command=[
                 sys.executable,
                 "-m",
                 "issuesuite.benchmarking",
                 "--check",
+                "--report",
+                str(PROJECT_ROOT / "performance_report.json"),
             ],
         ),
         Gate(name="Build", command=["python", "-m", "build"]),

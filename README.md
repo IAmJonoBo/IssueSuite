@@ -557,6 +557,17 @@ python scripts/quality_gates.py
 
 The script prints a concise summary and writes `quality_gate_report.json` for CI dashboards.
 
+The dependency gate first attempts to run `pip-audit` in the active environment and automatically falls back to IssueSuite's curated offline advisory dataset when network access is unavailable. The dataset lives at `src/issuesuite/data/security_advisories.json`; update it in tandem with upstream disclosures to keep offline scans trustworthy. You can also run the audit directly via `python -m issuesuite.dependency_audit` (pass `--offline-only` to skip the online probe).
+
+For performance budgets, the gate suite now generates a deterministic `performance_report.json` before asserting benchmarks. You can refresh the artifact independently with:
+
+```bash
+python scripts/generate_performance_report.py --output performance_report.json
+python -m issuesuite.benchmarking --check --report performance_report.json
+```
+
+The helper runs IssueSuite in mock mode against a synthetic roadmap, exercises sync and preflight flows, and produces metrics that are stable across environments—ideal for CI enforcement.
+
 ## License
 
 MIT
