@@ -40,7 +40,7 @@ classifiers = [
 ]
 dependencies = [
   "pyyaml>=6,<7",
-  "requests>=2.31,<3",
+  "requests>=2.32.0,<3",
   "packaging>=25,<26",
 ]
 

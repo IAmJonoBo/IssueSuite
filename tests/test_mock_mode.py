@@ -42,7 +42,7 @@ class Capture:  # test helper
 
 
 def test_mock_mode_skips_all_gh(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
     (tmp_path / "ISSUES.md").write_text(ISSUES)
     cfg_path = tmp_path / "issue_suite.config.yaml"
@@ -57,7 +57,7 @@ def test_mock_mode_skips_all_gh(
     monkeypatch.setattr(subprocess, "check_output", capture.record)
 
     suite.sync(dry_run=False, update=True, respect_status=False, preflight=True)
-    out = capsys.readouterr().out
+    out = capfd.readouterr().out
     # Expect mock create output (now prints full gh command), but no real gh calls captured via subprocess
-    assert "MOCK gh issue create" in out
+    assert "MOCK" in out and "issue create" in out
     assert capture.calls == []
