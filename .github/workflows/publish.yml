@@ -31,7 +31,13 @@ jobs:
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install build twine pip-audit cyclonedx-bom sigstore
+          pip install build twine pip-audit cyclonedx-bom
+
+      - name: Install project with dev dependencies
+        run: pip install -e .[dev,all]
+
+      - name: Run quality gates (preflight checks)
+        run: python scripts/quality_gates.py
 
       - name: Build package
         run: python -m build
@@ -48,8 +54,8 @@ jobs:
       - name: Dependency audit (pip-audit)
         run: pip-audit --strict --progress-spinner off
 
-      - name: Generate Sigstore attestations
-        uses: sigstore/gh-actions/attest@v2.1.1
+      - name: Generate build provenance attestation
+        uses: actions/attest-build-provenance@v2
         with:
           subject-path: "dist/*"
 
