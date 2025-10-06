@@ -55,7 +55,7 @@ jobs:
         run: pip-audit --strict --progress-spinner off
 
       - name: Generate build provenance attestation
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v3
         with:
           subject-path: "dist/*"
 
