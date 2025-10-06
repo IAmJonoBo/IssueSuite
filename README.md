@@ -31,6 +31,7 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
 - Human & machine-readable diffs (labels, milestone, body snippet)
 - JSON export (`issues_export.json`) + change summary (`issues_summary.json`)
 - JSON Schemas for export/summary and AI context
+- Schema registry with explicit version metadata (`issuesuite.schema_registry`) to keep downstream consumers synchronized as artifacts evolve.
 - Configurable patterns (ID regex, milestone naming, global injected labels)
 - Optional preflight auto-create of labels & milestones (feature flags)
 - AI tooling: generated JSON Schemas for export, change summary, and AI context (+ `issuesuite.schemas.get_schemas()`)
@@ -38,6 +39,8 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
 - AI context export: `issuesuite ai-context` emits structured JSON (preview of spec, config hints, env suggestions) for assistant ingestion
 - Agent updates: `issuesuite agent-apply` ingests AI/agent completion summaries and updates `ISSUES.md` (and optional docs) before syncing
 - Quiet mode: `--quiet` or `ISSUESUITE_QUIET=1` suppresses informational logging (helpful when piping JSON to other tools)
+- Offline-ready dependency governance via `issuesuite.dependency_audit` with pip-audit integration and curated advisories for air-gapped runners
+- Deterministic changelog updates with `scripts/update_changelog.py` (non-blocking lock) and `nox` developer sessions mirroring CI gates
 - Debug logging via `ISSUESUITE_DEBUG=1`
 - Mock mode (`ISSUES_SUITE_MOCK=1`) for offline tests w/out GitHub API
   - In mock mode all GitHub CLI calls are suppressed (even without `--dry-run`) and operations are printed as `MOCK <action>`.
@@ -71,6 +74,23 @@ issuesuite summary --config issue_suite.config.yaml
 
 # Emit schemas to default files
 issuesuite schema --config issue_suite.config.yaml
+```
+
+### Developer Tooling
+
+Run the consolidated quality gates locally with the bundled `nox` sessions:
+
+```bash
+nox -s tests lint typecheck security secrets build
+```
+
+When preparing release notes, use `scripts/update_changelog.py` to append a
+new entry without risking editor hangs caused by blocking file locks:
+
+```bash
+python scripts/update_changelog.py 0.1.12 \
+  --highlight "Document schema registry and changelog guard" \
+  --highlight "Ship developer nox sessions"
 ```
 
 ### Agent Apply (update ISSUES.md from agent output)

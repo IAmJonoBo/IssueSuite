@@ -7,6 +7,7 @@ from .config import SuiteConfig
 from .context_types import AIContextDoc
 from .core import IssueSuite
 from .mapping_utils import MAPPING_SNAPSHOT_THRESHOLD, load_mapping_snapshot
+from .schema_registry import get_schema_descriptor
 
 
 def get_ai_context(cfg: SuiteConfig, *, preview: int = 5) -> AIContextDoc:
@@ -33,7 +34,7 @@ def get_ai_context(cfg: SuiteConfig, *, preview: int = 5) -> AIContextDoc:
         safe_sync += '  # AI mode forces dry-run'
     mapping_snapshot = load_mapping_snapshot(cfg)
     doc: AIContextDoc = {
-        'schemaVersion': 'ai-context/1',
+        'schemaVersion': get_schema_descriptor('ai_context').version,
         'type': 'issuesuite.ai-context',
         'spec_count': len(specs),
         'preview': preview_specs,

@@ -10,6 +10,8 @@ try:
 except Exception:  # pragma: no cover
     yaml = cast(Any, None)
 
+from .schema_registry import get_schema_descriptor
+
 DEFAULT_MILESTONES = [
     'Sprint 0: Mobilize & Baseline',
     'M1: Real-Time Foundation',
@@ -107,6 +109,8 @@ def load_config(path: str | Path) -> SuiteConfig:
         github_app.get('installation_id'), 'GITHUB_APP_INSTALLATION_ID'
     )
 
+    summary_version = int(get_schema_descriptor("summary").version)
+
     return SuiteConfig(
         version=int(raw.get('version', 1)),
         source_file=p.parent / src.get('file', 'ISSUES.md'),
@@ -136,7 +140,7 @@ def load_config(path: str | Path) -> SuiteConfig:
         schema_export_file=ai.get('schema_export_file', 'issue_export.schema.json'),
         schema_summary_file=ai.get('schema_summary_file', 'issue_change_summary.schema.json'),
         schema_ai_context_file=ai.get('schema_ai_context_file', 'ai_context.schema.json'),
-        schema_version=int(ai.get('schema_version', 1)),
+        schema_version=int(ai.get('schema_version', summary_version)),
         # Logging configuration
         logging_json_enabled=bool(logging_config.get('json_enabled', False)),
         logging_level=logging_config.get('level', 'INFO'),

@@ -11,11 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Offline-friendly dependency audit command (`issuesuite.dependency_audit`) with curated advisory dataset and pip-audit fallback.
 - Deterministic CI harness (`scripts/generate_performance_report.py`) that refreshes `performance_report.json` before enforcing the performance budget gate.【F:scripts/generate_performance_report.py†L1-L43】【F:src/issuesuite/performance_report.py†L1-L105】
+- Schema registry exposing explicit versions for export, summary, AI context, and agent updates so downstream automation stays in sync.【F:src/issuesuite/schema_registry.py†L1-L64】【F:src/issuesuite/schemas.py†L1-L108】
+- Non-blocking changelog updater (`scripts/update_changelog.py`) and documented nox sessions to streamline developer automation without hanging editors.【F:scripts/update_changelog.py†L1-L68】【F:noxfile.py†L1-L46】【F:README.md†L92-L108】
+- Regression tests covering package metadata, schema locking, dependency audit CLI flows, and changelog locking to raise coverage above 78%.【F:tests/test_package_metadata.py†L1-L40】【F:tests/test_schemas_versions.py†L1-L17】【F:tests/test_dependency_audit.py†L1-L123】【F:tests/test_update_changelog.py†L1-L28】
 
 ### Changed (Unreleased)
 
 - Dependency quality gate now leverages the offline-aware audit module to remain enforceable on restricted runners.
 - Quality gate suite now generates the benchmark report automatically and passes it to the performance budget check for reliable enforcement.【F:scripts/quality_gates.py†L20-L77】【F:src/issuesuite/benchmarking.py†L310-L410】
+- Configuration defaults now source schema versions from the central registry, and AI context exports read the same descriptors to prevent doc drift.【F:src/issuesuite/config.py†L1-L120】【F:src/issuesuite/ai_context.py†L1-L60】
+- Documentation (README, gap analysis, baseline report) updated to reflect the schema registry, nox automation, and changelog guard so contributor guidance mirrors reality.【F:README.md†L14-L122】【F:docs/gap_analysis.md†L1-L64】【F:docs/baseline_report.md†L1-L120】
 
 ### Fixed (Unreleased)
 

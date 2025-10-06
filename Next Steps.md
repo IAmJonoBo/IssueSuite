@@ -34,6 +34,7 @@
 - [x] Added manual validation fallback and regression fixtures so `agent-apply` rejects malformed slugs and docs even when `jsonschema` is unavailable.【F:src/issuesuite/agent_updates.py†L85-L152】【F:tests/test_agent_apply_validation.py†L69-L147】
 - [x] Expanded CLI regression coverage for `ai-context`, `import`, `reconcile`, and `doctor` to lift the CLI module to 69% coverage.【F:tests/test_cli_extended.py†L1-L163】【1eb104†L16-L44】
 - [x] Automated CI benchmark generation before enforcing the performance budget gate, ensuring deterministic metrics for `performance_report.json`.【F:scripts/generate_performance_report.py†L1-L43】【F:src/issuesuite/performance_report.py†L1-L105】
+- [x] Introduced a schema registry, changelog guard, and developer nox sessions so artifacts, documentation, and automation stay aligned while preventing changelog lock hangs.【F:src/issuesuite/schema_registry.py†L1-L64】【F:scripts/update_changelog.py†L1-L68】【F:noxfile.py†L1-L46】
 
 ## Deliverables
 - [x] Patched `src/issuesuite/github_auth.py` covering missing `gh` CLI scenarios and updated/added regression test(s).
@@ -46,6 +47,7 @@
 - [x] Signed index storage module with signature verification tests to guard against tampering.【F:src/issuesuite/index_store.py†L1-L63】【F:tests/test_index_store.py†L1-L33】
 - [x] Release pipeline hardening with SBOM emission, pip-audit, and Sigstore attestations prior to publish.【F:.github/workflows/publish.yml†L20-L58】
 - [x] Deterministic performance-report generation harness and CLI wrapper for CI gating.【F:scripts/generate_performance_report.py†L1-L43】【F:src/issuesuite/performance_report.py†L1-L105】
+- [x] Schema registry module with version-locked artifacts, changelog update helper with non-blocking lock, and documented nox automation for developers.【F:src/issuesuite/schema_registry.py†L1-L64】【F:scripts/update_changelog.py†L1-L68】【F:README.md†L92-L108】
 
 - [x] Tests: `pytest --cov=issuesuite --cov-report=term --cov-report=xml` — **passing** (coverage ~79%; CLI 69%).【dcecd6†L1-L54】
 - [x] Lint: `ruff check` — **passing**.【647fc8†L1-L1】
@@ -70,6 +72,8 @@
 - [x] Detect-secrets baseline established; keep it fresh when governance docs evolve to avoid regressing signal.【F:.secrets.baseline†L1-L74】
 - [x] Enterprise SDLC controls (telemetry, release provenance, AI guardrails) remain outstanding; treat recommendations above as gating before claiming frontier readiness.【F:docs/gap_analysis.md†L64-L94】
 - [x] Dependency audit gate now resilient via offline dataset fallback; refresh `security_advisories.json` alongside upstream disclosures to retain coverage.【F:src/issuesuite/dependency_audit.py†L1-L193】【F:src/issuesuite/data/security_advisories.json†L1-L24】
+- [x] Changelog updates use a non-blocking lock to prevent editorial hangs, and writes now occur only after the lock is held so contention can never truncate the file; continue running `scripts/update_changelog.py` in automation to surface conflicts early.【F:scripts/update_changelog.py†L1-L70】【F:tests/test_update_changelog.py†L1-L86】
+- [x] Schema registry centralises artifact versions, so keep registry entries and documentation in sync when adding new payloads.【F:src/issuesuite/schema_registry.py†L1-L64】【F:docs/gap_analysis.md†L1-L64】
 - [x] Benchmark enforcement relies on up-to-date `performance_report.json`; automated generation now precedes the gate and keeps metrics stable in CI.【F:src/issuesuite/performance_report.py†L1-L105】【F:scripts/quality_gates.py†L20-L77】
 - [x] OpenTelemetry console exporter previously raised `ValueError` during shutdown; resilient writer and import diagnostics now prevent noisy tracebacks while keeping telemetry optional.【F:src/issuesuite/observability.py†L15-L97】
 - [x] Agent-apply manual validation now guards slug and docs structure even when `jsonschema` is unavailable; monitor for schema drift when new fields are introduced.【F:src/issuesuite/agent_updates.py†L85-L152】【F:tests/test_agent_apply_validation.py†L69-L147】
