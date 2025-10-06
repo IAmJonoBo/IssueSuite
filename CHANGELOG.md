@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added (Unreleased)
 
-- (placeholder)
+- Offline-friendly dependency audit command (`issuesuite.dependency_audit`) with curated advisory dataset and pip-audit fallback.
+- Deterministic CI harness (`scripts/generate_performance_report.py`) that refreshes `performance_report.json` before enforcing the performance budget gate.【F:scripts/generate_performance_report.py†L1-L43】【F:src/issuesuite/performance_report.py†L1-L105】
 
 ### Changed (Unreleased)
 
-- (placeholder)
+- Dependency quality gate now leverages the offline-aware audit module to remain enforceable on restricted runners.
+- Quality gate suite now generates the benchmark report automatically and passes it to the performance budget check for reliable enforcement.【F:scripts/quality_gates.py†L20-L77】【F:src/issuesuite/benchmarking.py†L310-L410】
 
 ### Fixed (Unreleased)
 
