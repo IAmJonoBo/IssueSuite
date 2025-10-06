@@ -41,7 +41,7 @@ classifiers = [
 dependencies = [
   "pyyaml>=6,<7",
   "requests>=2.31,<3",
-  "packaging>=23,<25",
+  "packaging>=25,<26",
 ]
 
 optional-dependencies.all = [
