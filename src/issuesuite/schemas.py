@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .schema_registry import get_schema_descriptor
+
 SCHEMA_KEY = "$schema"
 SCHEMA_URL = "http://json-schema.org/draft-07/schema#"
 
@@ -22,8 +24,10 @@ def get_schemas() -> dict[str, Any]:
         summary:   Schema describing the enriched sync summary (top-level keys).
         ai_context: Schema describing the AI context document (top-level keys).
     """
+    export_descriptor = get_schema_descriptor("export")
     export_schema: dict[str, Any] = {
         SCHEMA_KEY: SCHEMA_URL,
+        "$comment": f"IssueSuite export schema v{export_descriptor.version}",
         "title": "IssueExport",
         "type": "array",
         "items": {
@@ -41,8 +45,10 @@ def get_schemas() -> dict[str, Any]:
         },
     }
 
+    summary_descriptor = get_schema_descriptor("summary")
     summary_schema: dict[str, Any] = {
         SCHEMA_KEY: SCHEMA_URL,
+        "$comment": f"IssueSuite summary schema v{summary_descriptor.version}",
         "title": "IssueChangeSummary",
         "type": "object",
         "required": [
@@ -53,7 +59,10 @@ def get_schemas() -> dict[str, Any]:
             "changes",
         ],
         "properties": {
-            "schemaVersion": {"type": "integer"},
+            "schemaVersion": {
+                "type": "integer",
+                "const": int(summary_descriptor.version),
+            },
             "generated_at": {"type": "string"},
             "dry_run": {"type": "boolean"},
             "totals": {"type": "object"},
@@ -71,8 +80,10 @@ def get_schemas() -> dict[str, Any]:
         },
     }
 
+    ai_descriptor = get_schema_descriptor("ai_context")
     ai_context_schema: dict[str, Any] = {
         SCHEMA_KEY: SCHEMA_URL,
+        "$comment": f"IssueSuite AI context schema v{ai_descriptor.version}",
         "title": "AIContext",
         "type": "object",
         "required": [
@@ -86,7 +97,7 @@ def get_schemas() -> dict[str, Any]:
             "recommended",
         ],
         "properties": {
-            "schemaVersion": {"type": "string"},
+            "schemaVersion": {"type": "string", "const": ai_descriptor.version},
             "type": {"type": "string", "const": "issuesuite.ai-context"},
             "spec_count": {"type": "integer"},
             "preview": {"type": "array", "items": {"type": "object"}},
@@ -98,8 +109,10 @@ def get_schemas() -> dict[str, Any]:
         },
     }
 
+    agent_descriptor = get_schema_descriptor("agent_updates")
     agent_update_schema: dict[str, Any] = {
         SCHEMA_KEY: SCHEMA_URL,
+        "$comment": f"IssueSuite agent update schema v{agent_descriptor.version}",
         "title": "AgentUpdates",
         "type": "array",
         "items": {

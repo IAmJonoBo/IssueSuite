@@ -22,10 +22,11 @@ def test_default_gates_include_dependency_scan(quality_gate_script):
     names = [gate.name for gate in gates]
     assert "Dependencies" in names
     dependencies_gate = next(g for g in gates if g.name == "Dependencies")
-    assert dependencies_gate.command[0] == quality_gate_script.sys.executable
-    assert dependencies_gate.command[1:3] == ["-m", "pip_audit"]
-    assert "--strict" in dependencies_gate.command
-    assert "--progress-spinner" in dependencies_gate.command
+    assert dependencies_gate.command == [
+        quality_gate_script.sys.executable,
+        "-m",
+        "issuesuite.dependency_audit",
+    ]
 
 
 def test_secrets_gate_uses_repo_baseline(quality_gate_script):
@@ -40,8 +41,21 @@ def test_secrets_gate_uses_repo_baseline(quality_gate_script):
     assert expected_path == repo_root / ".secrets.baseline"
 
 
-def test_performance_gate_runs_benchmark_check(quality_gate_script):
+def test_performance_report_gate_generates_artifact(quality_gate_script):
     gates = quality_gate_script.build_default_gates()
-    perf_gate = next(g for g in gates if g.name == "Performance")
-    assert perf_gate.command[:3] == [quality_gate_script.sys.executable, "-m", "issuesuite.benchmarking"]
-    assert "--check" in perf_gate.command
+    report_gate = next(g for g in gates if g.name == "Performance Report")
+    assert report_gate.command[0] == quality_gate_script.sys.executable
+    script_path = Path(report_gate.command[1])
+    assert script_path.name == "generate_performance_report.py"
+    assert script_path.exists()
+
+
+def test_performance_budget_gate_runs_check(quality_gate_script):
+    gates = quality_gate_script.build_default_gates()
+    budget_gate = next(g for g in gates if g.name == "Performance Budget")
+    assert budget_gate.command[:3] == [
+        quality_gate_script.sys.executable,
+        "-m",
+        "issuesuite.benchmarking",
+    ]
+    assert "--check" in budget_gate.command

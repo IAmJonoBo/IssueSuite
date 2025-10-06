@@ -41,6 +41,7 @@ classifiers = [
 dependencies = [
   "pyyaml>=6,<7",
   "requests>=2.31,<3",
+  "packaging>=23,<25",
 ]
 
 optional-dependencies.all = [
@@ -58,7 +59,9 @@ optional-dependencies.dev = [
   "mypy>=1.8",
   "pip-audit>=2.7",
   "pytest>=8",
+  "pytest-cov>=4.1",
   "pytest-asyncio>=1.2",
+  "nox>=2024.4.15",
   "ruff==0.13.3",
   "twine>=6.2",
   "types-psutil>=7.0.0.20250822",
@@ -142,3 +145,10 @@ warn_redundant_casts = true
 warn_unreachable = true
 no_implicit_optional = true
 show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["dotenv"]
+ignore_missing_imports = true
+
+[tool.setuptools.package-data]
+"issuesuite" = ["data/*.json"]
