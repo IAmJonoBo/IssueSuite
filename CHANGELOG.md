@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added (Unreleased)
 
 - Offline-friendly dependency audit command (`issuesuite.dependency_audit`) with curated advisory dataset and pip-audit fallback.
+- Resilient pip-audit wrapper and `issuesuite security` CLI subcommand with regression coverage for offline/hardened environments.【F:src/issuesuite/pip_audit_integration.py†L1-L240】【F:tests/test_cli_extended.py†L190-L198】
 - Deterministic CI harness (`scripts/generate_performance_report.py`) that refreshes `performance_report.json` before enforcing the performance budget gate.【F:scripts/generate_performance_report.py†L1-L43】【F:src/issuesuite/performance_report.py†L1-L105】
 - Schema registry exposing explicit versions for export, summary, AI context, and agent updates so downstream automation stays in sync.【F:src/issuesuite/schema_registry.py†L1-L64】【F:src/issuesuite/schemas.py†L1-L108】
 - Non-blocking changelog updater (`scripts/update_changelog.py`) and documented nox sessions to streamline developer automation without hanging editors.【F:scripts/update_changelog.py†L1-L68】【F:noxfile.py†L1-L46】【F:README.md†L92-L108】
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed (Unreleased)
 
 - Dependency quality gate now leverages the offline-aware audit module to remain enforceable on restricted runners.
+- Quality gate suite now runs `pip-audit --strict` via the resilient wrapper so CI and packaging stay aligned even without PyPI access.【F:scripts/quality_gates.py†L21-L60】
 - Quality gate suite now generates the benchmark report automatically and passes it to the performance budget check for reliable enforcement.【F:scripts/quality_gates.py†L20-L77】【F:src/issuesuite/benchmarking.py†L310-L410】
 - Configuration defaults now source schema versions from the central registry, and AI context exports read the same descriptors to prevent doc drift.【F:src/issuesuite/config.py†L1-L120】【F:src/issuesuite/ai_context.py†L1-L60】
 - Documentation (README, gap analysis, baseline report) updated to reflect the schema registry, nox automation, and changelog guard so contributor guidance mirrors reality.【F:README.md†L14-L122】【F:docs/gap_analysis.md†L1-L64】【F:docs/baseline_report.md†L1-L120】
@@ -25,6 +27,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed (Unreleased)
 
 - (placeholder)
+
+## [0.1.13] - 2025-10-06
+
+### Added (0.1.13)
+
+- OSV-backed advisory refresh module with CLI/automation plus quality gate enforcement to keep `security_advisories.json` fresh.【F:src/issuesuite/advisory_refresh.py†L1-L236】【F:scripts/quality_gates.py†L20-L94】
+- Telemetry spans emitted during resilient pip-audit fallbacks so operators can monitor degraded upstream feeds.【F:src/issuesuite/pip_audit_integration.py†L1-L240】
+- `issuesuite security --refresh-offline` option and internal comms brief to promote the hardened workflow across teams.【F:src/issuesuite/cli.py†L1-L700】【F:docs/internal_comms_security_workflow.md†L1-L60】
+
+### Changed (0.1.13)
+
+- README, packaging, and baseline reports updated to reflect the automated advisory refresh and new quality gate.【F:README.md†L40-L55】【F:PACKAGING.md†L31-L48】【F:docs/baseline_report.md†L1-L60】
+- Quality gates now include an explicit offline advisory freshness check to block stale releases.【F:scripts/quality_gates.py†L20-L94】
+
+### Fixed (0.1.13)
+
+- Addressed lint ordering issues in the pip-audit integration by reorganizing imports while adding telemetry support.【F:src/issuesuite/pip_audit_integration.py†L1-L240】
 
 ## [0.1.10] - 2025-09-26
 

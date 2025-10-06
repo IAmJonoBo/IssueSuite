@@ -26,15 +26,27 @@ from pathlib import Path
 from typing import Any, cast
 
 from . import schemas as schema_module
+from .advisory_refresh import refresh_advisories
 from .agent_updates import apply_agent_updates
 from .ai_context import get_ai_context
 from .config import SuiteConfig, load_config
 from .core import IssueSuite
+from .dependency_audit import (
+    collect_installed_packages,
+    render_findings_table,
+)
+from .dependency_audit import (
+    load_advisories as load_security_advisories,
+)
+from .dependency_audit import (
+    perform_audit as run_dependency_audit,
+)
 from .env_auth import create_env_auth_manager
 from .github_issues import IssuesClient, IssuesClientConfig
 from .observability import configure_telemetry
 from .orchestrator import sync_with_summary
 from .parser import render_issue_block
+from .pip_audit_integration import collect_online_findings, run_resilient_pip_audit
 from .reconcile import format_report, reconcile
 
 CONFIG_DEFAULT = 'issue_suite.config.yaml'
@@ -105,6 +117,27 @@ def _build_parser() -> argparse.ArgumentParser:
     doc = sub.add_parser('doctor', help='Run diagnostics (auth, repo access, config)')
     doc.add_argument('--config', default=CONFIG_DEFAULT)
     doc.add_argument('--repo', help=REPO_HELP)
+
+    sec = sub.add_parser('security', help='Audit dependencies with offline-aware fallback')
+    sec.add_argument('--config', default=CONFIG_DEFAULT)
+    sec.add_argument('--offline-only', action='store_true', help='Skip the live pip-audit probe')
+    sec.add_argument('--output-json', type=Path, help='Write findings JSON to the given path')
+    sec.add_argument(
+        '--refresh-offline',
+        action='store_true',
+        help='Refresh curated offline advisories before executing the audit',
+    )
+    sec.add_argument(
+        '--pip-audit',
+        action='store_true',
+        help='Invoke pip-audit with offline-aware fallback after the dependency scan',
+    )
+    sec.add_argument(
+        '--pip-audit-arg',
+        action='append',
+        default=[],
+        help='Forward an additional argument to pip-audit (can be supplied multiple times)',
+    )
 
     aictx = sub.add_parser('ai-context', help='Emit machine-readable context JSON for AI tooling')
     aictx.add_argument('--config', default=CONFIG_DEFAULT)
@@ -604,6 +637,63 @@ def _cmd_doctor(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     return _doctor_emit_results(warnings, problems)
 
 
+def _cmd_security(args: argparse.Namespace) -> int:
+    if args.refresh_offline:
+        try:
+            refresh_advisories()
+        except Exception as exc:  # pragma: no cover - network/OSV availability
+            print(f"[security] Failed to refresh offline advisories: {exc}", file=sys.stderr)
+
+    advisories = load_security_advisories()
+    packages = collect_installed_packages()
+    findings, fallback_reason = run_dependency_audit(
+        advisories=advisories,
+        packages=packages,
+        online_probe=not args.offline_only,
+        online_collector=collect_online_findings,
+    )
+
+    output_payload = {
+        'findings': [
+            {
+                'package': finding.package,
+                'installed_version': finding.installed_version,
+                'vulnerability_id': finding.vulnerability_id,
+                'description': finding.description,
+                'fixed_versions': list(finding.fixed_versions),
+                'source': finding.source,
+            }
+            for finding in findings
+        ],
+        'fallback_reason': fallback_reason,
+    }
+
+    if args.output_json:
+        Path(args.output_json).write_text(
+            json.dumps(output_payload, indent=2, sort_keys=True) + '\n',
+            encoding='utf-8',
+        )
+    else:
+        print(render_findings_table(findings))
+        if fallback_reason:
+            print(f"[security] Warning: online audit unavailable ({fallback_reason}).", file=sys.stderr)
+
+    exit_code = 0 if not findings else 1
+
+    if args.pip_audit:
+        forwarded: list[str] = list(args.pip_audit_arg or [])
+        has_spinner = any(arg.startswith('--progress-spinner') for arg in forwarded)
+        if not has_spinner:
+            forwarded = ['--progress-spinner', 'off', *forwarded]
+        if '--strict' not in forwarded:
+            forwarded.append('--strict')
+        rc = run_resilient_pip_audit(forwarded)
+        if rc != 0:
+            exit_code = rc
+
+    return exit_code
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -644,6 +734,7 @@ def main(argv: list[str] | None = None) -> int:
         'import': lambda: _cmd_import(cfg, args),
         'reconcile': lambda: _cmd_reconcile(cfg, args),
         'doctor': lambda: _cmd_doctor(cfg, args),
+        'security': lambda: _cmd_security(args),
     }
     handler = handlers.get(args.cmd)
     if handler is None:  # pragma: no cover - argparse enforces valid choices

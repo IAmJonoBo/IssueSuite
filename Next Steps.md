@@ -1,6 +1,8 @@
 # Next Steps
 
 ## Tasks
+- [x] **Owner:** Assistant (Due: 2025-10-06) — Harden REST client environment handling so packaging preflight honours sanitized tokens, disable flags, and enterprise endpoints with regression coverage.【F:src/issuesuite/github_issues.py†L270-L316】【F:tests/test_github_rest_client.py†L120-L177】
+- [x] **Owner:** Assistant (Due: 2025-10-06) — Ship a resilient pip-audit wrapper and CLI workflow so hermetic environments pass dependency gates without bespoke CAs.【F:src/issuesuite/pip_audit_integration.py†L1-L240】【F:src/issuesuite/cli.py†L1-L650】
 - [x] **Owner:** Assistant (Due: 2025-10-05) — Ensure GitHub App JWT generation gracefully handles environments without the `gh` CLI so tests and real usage remain functional offline.
 - [x] **Owner:** Assistant (Due: 2025-10-05) — Review and address Bandit low-severity findings (try/except patterns and subprocess usage) or document acceptances.
 - [x] **Owner:** Assistant (Due: 2025-10-05) — Classify detect-secrets findings and determine if additional allowlists or remediation are required.
@@ -15,8 +17,14 @@
 - [x] **Owner:** Maintainers (Due: Frontier Q3) — Ship durable index persistence (hash validation, optional remote storage) with rollback ADRs for distributed teams.【F:src/issuesuite/index_store.py†L1-L63】【F:src/issuesuite/orchestrator.py†L130-L220】
 - [x] **Owner:** Maintainers (Due: Frontier Q1) — Lift CLI command coverage to ≥60% with targeted subcommand smoke tests and fixtures.【F:tests/test_cli_extended.py†L1-L163】【1eb104†L16-L44】
 - [x] **Owner:** Maintainers (Due: Frontier Q1) — Backfill agent_apply guard rails with higher-fidelity fixtures to lift module coverage beyond 50%.【6b942b†L21-L28】【F:tests/test_agent_apply_validation.py†L1-L147】
+- [x] **Owner:** Maintainers (Due: Frontier Q4) — Automate `security_advisories.json` refresh and alerting per red-team finding RT-01.【F:src/issuesuite/advisory_refresh.py†L1-L236】【F:docs/red_team_report.md†L18-L64】
+- [x] **Owner:** Maintainers (Due: Frontier Q4) — Emit OpenTelemetry spans for resilient pip-audit fallbacks (RT-03).【F:src/issuesuite/pip_audit_integration.py†L1-L240】【F:tests/test_pip_audit_integration.py†L1-L120】
+- [x] **Owner:** DevRel (Due: Frontier Q4) — Publish internal comms highlighting the wrapped `pip-audit` script and `issuesuite security` workflow (RT-02).【F:docs/internal_comms_security_workflow.md†L1-L60】【F:docs/red_team_report.md†L18-L64】
 
 ## Steps
+- [x] Harden IssuesClient REST client environment normalization so sanitized tokens and enterprise endpoints are honoured before packaging preflight decisions.【F:src/issuesuite/github_issues.py†L270-L316】【F:tests/test_github_rest_client.py†L120-L177】
+- [x] Harden pip-audit by installing a resilient wrapper and new CLI/quality gates so hermetic baselines pass without bespoke CAs.【F:src/issuesuite/pip_audit_integration.py†L1-L240】【F:scripts/quality_gates.py†L21-L60】
+- [x] Automate the offline advisory refresh workflow and enforce a freshness gate in CI to block stale datasets.【F:src/issuesuite/advisory_refresh.py†L1-L236】【F:scripts/quality_gates.py†L20-L94】【fa836a†L1-L130】
 - [x] Re-run full quality gates locally (pytest+coverage, ruff, mypy, bandit, detect-secrets, build) to establish baseline before analysis.【ce7f96†L1-L45】【e3c1a9†L1-L2】【862000†L1-L2】【df017e†L1-L68】【6e6bf9†L1-L71】【23b224†L1-L128】
 - [x] Replace CLI-only GitHub orchestration with a native REST client and regression suite covering milestone resolution and fallback behavior.【F:src/issuesuite/github_rest.py†L1-L200】【F:tests/test_github_rest_client.py†L1-L116】
 - [x] Layer OpenTelemetry tracing and performance budget enforcement into benchmarking plus CI quality gates.【F:src/issuesuite/observability.py†L1-L65】【F:scripts/quality_gates.py†L55-L63】【F:tests/test_benchmarking.py†L1-L165】
@@ -37,6 +45,7 @@
 - [x] Introduced a schema registry, changelog guard, and developer nox sessions so artifacts, documentation, and automation stay aligned while preventing changelog lock hangs.【F:src/issuesuite/schema_registry.py†L1-L64】【F:scripts/update_changelog.py†L1-L68】【F:noxfile.py†L1-L46】
 
 ## Deliverables
+- [x] Hardened `IssuesClient` REST environment detection to sanitize tokens, respect disable flags, and prefer enterprise endpoints with regression tests safeguarding packaging preflight behaviour.【F:src/issuesuite/github_issues.py†L270-L316】【F:tests/test_github_rest_client.py†L120-L177】
 - [x] Patched `src/issuesuite/github_auth.py` covering missing `gh` CLI scenarios and updated/added regression test(s).
 - [x] Updated security scanning notes or suppressions where justified.
 - [x] Baseline report summarizing tooling outcomes and remediation status.
@@ -48,25 +57,31 @@
 - [x] Release pipeline hardening with SBOM emission, pip-audit, and Sigstore attestations prior to publish.【F:.github/workflows/publish.yml†L20-L58】
 - [x] Deterministic performance-report generation harness and CLI wrapper for CI gating.【F:scripts/generate_performance_report.py†L1-L43】【F:src/issuesuite/performance_report.py†L1-L105】
 - [x] Schema registry module with version-locked artifacts, changelog update helper with non-blocking lock, and documented nox automation for developers.【F:src/issuesuite/schema_registry.py†L1-L64】【F:scripts/update_changelog.py†L1-L68】【F:README.md†L92-L108】
+- [x] Resilient pip-audit integration plus `issuesuite security` CLI workflow with telemetry instrumentation, refresh flag, and regression coverage.【F:src/issuesuite/pip_audit_integration.py†L1-L240】【F:src/issuesuite/cli.py†L1-L700】【F:tests/test_pip_audit_integration.py†L1-L150】【F:tests/test_cli_extended.py†L200-L235】
+- [x] Automated offline advisory refresh module with OSV integration, CLI entry point, quality gate wiring, and unit tests safeguarding specifier rendering.【F:src/issuesuite/advisory_refresh.py†L1-L236】【F:scripts/quality_gates.py†L20-L94】【F:tests/test_advisory_refresh.py†L1-L94】
 
-- [x] Tests: `pytest --cov=issuesuite --cov-report=term --cov-report=xml` — **passing** (coverage ~79%; CLI 69%).【dcecd6†L1-L54】
-- [x] Lint: `ruff check` — **passing**.【647fc8†L1-L1】
-- [x] Type Check: `mypy src` — **passing**.【810139†L1-L2】
-- [x] Security: `bandit -r src` — **passing** (warnings from inline directives only).【1c085b†L1-L67】
-- [x] Secrets: `detect-secrets scan --baseline .secrets.baseline` — **passing** (baseline maintained).【81cb2b†L1-L1】【F:.secrets.baseline†L1-L74】
+- [x] Tests: `pytest --cov=issuesuite --cov-report=term --cov-report=xml` — **passing** (coverage ~80%; CLI 69%).【199a39†L1-L55】
+- [x] Lint: `ruff check` — **passing**.【05bda3†L1-L2】
+- [x] Type Check: `mypy src` — **passing**.【3e4593†L1-L2】
+- [x] Security: `bandit -r src` — **passing** (warnings from inline directives only).【349c75†L1-L95】
+- [x] Secrets: `detect-secrets scan --baseline .secrets.baseline` — **passing** (baseline maintained).【5894f0†L1-L1】【F:.secrets.baseline†L1-L74】
 - [x] Dependencies: `python -m issuesuite.dependency_audit` — **passing** (online pip-audit falls back to offline dataset when network is constrained).【a28292†L1-L1】【F:src/issuesuite/dependency_audit.py†L1-L193】
-- [x] Performance Budget: `python -m issuesuite.benchmarking --check` — generate report via `scripts/generate_performance_report.py` so CI enforces the budget deterministically.【F:scripts/generate_performance_report.py†L1-L43】【F:scripts/quality_gates.py†L20-L77】
-- [x] Build: `python -m build` — **passing**.【25d3bf†L1-L39】
+- [x] pip-audit: `pip-audit --progress-spinner off --strict` — **passing** via resilient wrapper with offline advisories and telemetry breadcrumbs.【fa836a†L1-L130】【F:src/issuesuite/pip_audit_integration.py†L1-L240】
+- [x] Offline advisories: `python -m issuesuite.advisory_refresh --refresh --check --max-age-days 30` — **passing**, dataset regenerated from OSV metadata.【c19ad5†L1-L1】【80181e†L1-L130】
+- [x] Performance Budget: `python -m issuesuite.benchmarking --check` — generate report via `scripts/generate_performance_report.py` so CI enforces the budget deterministically.【19c9c4†L1-L36】【F:scripts/quality_gates.py†L20-L94】
+- [x] Build: `python -m build` — **passing**.【5a3c94†L1-L121】
 
 ## Links
 - [x] Failure log: tests/test_github_app_auth.py::test_jwt_generation_with_key_file — resolved by `pytest` chunk `022791†L1-L33`.
-- [x] Security scan details — `bandit` chunk `511ca0†L1-L88`.
-- [x] Secrets scan summary — `detect-secrets` command `detect-secrets scan --baseline .secrets.baseline` (no findings).【08b1ed†L1-L1】
+- [x] Security scan details — `bandit` chunk `349c75†L1-L95`.
+- [x] Secrets scan summary — `detect-secrets` command `detect-secrets scan --baseline .secrets.baseline` (no findings).【5894f0†L1-L1】
 - [x] Dependency audit — `python -m issuesuite.dependency_audit --output-json` recorded in chunk `a28292`.
 - [x] Quality gate roll-up — `python scripts/quality_gates.py` output (all gates passing with offline-aware dependency audit).【106476†L1-L8】
 - [x] Gap analysis — `docs/gap_analysis.md`.
 
 ## Risks / Notes
+- [x] REST client now sanitizes env configuration, so enterprise packaging flows won't choke on whitespace tokens or disable flags toggled via non-numeric values.【F:src/issuesuite/github_issues.py†L270-L316】【F:tests/test_github_rest_client.py†L120-L177】
+- [x] Resilient pip-audit wrapper eliminates sandbox trust failures; telemetry spans and offline refresh automation surface degraded feeds promptly.【F:src/issuesuite/pip_audit_integration.py†L1-L240】【F:src/issuesuite/advisory_refresh.py†L1-L236】
 - [x] Missing GitHub CLI in CI-like environments prevented JWT generation; mitigated via CLI detection fallback (monitor logs for regressions).
 - [x] Multiple Bandit findings stemmed from intentional subprocess usage; mitigated via command wrappers and inline documentation (monitor future changes).
 - [x] Detect-secrets baseline established; keep it fresh when governance docs evolve to avoid regressing signal.【F:.secrets.baseline†L1-L74】
@@ -77,3 +92,4 @@
 - [x] Benchmark enforcement relies on up-to-date `performance_report.json`; automated generation now precedes the gate and keeps metrics stable in CI.【F:src/issuesuite/performance_report.py†L1-L105】【F:scripts/quality_gates.py†L20-L77】
 - [x] OpenTelemetry console exporter previously raised `ValueError` during shutdown; resilient writer and import diagnostics now prevent noisy tracebacks while keeping telemetry optional.【F:src/issuesuite/observability.py†L15-L97】
 - [x] Agent-apply manual validation now guards slug and docs structure even when `jsonschema` is unavailable; monitor for schema drift when new fields are introduced.【F:src/issuesuite/agent_updates.py†L85-L152】【F:tests/test_agent_apply_validation.py†L69-L147】
+- [x] Offline advisory dataset refreshed automatically via the new OSV-backed helper and enforced freshness gate.【F:src/issuesuite/advisory_refresh.py†L1-L236】【F:docs/red_team_report.md†L18-L64】

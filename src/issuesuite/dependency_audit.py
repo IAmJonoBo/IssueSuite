@@ -212,6 +212,12 @@ def _render_table(findings: Sequence[Finding]) -> str:
     return "\n".join(lines)
 
 
+def render_findings_table(findings: Sequence[Finding]) -> str:
+    """Render findings as a CLI-friendly table."""
+
+    return _render_table(findings)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Audit dependencies with offline fallback")
     parser.add_argument(

@@ -211,3 +211,25 @@ def test_cli_doctor_reports_warnings_and_problems(
     assert "mock mode detected" in captured.out
     assert "[doctor] warnings" in captured.out
     assert "[doctor] problems" in captured.out
+
+
+def test_cli_security_offline(capsys: pytest.CaptureFixture[str]) -> None:
+    rc = main(['security', '--offline-only'])
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert 'No known vulnerabilities detected.' in captured.out
+
+
+def test_cli_security_refresh_offline(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    invoked: dict[str, bool] = {}
+
+    def _refresh() -> None:
+        invoked['called'] = True
+
+    monkeypatch.setattr('issuesuite.cli.refresh_advisories', _refresh)
+    rc = main(['security', '--offline-only', '--refresh-offline'])
+    captured = capsys.readouterr()
+
+    assert rc == 0
+    assert invoked.get('called') is True
+    assert 'No known vulnerabilities detected.' in captured.out

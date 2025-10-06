@@ -264,17 +264,43 @@ class IssuesClient:
         return self._rest_client
 
     def _build_rest_client(self) -> GitHubRestClient | None:
-        token = (
-            os.environ.get("ISSUESUITE_GITHUB_TOKEN")
-            or os.environ.get("GITHUB_TOKEN")
-            or os.environ.get("GH_TOKEN")
-        )
-        disable = os.environ.get("ISSUESUITE_REST_DISABLED") == "1"
-        if disable or not token or not self.cfg.repo or self.cfg.mock:
+        if self.cfg.mock:
             return None
-        base_url = os.environ.get("ISSUESUITE_GITHUB_API", DEFAULT_API_URL)
-        graphql_url = os.environ.get("ISSUESUITE_GITHUB_GRAPHQL", DEFAULT_GRAPHQL_URL)
-        return GitHubRestClient(token=token, repo=self.cfg.repo, base_url=base_url, graphql_url=graphql_url)
+        if self._env_flag("ISSUESUITE_REST_DISABLED"):
+            return None
+        token = self._select_token()
+        repo = (self.cfg.repo or "").strip()
+        if not token or not repo:
+            return None
+        base_url = self._clean_env("ISSUESUITE_GITHUB_API", DEFAULT_API_URL)
+        graphql_url = self._clean_env("ISSUESUITE_GITHUB_GRAPHQL", DEFAULT_GRAPHQL_URL)
+        return GitHubRestClient(token=token, repo=repo, base_url=base_url, graphql_url=graphql_url)
+
+    @staticmethod
+    def _select_token() -> str | None:
+        for name in ("ISSUESUITE_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"):
+            raw = os.environ.get(name)
+            if raw is None:
+                continue
+            token = raw.strip()
+            if token:
+                return token
+        return None
+
+    @staticmethod
+    def _env_flag(name: str) -> bool:
+        value = os.environ.get(name)
+        if value is None:
+            return False
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+
+    @staticmethod
+    def _clean_env(name: str, default: str) -> str:
+        value = os.environ.get(name)
+        if value is None:
+            return default
+        cleaned = value.strip()
+        return cleaned or default
 
     @staticmethod
     def _normalize_issue(entry: dict[str, Any]) -> dict[str, Any]:
