@@ -212,7 +212,7 @@ def test_installation_token_success(mock_run):
     # Verify the correct API call was made
     mock_run.assert_called_once()
     args = mock_run.call_args[0][0]
-    assert 'gh' in args
+    assert any('gh' in str(arg) for arg in args)  # Check for 'gh' or '/usr/bin/gh'
     assert 'api' in args
     assert '/app/installations/67890/access_tokens' in args
 
