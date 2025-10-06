@@ -48,6 +48,15 @@ def build_default_gates() -> list[Gate]:
             ],
         ),
         Gate(
+            name="pip-audit",
+            command=[
+                "pip-audit",
+                "--progress-spinner",
+                "off",
+                "--strict",
+            ],
+        ),
+        Gate(
             name="Secrets",
             command=[
                 "detect-secrets",
@@ -72,6 +81,17 @@ def build_default_gates() -> list[Gate]:
                 "--check",
                 "--report",
                 str(PROJECT_ROOT / "performance_report.json"),
+            ],
+        ),
+        Gate(
+            name="Offline Advisories Freshness",
+            command=[
+                sys.executable,
+                "-m",
+                "issuesuite.advisory_refresh",
+                "--check",
+                "--max-age-days",
+                "30",
             ],
         ),
         Gate(name="Build", command=["python", "-m", "build"]),

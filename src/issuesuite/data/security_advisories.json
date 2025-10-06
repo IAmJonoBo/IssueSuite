@@ -1,16 +1,18 @@
 {
   "version": 1,
-  "generated": "2025-10-06T00:00:00Z",
-  "source": "IssueSuite Maintainers",
+  "generated": "2025-10-06T03:11:31.115727Z",
+  "source": "IssueSuite Automation",
   "advisories": [
     {
-      "package": "urllib3",
-      "id": "GHSA-xrqq-cpx3-44h2",
-      "specifiers": "<1.26.18",
-      "severity": "high",
-      "description": "urllib3 releases prior to 1.26.18 allow request smuggling when combined with vulnerable proxies.",
-      "fixed_in": ["1.26.18", "2.0.0"],
-      "reference": "https://github.com/advisories/GHSA-xrqq-cpx3-44h2"
+      "package": "psutil",
+      "id": "CVE-2024-8563",
+      "specifiers": "<5.9.6",
+      "severity": "medium",
+      "description": "Older psutil releases expose process information to unprivileged users on restricted systems.",
+      "fixed_in": [
+        "5.9.6"
+      ],
+      "reference": "https://nvd.nist.gov/vuln/detail/CVE-2024-8563"
     },
     {
       "package": "requests",
@@ -18,17 +20,22 @@
       "specifiers": "<2.32.0",
       "severity": "medium",
       "description": "Requests before 2.32.0 mishandles header parsing in certain proxy environments.",
-      "fixed_in": ["2.32.0"],
+      "fixed_in": [
+        "2.32.0"
+      ],
       "reference": "https://github.com/advisories/GHSA-j8r2-6x86-q33q"
     },
     {
-      "package": "psutil",
-      "id": "CVE-2024-8563",
-      "specifiers": "<5.9.6",
-      "severity": "medium",
-      "description": "Older psutil releases expose process information to unprivileged users on restricted systems.",
-      "fixed_in": ["5.9.6"],
-      "reference": "https://nvd.nist.gov/vuln/detail/CVE-2024-8563"
+      "package": "urllib3",
+      "id": "GHSA-xrqq-cpx3-44h2",
+      "specifiers": "<1.26.18",
+      "severity": "high",
+      "description": "urllib3 releases prior to 1.26.18 allow request smuggling when combined with vulnerable proxies.",
+      "fixed_in": [
+        "1.26.18",
+        "2.0.0"
+      ],
+      "reference": "https://github.com/advisories/GHSA-xrqq-cpx3-44h2"
     }
   ]
 }

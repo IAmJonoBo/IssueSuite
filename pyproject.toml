@@ -11,7 +11,7 @@ requires = [ "setuptools>=68", "wheel" ]
 
 [project] # trigger-ci
 name = "issuesuite"
-version = "0.1.11" # Keep in sync with issuesuite.__version__
+version = "0.1.13" # Keep in sync with issuesuite.__version__
 description = "Declarative GitHub Issues automation: validate, sync, export, and report from a single ISSUES.md file"
 readme = { file = "README.md", content-type = "text/markdown" }
 keywords = [ "automation", "cli", "declarative", "devops", "github", "issues", "project-management", "roadmap" ]
@@ -98,6 +98,7 @@ urls.Issues = "https://github.com/IAmJonoBo/IssueSuite/issues"
 urls.Repository = "https://github.com/IAmJonoBo/IssueSuite"
 urls."Source Code" = "https://github.com/IAmJonoBo/IssueSuite"
 scripts.issuesuite = "issuesuite.cli:main"
+scripts."pip-audit" = "issuesuite.pip_audit_integration:main"
 
 [tool.setuptools.packages.find]
 where = [ "src" ]

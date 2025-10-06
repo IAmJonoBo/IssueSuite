@@ -29,6 +29,24 @@ pip install dist/issuesuite-*.whl
 issuesuite --help
 ```
 
+## Security audit
+
+Run the hardened vulnerability scan locally before publishing:
+
+```bash
+issuesuite security --pip-audit --pip-audit-arg --format --pip-audit-arg json
+```
+
+This command prints the offline advisory table, writes JSON if requested, and forwards the remaining arguments to the resilient `pip-audit` wrapper so hermetic environments continue to receive actionable results.
+
+Refresh the offline advisory dataset and assert freshness before packaging:
+
+```bash
+python -m issuesuite.advisory_refresh --refresh --check --max-age-days 30
+```
+
+This updates `src/issuesuite/data/security_advisories.json` from OSV metadata, merges curated overrides, and fails fast if the dataset is older than the permitted window.
+
 ## Publish to PyPI (Trusted Publishers)
 
 We use PyPI Trusted Publishers; no API tokens are needed.

@@ -5,7 +5,12 @@ from typing import Any
 import pytest
 
 from issuesuite.github_issues import IssuesClient, IssuesClientConfig
-from issuesuite.github_rest import GitHubAPIError, GitHubRestClient
+from issuesuite.github_rest import (
+    DEFAULT_API_URL,
+    DEFAULT_GRAPHQL_URL,
+    GitHubAPIError,
+    GitHubRestClient,
+)
 
 
 @dataclass
@@ -119,3 +124,47 @@ def test_issues_client_falls_back_to_cli_when_rest_disabled(monkeypatch):
 
     client.create_issue(title="X", body="Y")
     assert recorded, "CLI fallback should record commands"
+
+
+def test_issues_client_rest_client_respects_extended_disable_flag(monkeypatch):
+    cfg = IssuesClientConfig(repo="acme/widgets", dry_run=False, mock=False)
+    monkeypatch.setenv("ISSUESUITE_GITHUB_TOKEN", "token")
+    monkeypatch.setenv("ISSUESUITE_REST_DISABLED", "true")
+
+    client = IssuesClient(cfg, rest_client=None)
+
+    assert client._rest_client is None
+
+
+def test_issues_client_rest_client_trims_env_values(monkeypatch):
+    cfg = IssuesClientConfig(repo=" acme/widgets ", dry_run=False, mock=False)
+    monkeypatch.setenv("ISSUESUITE_GITHUB_TOKEN", "  padded-token \n")
+    monkeypatch.setenv("ISSUESUITE_GITHUB_API", " https://enterprise.example/api ")
+    monkeypatch.setenv(
+        "ISSUESUITE_GITHUB_GRAPHQL", "\nhttps://enterprise.example/graphql\n"
+    )
+
+    client = IssuesClient(cfg, rest_client=None)
+
+    rest = client._rest_client
+    assert isinstance(rest, GitHubRestClient)
+    assert rest.token == "padded-token"
+    assert rest.repo == "acme/widgets"
+    assert rest.base_url == "https://enterprise.example/api"
+    assert rest.graphql_url == "https://enterprise.example/graphql"
+
+
+def test_issues_client_rest_client_uses_first_available_token(monkeypatch):
+    cfg = IssuesClientConfig(repo="acme/widgets", dry_run=False, mock=False)
+    monkeypatch.setenv("ISSUESUITE_GITHUB_TOKEN", "   ")
+    monkeypatch.setenv("GITHUB_TOKEN", " primary \n")
+    monkeypatch.setenv("ISSUESUITE_GITHUB_API", "  ")
+    monkeypatch.setenv("ISSUESUITE_GITHUB_GRAPHQL", "")
+
+    client = IssuesClient(cfg, rest_client=None)
+
+    rest = client._rest_client
+    assert isinstance(rest, GitHubRestClient)
+    assert rest.token == "primary"
+    assert rest.base_url == DEFAULT_API_URL
+    assert rest.graphql_url == DEFAULT_GRAPHQL_URL
