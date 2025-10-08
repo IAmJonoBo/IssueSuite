@@ -63,7 +63,11 @@ def test_bootstrap_project_creates_and_skips(tmp_path: Path, monkeypatch: Monkey
         include_workflow=False,
     )
 
-    assert set(forced.created) == {config_path, Path("ISSUES.md"), Path("agent_updates.json")}
+    assert set(forced.created) == {
+        config_path,
+        Path("ISSUES.md"),
+        Path("agent_updates.json"),
+    }
     assert forced.skipped == []
     assert forced.merged == []
     assert "changed" not in (tmp_path / "ISSUES.md").read_text(encoding="utf-8")

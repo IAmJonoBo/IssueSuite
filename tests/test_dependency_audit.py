@@ -1,22 +1,21 @@
 from __future__ import annotations
 
-from packaging.specifiers import SpecifierSet
-from packaging.version import Version
-
 import json
 from pathlib import Path
 
 import pytest
+from packaging.specifiers import SpecifierSet
+from packaging.version import Version
 
 from issuesuite.dependency_audit import (
     Advisory,
     Finding,
     InstalledPackage,
     OnlineAuditUnavailableError,
-    evaluate_advisories,
-    perform_audit,
-    main,
     _render_table,
+    evaluate_advisories,
+    main,
+    perform_audit,
 )
 
 
@@ -146,7 +145,9 @@ def test_main_outputs_json_when_requested(monkeypatch: pytest.MonkeyPatch, tmp_p
     assert exit_code == 1
 
 
-def test_main_handles_offline_only(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_main_handles_offline_only(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     monkeypatch.setattr(
         "issuesuite.dependency_audit.collect_installed_packages",
         lambda: [InstalledPackage(name="demo", version=Version("1.5"))],

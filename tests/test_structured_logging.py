@@ -1,4 +1,5 @@
 import json
+import math
 
 from issuesuite import IssueSuite, load_config
 from issuesuite.logging import StructuredLogger, configure_logging
@@ -49,9 +50,10 @@ body: |
 """
 
 
-def test_structured_logger_json_format(capsys):
+def test_structured_logger_json_format(capsys) -> None:
     """Test that structured logger produces JSON output when configured."""
     logger = StructuredLogger(name="test", json_logging=True, level="INFO")
+    logger.log_operation("test_operation", param1="value1", param2=42)
     logger.log_operation("test_operation", param1="value1", param2=42)
 
     captured = capsys.readouterr()
@@ -67,9 +69,10 @@ def test_structured_logger_json_format(capsys):
     assert "timestamp" in log_data
 
 
-def test_structured_logger_regular_format(capsys):
+def test_structured_logger_regular_format(capsys) -> None:
     """Test that structured logger produces regular text output when JSON disabled."""
     logger = StructuredLogger(name="test", json_logging=False, level="INFO")
+    logger.log_operation("test_operation", param1="value1")
     logger.log_operation("test_operation", param1="value1")
 
     captured = capsys.readouterr()
@@ -78,9 +81,10 @@ def test_structured_logger_regular_format(capsys):
     assert "INFO" in captured.out
 
 
-def test_structured_logger_issue_actions(capsys):
+def test_structured_logger_issue_actions(capsys) -> None:
     """Test structured logging of issue actions."""
     logger = StructuredLogger(name="test", json_logging=True, level="INFO")
+    logger.log_issue_action("create", "EXT001", issue_number=123, dry_run=True)
     logger.log_issue_action("create", "EXT001", issue_number=123, dry_run=True)
 
     captured = capsys.readouterr()
@@ -92,7 +96,7 @@ def test_structured_logger_issue_actions(capsys):
     assert log_data["dry_run"] is True
 
 
-def test_structured_logger_performance_timing(capsys):
+def test_structured_logger_performance_timing(capsys) -> None:
     """Test performance timing logging."""
     logger = StructuredLogger(name="test", json_logging=True, level="INFO")
     logger.log_performance("sync_operation", 1234.56, spec_count=10)
@@ -101,11 +105,12 @@ def test_structured_logger_performance_timing(capsys):
     log_data = json.loads(captured.out.strip())
 
     assert log_data["operation"] == "sync_operation"
-    assert log_data["duration_ms"] == 1234.56
+    assert math.isclose(log_data["duration_ms"], 1234.56)
+    assert log_data["spec_count"] == 10
     assert log_data["spec_count"] == 10
 
 
-def test_timed_operation_context_manager(capsys):
+def test_timed_operation_context_manager(capsys) -> None:
     """Test timed operation context manager."""
     logger = StructuredLogger(name="test", json_logging=True, level="INFO")
 
@@ -125,9 +130,10 @@ def test_timed_operation_context_manager(capsys):
     perf_log = json.loads(log_lines[1])
     assert perf_log["operation"] == "test_sync"
     assert "duration_ms" in perf_log
+    assert "duration_ms" in perf_log
 
 
-def test_issue_suite_with_json_logging_enabled(monkeypatch, tmp_path, capsys):
+def test_issue_suite_with_json_logging_enabled(monkeypatch, tmp_path, capsys) -> None:
     """Test IssueSuite with JSON logging enabled."""
     cfg_path = tmp_path / "issue_suite.config.yaml"
     (tmp_path / "ISSUES.md").write_text(ISSUES)
@@ -159,9 +165,10 @@ def test_issue_suite_with_json_logging_enabled(monkeypatch, tmp_path, capsys):
     # Check for expected operations in logs
     operations = [log.get("operation") for log in json_log_lines]
     assert "sync_start" in operations or any("sync" in op for op in operations if op)
+    assert "sync_start" in operations or any("sync" in op for op in operations if op)
 
 
-def test_issue_suite_with_json_logging_disabled(monkeypatch, tmp_path, capsys):
+def test_issue_suite_with_json_logging_disabled(monkeypatch, tmp_path, capsys) -> None:
     """Test IssueSuite with JSON logging disabled."""
     cfg_path = tmp_path / "issue_suite.config.yaml"
     (tmp_path / "ISSUES.md").write_text(ISSUES)
@@ -191,12 +198,14 @@ def test_issue_suite_with_json_logging_disabled(monkeypatch, tmp_path, capsys):
 
     # Should have very few (or no) JSON lines since JSON logging is disabled
     assert json_lines < len([l for l in lines if "issuesuite" in l])
+    assert json_lines < len([l for l in lines if "issuesuite" in l])
 
 
-def test_configure_logging():
+def test_configure_logging() -> None:
     """Test global logging configuration."""
     logger1 = configure_logging(json_logging=True, level="DEBUG")
     logger2 = configure_logging(json_logging=False, level="INFO")
 
     # Second call should return different logger with new config
+    assert logger1 != logger2
     assert logger1 != logger2

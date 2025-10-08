@@ -1,12 +1,14 @@
 """Run the IssueSuite quality gate suite."""
-from __future__ import annotations
 
-# ruff: noqa: I001 - sys.path manipulation is required before importing project modules
+from __future__ import annotations
 
 import json
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+
+# ruff: noqa: I001 - sys.path manipulation is required before importing project modules
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
@@ -18,7 +20,6 @@ from issuesuite.quality_gates import (  # noqa: E402
     format_summary,
     run_gates,
 )
-
 
 SECRETS_BASELINE = PROJECT_ROOT / ".secrets.baseline"
 

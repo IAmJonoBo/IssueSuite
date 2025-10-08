@@ -2,7 +2,6 @@
 
 IssueSuite declaratively manages GitHub Issues from a single `ISSUES.md` file using stable slugs, fenced YAML blocks, deterministic hashes, and readable diffs. Core code lives under `src/issuesuite/`.
 
-
 ## Architecture and Flow
 
 - CLI (`src/issuesuite/cli.py`) parses args and subcommands: `validate`, `sync`, `export`, `summary`, `schema`, `reconcile`, `ai-context`.
@@ -25,13 +24,14 @@ title: Investigate API timeouts
 labels: [bug, backend]
 milestone: Sprint 1
 body: |
-  Requests intermittently exceed 5s …
+Requests intermittently exceed 5s …
 \`\`\`
 ```
 
 Slugs must match `^[a-z0-9][a-z0-9-_]*$` (configurable).
 
 ## Developer Workflows
+
 - Validate: `issuesuite validate --config issue_suite.config.yaml`
 - Safe dry-run sync (+ summary): `issuesuite sync --dry-run --update --config issue_suite.config.yaml --summary-json issues_summary.json`
 - Export parsed specs: `issuesuite export --pretty --config issue_suite.config.yaml --output issues_export.json`
@@ -43,6 +43,7 @@ Slugs must match `^[a-z0-9][a-z0-9-_]*$` (configurable).
 VS Code tasks exist for these (see workspace Tasks: Validate, Dry-run Sync, Full Sync, Export, Summary, Generate Schemas).
 
 ## Modes, Config, and Artifacts
+
 - Config (`issue_suite.config.yaml`) controls `dry_run_default`, `truncate_body_diff`, patterns, and output paths (`issues_summary.json`, `issues_export.json`, `.issuesuite_mapping.json`, `.issuesuite_hashes.json`).
 - Mapping is also persisted to `.issuesuite/index.json` by the orchestrator; stale slugs are pruned on non-dry-run syncs.
 - Env flags: `ISSUESUITE_AI_MODE=1` (force dry-run), `ISSUES_SUITE_MOCK=1` (offline; no GitHub calls), `ISSUESUITE_QUIET=1` (suppress logs), `ISSUESUITE_DEBUG=1` (verbose), retry tuning (`ISSUESUITE_RETRY_ATTEMPTS`, `ISSUESUITE_RETRY_BASE`, optional `ISSUESUITE_RETRY_MAX_SLEEP`).
@@ -50,6 +51,7 @@ VS Code tasks exist for these (see workspace Tasks: Validate, Dry-run Sync, Full
 - Dry-run returns a `plan` array summarizing proposed actions; diffs are truncated to `truncate_body_diff` chars (default 80).
 
 ## Programmatic Usage
+
 ```python
 from issuesuite import IssueSuite, load_config
 cfg = load_config('issue_suite.config.yaml')

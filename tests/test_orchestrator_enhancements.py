@@ -3,8 +3,12 @@ import json
 import pytest
 
 from issuesuite.config import load_config
-from issuesuite.orchestrator import _normalize_mapping, _prune_stale_entries, _truncate_body_diffs, sync_with_summary
-
+from issuesuite.orchestrator import (
+    _normalize_mapping,
+    _prune_stale_entries,
+    _truncate_body_diffs,
+    sync_with_summary,
+)
 
 ERROR_PAYLOAD = {"code": "mock", "message": "boom"}
 
@@ -16,7 +20,13 @@ class DummySuite:
 
     def sync(self, **_: object):
         return {
-            "totals": {"created": 1, "updated": 0, "closed": 0, "unchanged": 0, "parsed": 1},
+            "totals": {
+                "created": 1,
+                "updated": 0,
+                "closed": 0,
+                "unchanged": 0,
+                "parsed": 1,
+            },
             "changes": {
                 "updated": [
                     {

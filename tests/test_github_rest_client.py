@@ -75,9 +75,11 @@ def test_rest_client_creates_issue_with_milestone_resolution():
 
 
 def test_rest_client_raises_on_error():
-    session = _DummySession([
-        _DummyResponse(500, {"message": "boom"}),
-    ])
+    session = _DummySession(
+        [
+            _DummyResponse(500, {"message": "boom"}),
+        ]
+    )
     client = GitHubRestClient(token="tkn", repo="acme/widgets", session=session)
 
     with pytest.raises(GitHubAPIError):
@@ -140,9 +142,7 @@ def test_issues_client_rest_client_trims_env_values(monkeypatch):
     cfg = IssuesClientConfig(repo=" acme/widgets ", dry_run=False, mock=False)
     monkeypatch.setenv("ISSUESUITE_GITHUB_TOKEN", "  padded-token \n")
     monkeypatch.setenv("ISSUESUITE_GITHUB_API", " https://enterprise.example/api ")
-    monkeypatch.setenv(
-        "ISSUESUITE_GITHUB_GRAPHQL", "\nhttps://enterprise.example/graphql\n"
-    )
+    monkeypatch.setenv("ISSUESUITE_GITHUB_GRAPHQL", "\nhttps://enterprise.example/graphql\n")
 
     client = IssuesClient(cfg, rest_client=None)
 

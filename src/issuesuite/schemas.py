@@ -60,8 +60,8 @@ def get_schemas() -> dict[str, Any]:
         ],
         "properties": {
             "schemaVersion": {
-                "type": "integer",
-                "const": int(summary_descriptor.version),
+                "type": "string",
+                "const": summary_descriptor.version,
             },
             "generated_at": {"type": "string"},
             "dry_run": {"type": "boolean"},

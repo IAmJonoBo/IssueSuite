@@ -26,6 +26,13 @@ class IndexDocument:
 
 def persist_index_document(path: Path, document: IndexDocument, mirror: Path | None = None) -> None:
     document.ensure_signature()
+    mapping_snapshot: dict[str, int] = {}
+    for slug, payload in document.entries.items():
+        if isinstance(payload, dict) and "issue" in payload:
+            try:
+                mapping_snapshot[str(slug)] = int(payload["issue"])
+            except Exception:  # pragma: no cover - defensive coercion
+                continue
     payload = {
         "version": document.version,
         "generated_at": document.generated_at,
@@ -33,6 +40,8 @@ def persist_index_document(path: Path, document: IndexDocument, mirror: Path | N
         "entries": document.entries,
         "signature": document.signature,
     }
+    if mapping_snapshot:
+        payload["mapping"] = mapping_snapshot
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
@@ -40,6 +49,23 @@ def persist_index_document(path: Path, document: IndexDocument, mirror: Path | N
     if mirror:
         mirror.parent.mkdir(parents=True, exist_ok=True)
         mirror.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def _coerce_entries(raw: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    entries: dict[str, dict[str, Any]] = {}
+    entries_raw = raw.get("entries")
+    if isinstance(entries_raw, dict):
+        for slug, payload in entries_raw.items():
+            if isinstance(payload, dict):
+                sanitized: dict[str, Any] = {str(k): v for k, v in payload.items()}
+                entries[str(slug)] = sanitized
+    if entries:
+        return entries
+    mapping_raw = raw.get("mapping")
+    if isinstance(mapping_raw, dict):
+        for slug, value in mapping_raw.items():
+            entries[str(slug)] = {"issue": value}
+    return entries
 
 
 def load_index_document(path: Path) -> IndexDocument:
@@ -52,13 +78,12 @@ def load_index_document(path: Path) -> IndexDocument:
         return IndexDocument(entries={})
     if not isinstance(raw, dict):
         return IndexDocument(entries={})
-    entries_raw = raw.get("entries")
-    entries: dict[str, dict[str, Any]] = {}
-    if isinstance(entries_raw, dict):
-        for slug, payload in entries_raw.items():
-            if isinstance(payload, dict):
-                sanitized: dict[str, Any] = {str(k): v for k, v in payload.items()}
-                entries[str(slug)] = sanitized
+    entries = _coerce_entries(raw)
+    if not entries:
+        mapping_raw = raw.get("mapping")
+        if isinstance(mapping_raw, dict):
+            for slug, value in mapping_raw.items():
+                entries[str(slug)] = {"issue": value}
 
     doc = IndexDocument(
         entries=entries,

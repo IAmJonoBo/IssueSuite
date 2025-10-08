@@ -55,7 +55,7 @@ class SuiteConfig:
     schema_export_file: str
     schema_summary_file: str
     schema_ai_context_file: str
-    schema_version: int
+    schema_version: str
     # Logging configuration
     logging_json_enabled: bool
     logging_level: str
@@ -135,7 +135,7 @@ def load_config(path: str | Path) -> SuiteConfig:
         extensions_disabled = [str(extensions_disabled)]
     extensions_disabled_tuple = tuple(sorted({str(item) for item in extensions_disabled}))
 
-    summary_version = int(get_schema_descriptor("summary").version)
+    summary_version = get_schema_descriptor("summary").version
 
     return SuiteConfig(
         version=int(raw.get("version", 1)),
@@ -143,31 +143,31 @@ def load_config(path: str | Path) -> SuiteConfig:
         # New slug-based format default: lowercase alnum plus hyphen/underscore
         id_pattern=src.get("id_pattern", "^[a-z0-9][a-z0-9-_]*$"),
         # Milestone enforcement is opt-in; default False to preserve backward compatibility.
-    milestone_required=bool(src.get("milestone_required", False)),
-    auto_status_label=bool(src.get("auto_status_label", True)),
-    milestone_pattern=src.get("milestone_pattern"),
-    github_repo=gh.get("repo"),
-    project_enable=bool(project.get("enable", False)),
-    project_number=project.get("number"),
-    project_field_mappings=project.get("field_mappings", {}) or {},
-    inject_labels=defaults.get("inject_labels", []) or [],
-    ensure_milestones_list=defaults.get("ensure_milestones", DEFAULT_MILESTONES),
-    ensure_labels_enabled=bool(defaults.get("ensure_labels_enabled", False)),
-    ensure_milestones_enabled=bool(defaults.get("ensure_milestones_enabled", False)),
-    summary_json=out.get("summary_json", "issues_summary.json"),
-    plan_json=out.get("plan_json", "issues_plan.json"),
-    export_json=out.get("export_json", "issues_export.json"),
-    report_html=out.get("report_html", "issues_report.html"),
-    hash_state_file=out.get("hash_state_file", ".issuesuite_hashes.json"),
-    mapping_file=out.get("mapping_file", ".issuesuite_mapping.json"),
-    lock_file=out.get("lock_file", ".issuesuite_lock"),
-    truncate_body_diff=int(behavior.get("truncate_body_diff", 80)),
-    dry_run_default=bool(behavior.get("dry_run_default", False)),
-    emit_change_events=bool(behavior.get("emit_change_events", False)),
-    schema_export_file=ai.get("schema_export_file", "issue_export.schema.json"),
-    schema_summary_file=ai.get("schema_summary_file", "issue_change_summary.schema.json"),
-    schema_ai_context_file=ai.get("schema_ai_context_file", "ai_context.schema.json"),
-    schema_version=int(ai.get("schema_version", summary_version)),
+        milestone_required=bool(src.get("milestone_required", False)),
+        auto_status_label=bool(src.get("auto_status_label", True)),
+        milestone_pattern=src.get("milestone_pattern"),
+        github_repo=gh.get("repo"),
+        project_enable=bool(project.get("enable", False)),
+        project_number=project.get("number"),
+        project_field_mappings=project.get("field_mappings", {}) or {},
+        inject_labels=defaults.get("inject_labels", []) or [],
+        ensure_milestones_list=defaults.get("ensure_milestones", DEFAULT_MILESTONES),
+        ensure_labels_enabled=bool(defaults.get("ensure_labels_enabled", False)),
+        ensure_milestones_enabled=bool(defaults.get("ensure_milestones_enabled", False)),
+        summary_json=out.get("summary_json", "issues_summary.json"),
+        plan_json=out.get("plan_json", "issues_plan.json"),
+        export_json=out.get("export_json", "issues_export.json"),
+        report_html=out.get("report_html", "issues_report.html"),
+        hash_state_file=out.get("hash_state_file", ".issuesuite_hashes.json"),
+        mapping_file=out.get("mapping_file", ".issuesuite_mapping.json"),
+        lock_file=out.get("lock_file", ".issuesuite_lock"),
+        truncate_body_diff=int(behavior.get("truncate_body_diff", 80)),
+        dry_run_default=bool(behavior.get("dry_run_default", False)),
+        emit_change_events=bool(behavior.get("emit_change_events", False)),
+        schema_export_file=ai.get("schema_export_file", "issue_export.schema.json"),
+        schema_summary_file=ai.get("schema_summary_file", "issue_change_summary.schema.json"),
+        schema_ai_context_file=ai.get("schema_ai_context_file", "ai_context.schema.json"),
+        schema_version=str(ai.get("schema_version", summary_version)),
         # Logging configuration
         logging_json_enabled=bool(logging_config.get("json_enabled", False)),
         logging_level=logging_config.get("level", "INFO"),

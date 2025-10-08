@@ -9,7 +9,9 @@ from subprocess import (  # nosec B404 - subprocess required for tooling command
     CompletedProcess,
     run,
 )
-from xml.etree import ElementTree  # nosec B405 - coverage reports are produced locally by pytest
+from xml.etree import (  # nosec B405 - coverage reports are produced locally by pytest
+    ElementTree,
+)
 
 
 @dataclass(frozen=True)

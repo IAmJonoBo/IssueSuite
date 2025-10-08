@@ -13,4 +13,3 @@ def test_get_schema_descriptor_returns_deep_copy_like_behavior() -> None:
     descriptor = get_schema_descriptor("ai_context")
     assert descriptor.version.startswith("ai-context/")
     assert "AI context".lower() in descriptor.description.lower()
-

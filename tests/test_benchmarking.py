@@ -4,11 +4,11 @@ import time
 import pytest
 
 from issuesuite.benchmarking import (
+    SLOW_OPERATION_MS,
     BenchmarkConfig,
     BenchmarkResult,
     PerformanceBenchmark,
     PerformanceMetric,
-    SLOW_OPERATION_MS,
     analyze_performance_trends,
     benchmark_operation,
     check_performance_budget,
@@ -131,13 +131,13 @@ def test_record_metric():
 
 
 def test_check_performance_budget(tmp_path):
-    report = tmp_path / 'performance_report.json'
+    report = tmp_path / "performance_report.json"
     report.write_text(
         json.dumps(
             {
-                'metrics': [
-                    {'name': 'fast-op', 'duration_ms': 10},
-                    {'name': 'near-threshold', 'duration_ms': SLOW_OPERATION_MS - 1},
+                "metrics": [
+                    {"name": "fast-op", "duration_ms": 10},
+                    {"name": "near-threshold", "duration_ms": SLOW_OPERATION_MS - 1},
                 ]
             }
         )
@@ -148,8 +148,8 @@ def test_check_performance_budget(tmp_path):
     report.write_text(
         json.dumps(
             {
-                'metrics': [
-                    {'name': 'slow-op', 'duration_ms': SLOW_OPERATION_MS + 5},
+                "metrics": [
+                    {"name": "slow-op", "duration_ms": SLOW_OPERATION_MS + 5},
                 ]
             }
         )

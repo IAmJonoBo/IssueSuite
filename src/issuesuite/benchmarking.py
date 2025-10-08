@@ -503,7 +503,9 @@ def get_performance_recommendations(summary: dict[str, Any]) -> list[str]:
     return recommendations
 
 
-def check_performance_budget(report_path: str | Path, *, budget_ms: float = SLOW_OPERATION_MS) -> None:
+def check_performance_budget(
+    report_path: str | Path, *, budget_ms: float = SLOW_OPERATION_MS
+) -> None:
     """Validate that recorded performance metrics stay within the provided budget."""
 
     path = Path(report_path)
@@ -522,22 +524,20 @@ def check_performance_budget(report_path: str | Path, *, budget_ms: float = SLOW
         return
 
     violations = [
-        m
-        for m in metrics
-        if isinstance(m, dict) and float(m.get("duration_ms", 0)) > budget_ms
+        m for m in metrics if isinstance(m, dict) and float(m.get("duration_ms", 0)) > budget_ms
     ]
     if violations:
         names = ", ".join(str(m.get("name")) for m in violations)
-        raise RuntimeError(
-            f"Performance budget exceeded ({budget_ms}ms) for operations: {names}"
-        )
+        raise RuntimeError(f"Performance budget exceeded ({budget_ms}ms) for operations: {names}")
 
 
 def _parse_args() -> Any:  # pragma: no cover - CLI convenience
     parser = argparse.ArgumentParser(description="IssueSuite benchmarking utilities")
     parser.add_argument("--check", action="store_true", help="Run regression checks against budget")
     parser.add_argument(
-        "--report", default="performance_report.json", help="Path to performance report JSON"
+        "--report",
+        default="performance_report.json",
+        help="Path to performance report JSON",
     )
     parser.add_argument(
         "--budget-ms",

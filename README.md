@@ -30,6 +30,7 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
 - Human & machine-readable diffs (labels, milestone, body snippet)
 - JSON export (`issues_export.json`) + change summary (`issues_summary.json`)
 - JSON Schemas for export/summary and AI context
+- Schema registry with explicit version metadata (`issuesuite.schema_registry`) to keep downstream consumers synchronized as artifacts evolve.
 - Configurable patterns (ID regex, milestone naming, global injected labels)
 - Optional preflight auto-create of labels & milestones (feature flags)
 - AI tooling: generated JSON Schemas for export, change summary, and AI context (+ `issuesuite.schemas.get_schemas()`)
@@ -37,6 +38,11 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
 - AI context export: `issuesuite ai-context` emits structured JSON (preview of spec, config hints, env suggestions) for assistant ingestion
 - Agent updates: `issuesuite agent-apply` ingests AI/agent completion summaries and updates `ISSUES.md` (and optional docs) before syncing
 - Quiet mode: `--quiet` or `ISSUESUITE_QUIET=1` suppresses informational logging (helpful when piping JSON to other tools)
+- Offline-ready dependency governance via `issuesuite.dependency_audit` with pip-audit integration and curated advisories for air-gapped runners
+- Resilient `pip-audit` wrapper and `issuesuite security` command merging curated offline advisories with live vulnerability feeds when available
+- Automated offline advisory refresh via `python -m issuesuite.advisory_refresh --refresh --check` and the CLI flag `issuesuite security --refresh-offline`
+- Telemetry breadcrumbs when resilient pip-audit falls back to offline advisories so operators can observe degraded remote feeds
+- Deterministic changelog updates with `scripts/update_changelog.py` (non-blocking lock) and `nox` developer sessions mirroring CI gates
 - Debug logging via `ISSUESUITE_DEBUG=1`
 - Mock mode (`ISSUES_SUITE_MOCK=1`) for offline tests w/out GitHub API
   - In mock mode all GitHub CLI calls are suppressed (even without `--dry-run`) and operations are printed as `MOCK <action>`.
@@ -49,36 +55,63 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
 
 1. **Install the CLI (pipx recommended)**
 
-  ```bash
-  pipx install issuesuite
-  # or: pip install issuesuite
-  ```
+```bash
+pipx install issuesuite
+# or: pip install issuesuite
+```
 
 1. **Scaffold a ready-to-run workspace**
 
-  ```bash
-  issuesuite init --all-extras
-  ```
+```bash
+issuesuite init --all-extras
+```
 
-  This creates `issue_suite.config.yaml`, a starter `ISSUES.md`, `.vscode` tasks, a CI workflow, and a `.gitignore` snippet. Re-run with `--force` to regenerate.
+This creates `issue_suite.config.yaml`, a starter `ISSUES.md`, `.vscode` tasks, a CI workflow, and a `.gitignore` snippet. Re-run with `--force` to regenerate.
 
 1. **Run the preflight bundle**
 
-  ```bash
-  ./scripts/issuesuite-preflight.sh
-  ```
+```bash
+./scripts/issuesuite-preflight.sh
+```
 
-  The script validates specs and performs a dry-run sync, publishing `issues_summary.json` and `issues_plan.json` for inspection. Prefer the VS Code task **IssueSuite: Preflight** for one-click runs.
+The script validates specs and performs a dry-run sync, publishing `issues_summary.json` and `issues_plan.json` for inspection. Prefer the VS Code task **IssueSuite: Preflight** for one-click runs.
 
 1. **Promote to full sync when ready**
 
-  ```bash
-  issuesuite sync --update --config issue_suite.config.yaml --summary-json issues_summary.json
-  ```
+```bash
+issuesuite sync --update --config issue_suite.config.yaml --summary-json issues_summary.json
+```
 
-  Add the `--preflight` flag (or set `behavior.dry_run_default: true`) to auto-create labels/milestones before closing the dry-run loop.
+Add the `--preflight` flag (or set `behavior.dry_run_default: true`) to auto-create labels/milestones before closing the dry-run loop.
 
 See the [Getting Started tutorial](docs/tutorials/getting-started.md) for a narrated walkthrough, including troubleshooting tips and screenshots.
+
+Handy follow-up commands:
+
+```bash
+# Emit schemas to default files
+issuesuite schema --config issue_suite.config.yaml
+
+# Offline dependency audit with resilient pip-audit fallback
+issuesuite security --offline-only
+issuesuite security --pip-audit --pip-audit-arg --format --pip-audit-arg json
+```
+
+### Developer Tooling
+
+Run the consolidated quality gates locally with the bundled `nox` sessions:
+
+```bash
+nox -s tests lint typecheck security secrets build
+```
+
+When preparing release notes, use `scripts/update_changelog.py` to append a new entry without risking editor hangs caused by blocking file locks:
+
+```bash
+python scripts/update_changelog.py 0.1.12 \
+  --highlight "Document schema registry and changelog guard" \
+  --highlight "Ship developer nox sessions"
+```
 
 ### Learn more
 
@@ -596,6 +629,27 @@ The parser will auto-insert the hidden marker `<!-- issuesuite:slug=<slug> -->` 
 ## Versioning
 
 Semantic versioning once extracted; `__version__` exported for tooling.
+
+## Quality gates
+
+Run the bundled helper to execute the release gate suite (tests, lint, type checks, security scan, secrets scan, build) with a minimum coverage threshold of 65%:
+
+```bash
+python scripts/quality_gates.py
+```
+
+The script prints a concise summary and writes `quality_gate_report.json` for CI dashboards.
+
+The dependency gate first attempts to run `pip-audit` in the active environment and automatically falls back to IssueSuite's curated offline advisory dataset when network access is unavailable. The dataset lives at `src/issuesuite/data/security_advisories.json`; update it in tandem with upstream disclosures to keep offline scans trustworthy. You can also run the audit directly via `python -m issuesuite.dependency_audit` (pass `--offline-only` to skip the online probe).
+
+For performance budgets, the gate suite now generates a deterministic `performance_report.json` before asserting benchmarks. You can refresh the artifact independently with:
+
+```bash
+python scripts/generate_performance_report.py --output performance_report.json
+python -m issuesuite.benchmarking --check --report performance_report.json
+```
+
+The helper runs IssueSuite in mock mode against a synthetic roadmap, exercises sync and preflight flows, and produces metrics that are stable across environments—ideal for CI enforcement.
 
 ## License
 

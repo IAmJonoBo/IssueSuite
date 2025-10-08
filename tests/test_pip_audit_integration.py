@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import contextlib
-import requests
+
 import pytest
+import requests
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
@@ -15,7 +16,9 @@ from issuesuite.pip_audit_integration import (
 
 try:
     from pip_audit._cli import VulnerabilityServiceChoice  # type: ignore[attr-defined]
-    from pip_audit._service.interface import ResolvedDependency  # type: ignore[attr-defined]
+    from pip_audit._service.interface import (
+        ResolvedDependency,  # type: ignore[attr-defined]
+    )
 except ModuleNotFoundError:  # pragma: no cover
     VulnerabilityServiceChoice = None  # type: ignore[assignment]
     ResolvedDependency = None  # type: ignore[assignment]
@@ -36,7 +39,9 @@ def _build_service() -> ResilientPyPIService:
     return ResilientPyPIService(cache_dir=None, timeout=None, advisories=[ADVISORY])
 
 
-def test_resilient_service_falls_back_to_offline(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resilient_service_falls_back_to_offline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     if ResolvedDependency is None:  # pragma: no cover - pip-audit missing
         pytest.skip("pip-audit not installed")
     service = _build_service()
@@ -53,7 +58,9 @@ def test_resilient_service_falls_back_to_offline(monkeypatch: pytest.MonkeyPatch
     assert service.fallback_events
 
 
-def test_resilient_service_merges_offline_results(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resilient_service_merges_offline_results(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     if ResolvedDependency is None:  # pragma: no cover - pip-audit missing
         pytest.skip("pip-audit not installed")
     service = _build_service()
@@ -113,7 +120,9 @@ def test_resilient_service_records_telemetry(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_install_resilient_pip_audit_overrides_choice() -> None:
-    if ResolvedDependency is None or VulnerabilityServiceChoice is None:  # pragma: no cover - pip-audit missing
+    if (
+        ResolvedDependency is None or VulnerabilityServiceChoice is None
+    ):  # pragma: no cover - pip-audit missing
         pytest.skip("pip-audit not installed")
     restore = install_resilient_pip_audit()
     try:
@@ -123,7 +132,9 @@ def test_install_resilient_pip_audit_overrides_choice() -> None:
         restore()
 
 
-def test_collect_online_findings_returns_findings(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_collect_online_findings_returns_findings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     if ResolvedDependency is None:  # pragma: no cover - pip-audit missing
         pytest.skip("pip-audit not installed")
 

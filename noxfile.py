@@ -44,4 +44,3 @@ def secrets(session: nox.Session) -> None:
 def build(session: nox.Session) -> None:
     _install_tools(session)
     session.run("python", "-m", "build")
-

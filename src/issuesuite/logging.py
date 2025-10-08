@@ -32,11 +32,11 @@ class JSONFormatter(logging.Formatter):
         ):
             if hasattr(record, attr):  # pragma: no cover
                 entry[attr] = getattr(record, attr)
-            # Pass through arbitrary extra kwargs (those we injected) while filtering noisy internals
-            allowed_extras = {"param1", "param2", "spec_count"}  # extend as needed
-            for k, v in record.__dict__.items():  # pragma: no cover - dynamic filtering
-                if k in allowed_extras:
-                    entry[k] = v
+        # Pass through arbitrary extra kwargs (those we injected) while filtering noisy internals
+        allowed_extras = {"param1", "param2", "spec_count"}  # extend as needed
+        for k, v in record.__dict__.items():  # pragma: no cover - dynamic filtering
+            if k in allowed_extras:
+                entry[k] = v
         # Include any extra (non-standard) attributes passed via extra kwargs
         reserved = set(entry.keys()) | {
             "name",
@@ -71,10 +71,25 @@ class StructuredLogger:
         )
         self._logger.addHandler(handler)
         self._logger.propagate = False
+        self._dedupe_enabled = json_logging
+        self._last_signature: tuple[int, str, tuple[tuple[str, str], ...]] | None = None
+
+    def _emit(self, level: int, message: str, extra: dict[str, Any]) -> None:
+        if self._dedupe_enabled:
+            signature = (
+                level,
+                message,
+                tuple(sorted((k, repr(v)) for k, v in extra.items())),
+            )
+            if signature == self._last_signature:
+                return
+            self._last_signature = signature
+        self._logger.log(level, message, extra=extra)
 
     def log_operation(self, operation: str, **kw: Any) -> None:
         # Maintain legacy message format validated by tests
-        self._logger.info(f"Operation: {operation}", extra={"operation": operation, **kw})
+        extra = {"operation": operation, **kw}
+        self._emit(logging.INFO, f"Operation: {operation}", extra)
 
     def log_issue_action(
         self,
@@ -98,12 +113,14 @@ class StructuredLogger:
             + (f" #{issue_number}" if issue_number else "")
             + (" [DRY]" if dry_run else "")
         )
-        self._logger.info(msg, extra=extra)
+        self._emit(logging.INFO, msg, extra)
 
     def log_performance(self, operation: str, duration_ms: float, **kw: Any) -> None:
-        self._logger.info(
+        extra = {"operation": operation, "duration_ms": round(duration_ms, 2), **kw}
+        self._emit(
+            logging.INFO,
             f"Performance: {operation} completed in {duration_ms:.2f}ms",
-            extra={"operation": operation, "duration_ms": round(duration_ms, 2), **kw},
+            extra,
         )
 
     def log_error(self, message: str, error: str | None = None, **kw: Any) -> None:

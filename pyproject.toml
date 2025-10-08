@@ -51,64 +51,48 @@ classifiers = [
   "Topic :: Utilities",
   "Typing :: Typed",
 ]
-dependencies = [
-  "pyyaml>=6,<7",
-  "requests>=2.32.0,<3",
-  "packaging>=25,<26",
-]
+dependencies = [ "packaging>=25,<26", "pyyaml>=6,<7", "requests>=2.32,<3" ]
 
 optional-dependencies.all = [
   "jsonschema>=4,<5",
   "keyring>=25,<26",
+  "opentelemetry-api>=1.25",
+  "opentelemetry-exporter-otlp>=1.25",
+  "opentelemetry-sdk>=1.25",
   "psutil>=7.1",
   "pyjwt>=2.9,<3",
   "python-dotenv>=1",
-  "opentelemetry-api>=1.25",
-  "opentelemetry-sdk>=1.25",
-  "opentelemetry-exporter-otlp>=1.25",
 ]
-optional-dependencies.auth = [
-  "keyring>=25,<26",
-  "pyjwt>=2.9,<3",
-]
+optional-dependencies.auth = [ "keyring>=25,<26", "pyjwt>=2.9,<3" ]
 optional-dependencies.dev = [
-  "build>=1",
   "bandit>=1.8",
+  "build>=1",
   "detect-secrets>=1.5",
   "mypy>=1.8",
+  "nox>=2024.4.15",
+  "opentelemetry-api>=1.25",
+  "opentelemetry-exporter-otlp>=1.25",
+  "opentelemetry-sdk>=1.25",
   "pip-audit>=2.7",
   "pytest>=8",
-  "pytest-cov>=4.1",
   "pytest-asyncio>=1.2",
-  "nox>=2024.4.15",
-  "ruff==0.13.3",
+  "pytest-cov>=4.1",
+  "ruff==0.14",
   "twine>=6.2",
+  "types-jsonschema>=4.23.0.20240813",
   "types-psutil>=7.0.0.20250822",
   "types-pyyaml>=6.0.12.20240917",
-  "types-jsonschema>=4.23.0.20240813",
   "types-requests>=2.32.0.20240914",
-  "opentelemetry-api>=1.25",
-  "opentelemetry-sdk>=1.25",
-  "opentelemetry-exporter-otlp>=1.25",
 ]
-optional-dependencies.env = [
-  "python-dotenv>=1",
-]
-optional-dependencies.performance = [
-  "psutil>=7.1",
-]
-optional-dependencies.schemas = [
-  "jsonschema>=4,<5",
-]
+optional-dependencies.env = [ "python-dotenv>=1" ]
 optional-dependencies.observability = [
   "opentelemetry-api>=1.25",
-  "opentelemetry-sdk>=1.25",
   "opentelemetry-exporter-otlp>=1.25",
+  "opentelemetry-sdk>=1.25",
 ]
-optional-dependencies.vscode = [
-  "psutil>=7.1",
-  "python-dotenv>=1",
-]
+optional-dependencies.performance = [ "psutil>=7.1" ]
+optional-dependencies.schemas = [ "jsonschema>=4,<5" ]
+optional-dependencies.vscode = [ "psutil>=7.1", "python-dotenv>=1" ]
 urls."Bug Reports" = "https://github.com/IAmJonoBo/IssueSuite/issues"
 urls.Changelog = "https://github.com/IAmJonoBo/IssueSuite/blob/main/CHANGELOG.md"
 urls.Documentation = "https://github.com/IAmJonoBo/IssueSuite#readme"
@@ -122,6 +106,9 @@ scripts."pip-audit" = "issuesuite.pip_audit_integration:main"
 [tool.setuptools.packages.find]
 where = [ "src" ]
 namespaces = false
+
+[tool.setuptools.package-data]
+"issuesuite" = [ "data/*.json" ]
 
 [tool.ruff]
 target-version = "py310"
@@ -180,8 +167,5 @@ no_implicit_optional = true
 show_error_codes = true
 
 [[tool.mypy.overrides]]
-module = ["dotenv"]
+module = [ "dotenv" ]
 ignore_missing_imports = true
-
-[tool.setuptools.package-data]
-"issuesuite" = ["data/*.json"]

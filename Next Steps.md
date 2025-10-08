@@ -1,6 +1,7 @@
 # Next Steps
 
 ## Tasks
+
 - [x] **Owner:** Assistant (Due: 2025-10-06) — Harden REST client environment handling so packaging preflight honours sanitized tokens, disable flags, and enterprise endpoints with regression coverage.【F:src/issuesuite/github_issues.py†L270-L316】【F:tests/test_github_rest_client.py†L120-L177】
 - [x] **Owner:** Assistant (Due: 2025-10-06) — Ship a resilient pip-audit wrapper and CLI workflow so hermetic environments pass dependency gates without bespoke CAs.【F:src/issuesuite/pip_audit_integration.py†L1-L240】【F:src/issuesuite/cli.py†L1-L650】
 - [x] **Owner:** Assistant (Due: 2025-10-05) — Ensure GitHub App JWT generation gracefully handles environments without the `gh` CLI so tests and real usage remain functional offline.
@@ -22,6 +23,7 @@
 - [x] **Owner:** DevRel (Due: Frontier Q4) — Publish internal comms highlighting the wrapped `pip-audit` script and `issuesuite security` workflow (RT-02).【F:docs/internal_comms_security_workflow.md†L1-L60】【F:docs/red_team_report.md†L18-L64】
 
 ## Steps
+
 - [x] Harden IssuesClient REST client environment normalization so sanitized tokens and enterprise endpoints are honoured before packaging preflight decisions.【F:src/issuesuite/github_issues.py†L270-L316】【F:tests/test_github_rest_client.py†L120-L177】
 - [x] Harden pip-audit by installing a resilient wrapper and new CLI/quality gates so hermetic baselines pass without bespoke CAs.【F:src/issuesuite/pip_audit_integration.py†L1-L240】【F:scripts/quality_gates.py†L21-L60】
 - [x] Automate the offline advisory refresh workflow and enforce a freshness gate in CI to block stale datasets.【F:src/issuesuite/advisory_refresh.py†L1-L236】【F:scripts/quality_gates.py†L20-L94】【fa836a†L1-L130】
@@ -45,6 +47,7 @@
 - [x] Introduced a schema registry, changelog guard, and developer nox sessions so artifacts, documentation, and automation stay aligned while preventing changelog lock hangs.【F:src/issuesuite/schema_registry.py†L1-L64】【F:scripts/update_changelog.py†L1-L68】【F:noxfile.py†L1-L46】
 
 ## Deliverables
+
 - [x] Hardened `IssuesClient` REST environment detection to sanitize tokens, respect disable flags, and prefer enterprise endpoints with regression tests safeguarding packaging preflight behaviour.【F:src/issuesuite/github_issues.py†L270-L316】【F:tests/test_github_rest_client.py†L120-L177】
 - [x] Patched `src/issuesuite/github_auth.py` covering missing `gh` CLI scenarios and updated/added regression test(s).
 - [x] Updated security scanning notes or suppressions where justified.
@@ -72,6 +75,7 @@
 - [x] Build: `python -m build` — **passing**.【5a3c94†L1-L121】
 
 ## Links
+
 - [x] Failure log: tests/test_github_app_auth.py::test_jwt_generation_with_key_file — resolved by `pytest` chunk `022791†L1-L33`.
 - [x] Security scan details — `bandit` chunk `349c75†L1-L95`.
 - [x] Secrets scan summary — `detect-secrets` command `detect-secrets scan --baseline .secrets.baseline` (no findings).【5894f0†L1-L1】
@@ -80,6 +84,7 @@
 - [x] Gap analysis — `docs/gap_analysis.md`.
 
 ## Risks / Notes
+
 - [x] REST client now sanitizes env configuration, so enterprise packaging flows won't choke on whitespace tokens or disable flags toggled via non-numeric values.【F:src/issuesuite/github_issues.py†L270-L316】【F:tests/test_github_rest_client.py†L120-L177】
 - [x] Resilient pip-audit wrapper eliminates sandbox trust failures; telemetry spans and offline refresh automation surface degraded feeds promptly.【F:src/issuesuite/pip_audit_integration.py†L1-L240】【F:src/issuesuite/advisory_refresh.py†L1-L236】
 - [x] Missing GitHub CLI in CI-like environments prevented JWT generation; mitigated via CLI detection fallback (monitor logs for regressions).

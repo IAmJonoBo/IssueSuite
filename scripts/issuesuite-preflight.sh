@@ -37,57 +37,57 @@ SUMMARY_JSON="${PROJECT_ROOT}/issues_summary.json"
 PLAN_JSON="${PROJECT_ROOT}/issues_plan.json"
 RUN_VALIDATE=1
 RESPECT_STATUS=0
-ISSUESUITE_BIN="${ISSUESUITE_BIN:-}"
+ISSUESUITE_BIN="${ISSUESUITE_BIN-}"
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
-		--config)
-			[[ $# -ge 2 ]] || die "--config requires a path"
-			CONFIG_PATH=$2
-			shift 2
-			;;
-		--summary-json)
-			[[ $# -ge 2 ]] || die "--summary-json requires a path"
-			SUMMARY_JSON=$2
-			shift 2
-			;;
-		--plan-json)
-			[[ $# -ge 2 ]] || die "--plan-json requires a path"
-			PLAN_JSON=$2
-			shift 2
-			;;
-		--no-summary)
-			SUMMARY_JSON=""
-			shift
-			;;
-		--no-plan)
-			PLAN_JSON=""
-			shift
-			;;
-		--skip-validate)
-			RUN_VALIDATE=0
-			shift
-			;;
-		--respect-status)
-			RESPECT_STATUS=1
-			shift
-			;;
-		--issuesuite-bin)
-			[[ $# -ge 2 ]] || die "--issuesuite-bin requires a path"
-			ISSUESUITE_BIN=$2
-			shift 2
-			;;
-		-h|--help)
-			usage
-			exit 0
-			;;
-		--)
-			shift
-			break
-			;;
-		*)
-			die "Unknown option: $1"
-			;;
+	--config)
+		[[ $# -ge 2 ]] || die "--config requires a path"
+		CONFIG_PATH=$2
+		shift 2
+		;;
+	--summary-json)
+		[[ $# -ge 2 ]] || die "--summary-json requires a path"
+		SUMMARY_JSON=$2
+		shift 2
+		;;
+	--plan-json)
+		[[ $# -ge 2 ]] || die "--plan-json requires a path"
+		PLAN_JSON=$2
+		shift 2
+		;;
+	--no-summary)
+		SUMMARY_JSON=""
+		shift
+		;;
+	--no-plan)
+		PLAN_JSON=""
+		shift
+		;;
+	--skip-validate)
+		RUN_VALIDATE=0
+		shift
+		;;
+	--respect-status)
+		RESPECT_STATUS=1
+		shift
+		;;
+	--issuesuite-bin)
+		[[ $# -ge 2 ]] || die "--issuesuite-bin requires a path"
+		ISSUESUITE_BIN=$2
+		shift 2
+		;;
+	-h | --help)
+		usage
+		exit 0
+		;;
+	--)
+		shift
+		break
+		;;
+	*)
+		die "Unknown option: $1"
+		;;
 	esac
 
 done
@@ -107,7 +107,7 @@ log() {
 	printf '[preflight] %s\n' "$*"
 }
 
-if (( RUN_VALIDATE )); then
+if ((RUN_VALIDATE)); then
 	log "Validating specs via ${ISSUESUITE_BIN}"
 	"${ISSUESUITE_BIN}" validate --config "${CONFIG_PATH}"
 else
@@ -115,7 +115,7 @@ else
 fi
 
 SYNC_ARGS=(sync --dry-run --update --preflight --config "${CONFIG_PATH}")
-(( RESPECT_STATUS )) && SYNC_ARGS+=(--respect-status)
+((RESPECT_STATUS)) && SYNC_ARGS+=(--respect-status)
 [[ -n ${SUMMARY_JSON} ]] && SYNC_ARGS+=(--summary-json "${SUMMARY_JSON}")
 [[ -n ${PLAN_JSON} ]] && SYNC_ARGS+=(--plan-json "${PLAN_JSON}")
 

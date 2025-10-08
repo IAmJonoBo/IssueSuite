@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-import requests  # type: ignore[import-untyped]
+import requests
 
 from .retry import run_with_retries
 

@@ -4,12 +4,12 @@ The scaffolder ships a `.vscode/tasks.json` file so common workflows are one cli
 
 ## Provided tasks
 
-| Task | Description |
-| --- | --- |
-| IssueSuite: Preflight | Runs `scripts/issuesuite-preflight.sh` to validate specs and perform a dry-run sync |
-| IssueSuite: DX Sweep | Executes `scripts/issuesuite-dx-sweep.sh` producing summaries, exports, schemas, and AI context |
-| IssueSuite: DX Sweep (with reconcile) | Adds a reconcile check to the DX sweep and tolerates intentional drift |
-| Legacy tasks | `Validate`, `Dry-run Sync`, `Full Sync`, and `Agent Apply` remain available for advanced scenarios |
+| Task                                  | Description                                                                                        |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| IssueSuite: Preflight                 | Runs `scripts/issuesuite-preflight.sh` to validate specs and perform a dry-run sync                |
+| IssueSuite: DX Sweep                  | Executes `scripts/issuesuite-dx-sweep.sh` producing summaries, exports, schemas, and AI context    |
+| IssueSuite: DX Sweep (with reconcile) | Adds a reconcile check to the DX sweep and tolerates intentional drift                             |
+| Legacy tasks                          | `Validate`, `Dry-run Sync`, `Full Sync`, and `Agent Apply` remain available for advanced scenarios |
 
 Launch them via **Terminal → Run Task…** or the Command Palette.
 

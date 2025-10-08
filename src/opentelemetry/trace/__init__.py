@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 
 
@@ -14,6 +15,9 @@ class _Span:
         self.attributes[key] = value
 
 
+_CURRENT_SPAN: ContextVar[_Span | None] = ContextVar("otel_current_span", default=None)
+
+
 class _Tracer:
     def __init__(self, service_name: str) -> None:
         self.service_name = service_name
@@ -21,7 +25,11 @@ class _Tracer:
     @contextmanager
     def start_as_current_span(self, name: str) -> Iterator[_Span]:
         span = _Span(name=name)
-        yield span
+        token = _CURRENT_SPAN.set(span)
+        try:
+            yield span
+        finally:
+            _CURRENT_SPAN.reset(token)
 
 
 class _TracerProvider:
@@ -49,6 +57,10 @@ def get_tracer_provider() -> _TracerProvider:
     return _state["provider"]
 
 
+def get_current_span() -> _Span | None:
+    return _CURRENT_SPAN.get()
+
+
 class TracerProvider(_TracerProvider):
     """Callable class matching the real OpenTelemetry API surface."""
 
@@ -57,5 +69,6 @@ __all__ = [
     "TracerProvider",
     "get_tracer",
     "get_tracer_provider",
+    "get_current_span",
     "set_tracer_provider",
 ]

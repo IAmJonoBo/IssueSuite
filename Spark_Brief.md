@@ -125,12 +125,14 @@ Automatically assign issues to GitHub Projects (v2) and update project fields (S
 **Location:** `src/issuesuite/project.py`
 
 **Key Classes:**
+
 - `ProjectConfig` - Configuration dataclass
 - `ProjectAssigner` - Protocol defining the interface
 - `NoopProjectAssigner` - Disabled implementation
 - `GitHubProjectAssigner` - Full implementation with caching
 
 **Features:**
+
 - ✅ Config-driven enablement
 - ✅ Mock mode support (`ISSUES_SUITE_MOCK=1`)
 - ✅ Lightweight caching in `.issuesuite_cache/` (TTL: 3600s, configurable)
@@ -144,9 +146,9 @@ Automatically assign issues to GitHub Projects (v2) and update project fields (S
 github:
   project:
     enabled: true
-    number: 1  # Project number from URL (e.g., github.com/orgs/ORG/projects/1)
+    number: 1 # Project number from URL (e.g., github.com/orgs/ORG/projects/1)
     field_mappings:
-      labels: "Status"       # Map first label to Status field
+      labels: "Status" # Map first label to Status field
       milestone: "Iteration" # Map milestone to Iteration field
 ```
 
@@ -189,6 +191,7 @@ issuesuite sync --config issue_suite.config.yaml --dry-run --update
 ### Implementation Steps for New Projects
 
 1. **Enable in Config:**
+
    ```yaml
    github:
      project:
@@ -197,13 +200,15 @@ issuesuite sync --config issue_suite.config.yaml --dry-run --update
    ```
 
 2. **Map Fields:**
+
    ```yaml
    field_mappings:
-     labels: "Status"      # First label → Status
-     milestone: "Sprint"   # Milestone → Sprint
+     labels: "Status" # First label → Status
+     milestone: "Sprint" # Milestone → Sprint
    ```
 
 3. **Test in Mock Mode:**
+
    ```bash
    ISSUES_SUITE_MOCK=1 issuesuite sync --dry-run --config issue_suite.config.yaml
    ```
@@ -217,6 +222,7 @@ issuesuite sync --config issue_suite.config.yaml --dry-run --update
 ### Testing
 
 **Test Files:**
+
 - `tests/test_project_integration.py` - End-to-end integration
 - `tests/test_project_assignment_mock.py` - Mock mode tests
 - `tests/test_project_caching_and_options.py` - Cache and option mapping
@@ -224,6 +230,7 @@ issuesuite sync --config issue_suite.config.yaml --dry-run --update
 - `tests/test_project_stub.py` - Noop implementation
 
 **Run Tests:**
+
 ```bash
 pytest tests/test_project_*.py -v
 ```
@@ -231,12 +238,15 @@ pytest tests/test_project_*.py -v
 ### Troubleshooting
 
 **Issue:** Project not found
+
 - **Fix:** Verify project number matches URL: `github.com/orgs/ORG/projects/{NUMBER}`
 
 **Issue:** Field mapping not working
+
 - **Fix:** Check exact field names with `gh project field-list NUMBER --owner ORG`
 
 **Issue:** Cache stale
+
 - **Fix:** Delete `.issuesuite_cache/project_cache.json` or set `ISSUESUITE_PROJECT_CACHE_TTL=0`
 
 ---
@@ -252,11 +262,13 @@ Enable async processing of large roadmaps (10+ issues) to dramatically reduce sy
 **Location:** `src/issuesuite/concurrency.py`
 
 **Key Classes:**
+
 - `ConcurrencyConfig` - Configuration with enabled/max_workers/batch_size
 - `AsyncGitHubClient` - Async wrapper for GitHub CLI operations
 - `ConcurrentProcessor` - Batch processing with ThreadPoolExecutor
 
 **Features:**
+
 - ✅ Configurable worker pool (default: 4)
 - ✅ Batch processing (default: 10 items/batch)
 - ✅ Automatic threshold detection (enabled for ≥10 specs)
@@ -269,8 +281,8 @@ Enable async processing of large roadmaps (10+ issues) to dramatically reduce sy
 ```yaml
 concurrency:
   enabled: true
-  max_workers: 4   # Thread pool size
-  batch_size: 10   # Items per batch
+  max_workers: 4 # Thread pool size
+  batch_size: 10 # Items per batch
 ```
 
 ### Environment Variables
@@ -309,10 +321,12 @@ results = await processor.process_specs_concurrent(
 ### Async Sync Flow
 
 The `IssueSuite.sync_async()` method is automatically called when:
+
 1. Concurrency is enabled in config
 2. Spec count ≥ threshold (default: 10)
 
 **Automatic Selection:**
+
 ```python
 suite = IssueSuite(cfg)
 
@@ -323,15 +337,18 @@ summary = suite.sync(dry_run=False, update=True)
 ### Performance Impact
 
 **Without Concurrency (Sequential):**
+
 - 100 issues × 2s avg = ~200 seconds
 
 **With Concurrency (4 workers):**
+
 - 100 issues ÷ 4 = 25 batches × 2s = ~50 seconds
 - **4x speedup**
 
 ### Implementation Steps
 
 1. **Enable in Config:**
+
    ```yaml
    concurrency:
      enabled: true
@@ -339,12 +356,14 @@ summary = suite.sync(dry_run=False, update=True)
    ```
 
 2. **Verify Threshold:**
+
    ```bash
    # Count specs in ISSUES.md
    grep -c "^## \[slug:" ISSUES.md
    ```
 
 3. **Test with Mock Mode:**
+
    ```bash
    ISSUES_SUITE_MOCK=1 issuesuite sync --config issue_suite.config.yaml
    ```
@@ -359,10 +378,12 @@ summary = suite.sync(dry_run=False, update=True)
 ### Testing
 
 **Test Files:**
+
 - `tests/test_concurrency.py` - Unit tests (14 tests)
 - `tests/test_concurrency_integration.py` - Integration tests (7 tests)
 
 **Run Tests:**
+
 ```bash
 pytest tests/test_concurrency*.py -v
 ```
@@ -370,12 +391,15 @@ pytest tests/test_concurrency*.py -v
 ### Troubleshooting
 
 **Issue:** Concurrency not activating
+
 - **Fix:** Ensure `spec_count >= 10` and `concurrency.enabled: true`
 
 **Issue:** Thread pool errors
+
 - **Fix:** Reduce `max_workers` to 2 or disable concurrency
 
 **Issue:** Rate limiting
+
 - **Fix:** Reduce `max_workers` or add delays (GitHub API has 5000 req/hr limit)
 
 ---
@@ -391,12 +415,14 @@ Authenticate using GitHub Apps instead of Personal Access Tokens (PATs) for bett
 **Location:** `src/issuesuite/github_auth.py`
 
 **Key Classes:**
+
 - `GitHubAppConfig` - Configuration with app_id/private_key/installation_id
 - `GitHubAppTokenManager` - Token lifecycle management with auto-renewal
 - JWT generation for GitHub App authentication
 - Installation token caching with 60-minute TTL
 
 **Features:**
+
 - ✅ JWT generation from private key
 - ✅ Installation token retrieval via GitHub API
 - ✅ Automatic token renewal (expires: 60 minutes)
@@ -411,10 +437,10 @@ Authenticate using GitHub Apps instead of Personal Access Tokens (PATs) for bett
 github:
   app:
     enabled: true
-    app_id: $GITHUB_APP_ID                        # Env var substitution
+    app_id: $GITHUB_APP_ID # Env var substitution
     private_key_path: $GITHUB_APP_PRIVATE_KEY_PATH
     installation_id: $GITHUB_APP_INSTALLATION_ID
-    token_cache_path: .github_app_token.json      # Optional
+    token_cache_path: .github_app_token.json # Optional
 ```
 
 ### Environment Variables
@@ -469,6 +495,7 @@ manager = setup_github_app_auth(
    - Note installation ID from URL: `/settings/installations/{ID}`
 
 3. **Configure IssueSuite:**
+
    ```bash
    export GITHUB_APP_ID=123456
    export GITHUB_APP_PRIVATE_KEY_PATH=/secure/path/app.pem
@@ -476,6 +503,7 @@ manager = setup_github_app_auth(
    ```
 
 4. **Update Config:**
+
    ```yaml
    github:
      app:
@@ -506,9 +534,11 @@ manager = setup_github_app_auth(
 ### Testing
 
 **Test Files:**
+
 - `tests/test_github_app_auth.py` - 18 tests covering JWT, tokens, renewal
 
 **Run Tests:**
+
 ```bash
 pytest tests/test_github_app_auth.py -v
 ```
@@ -516,15 +546,19 @@ pytest tests/test_github_app_auth.py -v
 ### Troubleshooting
 
 **Issue:** JWT generation fails
+
 - **Fix:** Verify private key format (PEM), check file permissions
 
 **Issue:** Installation token error
+
 - **Fix:** Verify installation ID, check app permissions
 
 **Issue:** Token cache permission denied
+
 - **Fix:** Check `.github_app_token.json` has 0600 permissions
 
 **Issue:** gh CLI not configured
+
 - **Fix:** Ensure `gh` is installed and in PATH
 
 ---
@@ -540,12 +574,14 @@ Measure and report performance metrics for sync operations to identify bottlenec
 **Location:** `src/issuesuite/benchmarking.py`
 
 **Key Classes:**
+
 - `BenchmarkConfig` - Configuration with enabled/report_file/thresholds
 - `PerformanceBenchmark` - Metrics collection and reporting
 - `PerformanceMetric` - Individual metric dataclass
 - Context manager for operation timing
 
 **Features:**
+
 - ✅ Wall-clock timing for major operations
 - ✅ Optional system metrics (CPU, memory via `psutil`)
 - ✅ OpenTelemetry integration (optional)
@@ -642,22 +678,26 @@ benchmark.write_report()
 ### Implementation Steps
 
 1. **Enable in Config:**
+
    ```yaml
    performance:
      benchmarking: true
    ```
 
 2. **Install Optional Dependencies:**
+
    ```bash
    pip install issuesuite[performance]  # psutil for system metrics
    ```
 
 3. **Run Sync:**
+
    ```bash
    issuesuite sync --config issue_suite.config.yaml --update
    ```
 
 4. **Review Report:**
+
    ```bash
    cat performance_report.json | jq '.operations'
    ```
@@ -685,10 +725,12 @@ jq -s '.[0].operations.sync_total.ms - .[1].operations.sync_total.ms' \
 ### Testing
 
 **Test Files:**
+
 - `tests/test_benchmarking.py` - 20 unit tests
 - `tests/test_benchmarking_integration.py` - 8 integration tests
 
 **Run Tests:**
+
 ```bash
 pytest tests/test_benchmarking*.py -v
 ```
@@ -696,26 +738,32 @@ pytest tests/test_benchmarking*.py -v
 ### Performance Optimization Guide
 
 **Slow Operation:** `fetch_existing_issues` (>1000ms)
+
 - **Fix:** Enable concurrency (Feature 2)
 - **Fix:** Reduce `--limit` if using reconcile/import
 
 **Slow Operation:** `process_specs` (>500ms)
+
 - **Fix:** Enable concurrency for large roadmaps
 - **Fix:** Reduce body size in specs
 
 **Slow Operation:** `parse_specs` (>100ms)
+
 - **Fix:** Optimize ISSUES.md structure (smaller YAML blocks)
 - **Fix:** Profile with `py-spy` for hotspots
 
 ### Troubleshooting
 
 **Issue:** No report generated
+
 - **Fix:** Ensure `performance.benchmarking: true` and sync completes
 
 **Issue:** System metrics missing
+
 - **Fix:** Install `psutil`: `pip install psutil`
 
 **Issue:** OpenTelemetry errors
+
 - **Fix:** Install OTEL dependencies or disable tracing
 
 ---
@@ -732,12 +780,14 @@ pytest tests/test_benchmarking*.py -v
 **Location:** `src/issuesuite/reconcile.py`, `src/issuesuite/cli.py` (import command)
 
 **Key Functions:**
+
 - `reconcile(specs, live_issues)` - Drift detection
 - `format_report(report)` - Human-readable output
 - `_cmd_import()` - CLI import handler
 - `_slugify()` - Generate slugs from issue titles
 
 **Features:**
+
 - ✅ Three drift categories: `spec_only`, `live_only`, `diff`
 - ✅ Slug marker matching (`<!-- issuesuite:slug=... -->`)
 - ✅ Title heuristic fallback
@@ -750,6 +800,7 @@ pytest tests/test_benchmarking*.py -v
 ### Reconcile Usage
 
 **CLI:**
+
 ```bash
 # Detect drift
 issuesuite reconcile --config issue_suite.config.yaml
@@ -762,6 +813,7 @@ issuesuite reconcile --config issue_suite.config.yaml --output drift.json
 ```
 
 **Exit Codes:**
+
 - `0` - In sync (no drift)
 - `2` - Drift detected
 - `>0` (other) - Operational error
@@ -820,6 +872,7 @@ issuesuite reconcile --config issue_suite.config.yaml --output drift.json
 ### Import Usage
 
 **CLI:**
+
 ```bash
 # Generate draft ISSUES.md from live issues
 issuesuite import --config issue_suite.config.yaml --output ISSUES.import.md
@@ -832,7 +885,8 @@ issuesuite import --config issue_suite.config.yaml --repo owner/repo --output IS
 ```
 
 **Generated Format:**
-```markdown
+
+````markdown
 ## [slug: investigate-api-timeouts]
 
 ```yaml
@@ -844,9 +898,10 @@ milestone: Sprint 1
 status: open
 body: |
   Requests intermittently exceed 5s timeout threshold.
-  
+
   Investigate root cause and implement retry logic.
 ```
+````
 
 ## [slug: add-rate-limiting]
 
@@ -859,7 +914,8 @@ status: open
 body: |
   Implement rate limiting for API endpoints.
 ```
-```
+
+````
 
 ### Implementation Steps
 
@@ -868,7 +924,7 @@ body: |
 1. **Initial Check:**
    ```bash
    issuesuite reconcile --config issue_suite.config.yaml
-   ```
+````
 
 2. **Review Drift:**
    - `spec_only`: Create issues with `sync --update`
@@ -880,12 +936,13 @@ body: |
    # .github/workflows/drift-check.yml
    - name: Check drift
      run: issuesuite reconcile --config issue_suite.config.yaml
-     continue-on-error: false  # Fail on exit code 2
+     continue-on-error: false # Fail on exit code 2
    ```
 
 #### Import Workflow
 
 1. **Generate Draft:**
+
    ```bash
    issuesuite import --config issue_suite.config.yaml --output ISSUES.import.md
    ```
@@ -896,12 +953,14 @@ body: |
    - Clean up body formatting
 
 3. **Merge to ISSUES.md:**
+
    ```bash
    # Manual merge or:
    cat ISSUES.import.md >> ISSUES.md
    ```
 
 4. **Validate:**
+
    ```bash
    issuesuite validate --config issue_suite.config.yaml
    ```
@@ -945,10 +1004,12 @@ if not report['in_sync']:
 ### Testing
 
 **Test Files:**
+
 - `tests/test_reconcile_drift.py` - Reconcile logic
 - `tests/test_cli_extended.py` - Import command (test_cli_import_generates_markdown_with_unique_slugs)
 
 **Run Tests:**
+
 ```bash
 pytest tests/test_reconcile*.py tests/test_cli_extended.py::test_cli_import -v
 ```
@@ -982,12 +1043,15 @@ exit 0
 ### Troubleshooting
 
 **Issue:** Reconcile shows false diff
+
 - **Fix:** Check slug marker in issue body, verify truncate_body_diff
 
 **Issue:** Import generates duplicate slugs
+
 - **Fix:** Review slug generation, manually deduplicate
 
 **Issue:** Reconcile slow
+
 - **Fix:** Reduce `--limit`, enable concurrency
 
 ---
@@ -1068,17 +1132,20 @@ ISSUESUITE_AI_MODE=1 ISSUES_SUITE_MOCK=1 issuesuite summary --config issue_suite
 ### Environment Variables
 
 **Core:**
+
 - `ISSUESUITE_AI_MODE=1` - Force dry-run (safety for AI agents)
 - `ISSUES_SUITE_MOCK=1` - Mock mode (offline, no GitHub calls)
 - `ISSUESUITE_QUIET=1` - Suppress informational logging
 - `ISSUESUITE_DEBUG=1` - Verbose debug logging
 
 **Retry Configuration:**
+
 - `ISSUESUITE_RETRY_ATTEMPTS=3` - Max retry attempts (default: 3)
 - `ISSUESUITE_RETRY_BASE=2` - Exponential backoff base (default: 2)
 - `ISSUESUITE_RETRY_MAX_SLEEP=30` - Max sleep between retries (default: 30s)
 
 **Feature-Specific:**
+
 - `ISSUESUITE_PROJECT_CACHE_TTL=3600` - Project cache TTL (seconds)
 - `ISSUESUITE_PROJECT_CACHE_DISABLE=1` - Disable project caching
 
@@ -1091,6 +1158,7 @@ ISSUESUITE_AI_MODE=1 ISSUES_SUITE_MOCK=1 issuesuite summary --config issue_suite
 **Current Status:** 54/55 tests passing (98% pass rate)
 
 **Test Distribution:**
+
 - Concurrency: 21 tests (14 unit + 7 integration)
 - Benchmarking: 28 tests (20 unit + 8 integration)
 - GitHub App Auth: 18 tests
@@ -1120,6 +1188,7 @@ ISSUES_SUITE_MOCK=1 pytest tests/ -v
 ### Test Patterns
 
 **Mock Mode Tests:**
+
 ```python
 def test_feature_mock_mode(monkeypatch):
     monkeypatch.setenv('ISSUES_SUITE_MOCK', '1')
@@ -1127,6 +1196,7 @@ def test_feature_mock_mode(monkeypatch):
 ```
 
 **Async Tests:**
+
 ```python
 @pytest.mark.asyncio
 async def test_async_feature():
@@ -1134,6 +1204,7 @@ async def test_async_feature():
 ```
 
 **Subprocess Mocking:**
+
 ```python
 @patch('subprocess.run')
 def test_gh_cli_call(mock_run):
@@ -1156,14 +1227,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      
+          python-version: "3.12"
+
       - name: Install dependencies
         run: pip install -e ".[dev]"
-      
+
       - name: Run tests
         run: pytest tests/ -v --cov --cov-report=xml
-      
+
       - name: Upload coverage
         uses: codecov/codecov-action@v4
 ```
@@ -1180,14 +1251,14 @@ version: 1
 # Source configuration
 source:
   file: ISSUES.md
-  id_pattern: '^[a-z0-9][a-z0-9-_]*$'
+  id_pattern: "^[a-z0-9][a-z0-9-_]*$"
   milestone_required: false
-  milestone_pattern: '^(Sprint 0:|M[0-9]+:)'
+  milestone_pattern: "^(Sprint 0:|M[0-9]+:)"
 
 # GitHub configuration
 github:
-  repo: owner/repo  # Optional, defaults to current repo
-  
+  repo: owner/repo # Optional, defaults to current repo
+
   # Feature 1: Project (v2) Integration
   project:
     enabled: false
@@ -1195,7 +1266,7 @@ github:
     field_mappings:
       labels: "Status"
       milestone: "Iteration"
-  
+
   # Feature 3: GitHub App Authentication
   app:
     enabled: false
@@ -1278,22 +1349,22 @@ on:
   push:
     branches: [main]
     paths:
-      - 'ISSUES.md'
-      - 'issue_suite.config.yaml'
+      - "ISSUES.md"
+      - "issue_suite.config.yaml"
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      
+          python-version: "3.12"
+
       - name: Install IssueSuite
         run: pipx install issuesuite
-      
+
       - name: Sync issues
         env:
           GITHUB_APP_ID: ${{ secrets.GITHUB_APP_ID }}
@@ -1301,7 +1372,7 @@ jobs:
           GITHUB_APP_INSTALLATION_ID: ${{ secrets.GITHUB_APP_INSTALLATION_ID }}
         run: |
           issuesuite sync --config issue_suite.config.yaml --update
-      
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -1341,6 +1412,7 @@ cp performance_report.json /opt/issuesuite/reports/$(date +%Y-%m-%d)/
 ### Monitoring & Alerting
 
 **Performance Monitoring:**
+
 ```bash
 # Check slow operations
 jq '.slow_operations' performance_report.json
@@ -1351,6 +1423,7 @@ jq '.operations.sync_total.ms' performance_report.json | \
 ```
 
 **Drift Monitoring:**
+
 ```bash
 # CI job to detect drift
 issuesuite reconcile --config issue_suite.config.yaml
@@ -1363,6 +1436,7 @@ fi
 ### Secrets Management
 
 **GitHub Actions Secrets:**
+
 1. Repository Settings → Secrets and variables → Actions
 2. Add:
    - `GITHUB_APP_ID`
@@ -1370,6 +1444,7 @@ fi
    - `GITHUB_APP_INSTALLATION_ID`
 
 **Local Development:**
+
 ```bash
 # .env file (add to .gitignore)
 export GITHUB_APP_ID=123456
@@ -1388,6 +1463,7 @@ python -c "from dotenv import load_dotenv; load_dotenv(); import os; print(os.ge
 ### Core Classes
 
 **IssueSuite** (`src/issuesuite/core.py`)
+
 ```python
 class IssueSuite:
     def __init__(self, config: SuiteConfig) -> None: ...
@@ -1397,6 +1473,7 @@ class IssueSuite:
 ```
 
 **ProjectAssigner** (`src/issuesuite/project.py`)
+
 ```python
 class ProjectAssigner(Protocol):
     def assign(self, issue_number: int, spec: Any) -> None: ...
@@ -1405,6 +1482,7 @@ def build_project_assigner(cfg: ProjectConfig) -> ProjectAssigner: ...
 ```
 
 **GitHubAppTokenManager** (`src/issuesuite/github_auth.py`)
+
 ```python
 class GitHubAppTokenManager:
     def __init__(self, config: GitHubAppConfig, mock: bool = False) -> None: ...
@@ -1413,6 +1491,7 @@ class GitHubAppTokenManager:
 ```
 
 **PerformanceBenchmark** (`src/issuesuite/benchmarking.py`)
+
 ```python
 class PerformanceBenchmark:
     def __init__(self, config: BenchmarkConfig, mock: bool = False) -> None: ...
@@ -1422,6 +1501,7 @@ class PerformanceBenchmark:
 ```
 
 **Reconcile** (`src/issuesuite/reconcile.py`)
+
 ```python
 def reconcile(*, specs: list[IssueSpec] | None, live_issues: list[dict[str, Any]] | None) -> dict[str, Any]: ...
 def format_report(report: dict[str, Any]) -> list[str]: ...
@@ -1447,22 +1527,22 @@ issuesuite agent-apply [--config FILE] [--summary FILE]
 
 ## Appendix B: Troubleshooting Matrix
 
-| Issue | Feature | Symptom | Solution |
-|-------|---------|---------|----------|
-| Project not assigned | Project v2 | Issue created but not in project | Verify `project.enabled: true`, check project number |
-| Field mapping fails | Project v2 | Field not updated | Check exact field names with `gh project field-list` |
-| Cache stale | Project v2 | Old field options used | Delete `.issuesuite_cache/`, or set `ISSUESUITE_PROJECT_CACHE_TTL=0` |
-| Concurrency not working | Concurrency | Slow sync with ≥10 issues | Ensure `concurrency.enabled: true` in config |
-| Thread pool errors | Concurrency | "BrokenThreadPool" exception | Reduce `max_workers` or disable concurrency |
-| Rate limiting | Concurrency | 403/429 errors | Reduce `max_workers`, add delays, check rate limit |
-| JWT generation fails | GitHub App | "Invalid key format" | Verify PEM format, check file permissions |
-| Installation token error | GitHub App | "Installation not found" | Verify installation ID, check app permissions |
-| Token cache permission | GitHub App | "Permission denied" | Ensure `.github_app_token.json` has 0600 perms |
-| No performance report | Benchmarking | File not generated | Enable `performance.benchmarking: true` |
-| System metrics missing | Benchmarking | No CPU/memory data | Install `psutil`: `pip install psutil` |
-| Reconcile false diff | Reconcile | Reports diff when in sync | Check `truncate_body_diff`, verify slug markers |
-| Import duplicate slugs | Import | Multiple issues same slug | Review slug generation, manually deduplicate |
-| Reconcile slow | Reconcile | >30s for 100 issues | Reduce `--limit`, enable concurrency |
+| Issue                    | Feature      | Symptom                          | Solution                                                             |
+| ------------------------ | ------------ | -------------------------------- | -------------------------------------------------------------------- |
+| Project not assigned     | Project v2   | Issue created but not in project | Verify `project.enabled: true`, check project number                 |
+| Field mapping fails      | Project v2   | Field not updated                | Check exact field names with `gh project field-list`                 |
+| Cache stale              | Project v2   | Old field options used           | Delete `.issuesuite_cache/`, or set `ISSUESUITE_PROJECT_CACHE_TTL=0` |
+| Concurrency not working  | Concurrency  | Slow sync with ≥10 issues        | Ensure `concurrency.enabled: true` in config                         |
+| Thread pool errors       | Concurrency  | "BrokenThreadPool" exception     | Reduce `max_workers` or disable concurrency                          |
+| Rate limiting            | Concurrency  | 403/429 errors                   | Reduce `max_workers`, add delays, check rate limit                   |
+| JWT generation fails     | GitHub App   | "Invalid key format"             | Verify PEM format, check file permissions                            |
+| Installation token error | GitHub App   | "Installation not found"         | Verify installation ID, check app permissions                        |
+| Token cache permission   | GitHub App   | "Permission denied"              | Ensure `.github_app_token.json` has 0600 perms                       |
+| No performance report    | Benchmarking | File not generated               | Enable `performance.benchmarking: true`                              |
+| System metrics missing   | Benchmarking | No CPU/memory data               | Install `psutil`: `pip install psutil`                               |
+| Reconcile false diff     | Reconcile    | Reports diff when in sync        | Check `truncate_body_diff`, verify slug markers                      |
+| Import duplicate slugs   | Import       | Multiple issues same slug        | Review slug generation, manually deduplicate                         |
+| Reconcile slow           | Reconcile    | >30s for 100 issues              | Reduce `--limit`, enable concurrency                                 |
 
 ---
 
@@ -1491,12 +1571,14 @@ issuesuite agent-apply [--config FILE] [--summary FILE]
 ### Enabling Concurrency for Existing Roadmaps
 
 1. **Measure Baseline:**
+
    ```bash
    # Before concurrency
    time issuesuite sync --config issue_suite.config.yaml --dry-run
    ```
 
 2. **Enable Concurrency:**
+
    ```yaml
    concurrency:
      enabled: true
@@ -1504,11 +1586,13 @@ issuesuite agent-apply [--config FILE] [--summary FILE]
    ```
 
 3. **Test in Mock Mode:**
+
    ```bash
    ISSUES_SUITE_MOCK=1 issuesuite sync --config issue_suite.config.yaml --dry-run
    ```
 
 4. **Measure Improvement:**
+
    ```bash
    # After concurrency
    time issuesuite sync --config issue_suite.config.yaml --dry-run
@@ -1523,6 +1607,7 @@ issuesuite agent-apply [--config FILE] [--summary FILE]
    - Add fields: Status, Iteration, Priority
 
 2. **Map Fields:**
+
    ```yaml
    github:
      project:
@@ -1534,6 +1619,7 @@ issuesuite agent-apply [--config FILE] [--summary FILE]
    ```
 
 3. **Dry-Run Test:**
+
    ```bash
    issuesuite sync --dry-run --config issue_suite.config.yaml
    # Review plan for project assignments
@@ -1552,12 +1638,14 @@ issuesuite agent-apply [--config FILE] [--summary FILE]
 ### Baseline Metrics (Mock Mode)
 
 **Small Roadmap (10 issues):**
+
 - Parse: ~5ms
 - Fetch: ~50ms
 - Process: ~20ms
 - Total: ~80ms
 
 **Medium Roadmap (50 issues):**
+
 - Parse: ~15ms
 - Fetch: ~200ms (sequential) / ~60ms (concurrent)
 - Process: ~100ms (sequential) / ~30ms (concurrent)
@@ -1565,6 +1653,7 @@ issuesuite agent-apply [--config FILE] [--summary FILE]
 - **Speedup: 2.9x**
 
 **Large Roadmap (200 issues):**
+
 - Parse: ~40ms
 - Fetch: ~800ms (sequential) / ~220ms (concurrent, 4 workers)
 - Process: ~400ms (sequential) / ~110ms (concurrent, 4 workers)
@@ -1574,11 +1663,13 @@ issuesuite agent-apply [--config FILE] [--summary FILE]
 ### Real-World Benchmarks (Live GitHub API)
 
 **50 Issues, 4 Workers, Concurrency Enabled:**
+
 - Sync time: ~15 seconds (vs ~45s sequential)
 - Rate limit impact: Minimal (<1% of hourly quota)
 - Success rate: 100%
 
 **100 Issues, 4 Workers:**
+
 - Sync time: ~28 seconds (vs ~90s sequential)
 - Peak memory: 145 MB
 - CPU usage: 18% average
@@ -1588,6 +1679,7 @@ issuesuite agent-apply [--config FILE] [--summary FILE]
 ## Appendix E: Security Best Practices
 
 ### GitHub App Private Keys
+
 - ✅ Store `.pem` files outside repository
 - ✅ Use `0600` permissions
 - ✅ Reference via environment variables in config
@@ -1595,16 +1687,19 @@ issuesuite agent-apply [--config FILE] [--summary FILE]
 - ✅ Use separate apps for dev/staging/prod
 
 ### Token Caching
+
 - ✅ Cache file (`.github_app_token.json`) has `0600` perms
 - ✅ Cache directory (`.issuesuite_cache/`) in `.gitignore`
 - ✅ Never commit cache files to git
 
 ### Environment Variables
+
 - ✅ Use `.env` file (add to `.gitignore`)
 - ✅ Use GitHub Actions secrets for CI/CD
 - ✅ Use secret management tools (Vault, AWS Secrets Manager) for production
 
 ### API Rate Limits
+
 - ✅ Monitor rate limit headers in responses
 - ✅ Adjust `max_workers` if hitting limits
 - ✅ Use GitHub App (5000 req/hr/installation) instead of PAT (5000 req/hr/user)
@@ -1649,15 +1744,16 @@ A: All features have `enabled: false` defaults and can be toggled independently.
 
 All five roadmap features are **fully implemented, tested, and production-ready**:
 
-✅ **GitHub Project (v2) assignment integration** - Automatic project assignment with field mapping  
-✅ **Concurrency for large roadmaps** - 3-4x speedup with async processing  
-✅ **GitHub App token integration** - Enterprise-grade authentication  
-✅ **Performance benchmarking harness** - Comprehensive metrics and reporting  
-✅ **Two-way reconcile / import** - Drift detection and initial migration  
+✅ **GitHub Project (v2) assignment integration** - Automatic project assignment with field mapping
+✅ **Concurrency for large roadmaps** - 3-4x speedup with async processing
+✅ **GitHub App token integration** - Enterprise-grade authentication
+✅ **Performance benchmarking harness** - Comprehensive metrics and reporting
+✅ **Two-way reconcile / import** - Drift detection and initial migration
 
 This brief provides everything needed to understand, configure, deploy, and maintain these features in production environments.
 
 For additional support:
+
 - 📖 [README.md](README.md) - Main documentation
 - 🧪 [tests/](tests/) - Comprehensive test suite
 - 💬 [GitHub Issues](https://github.com/IAmJonoBo/IssueSuite/issues) - Report bugs or request features
@@ -1665,6 +1761,6 @@ For additional support:
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** 2025-01-15  
+**Document Version:** 1.0
+**Last Updated:** 2025-01-15
 **Compatible with IssueSuite:** v0.1.13+

@@ -184,7 +184,11 @@ def _write_if_needed(path: Path, content: str, force: bool) -> bool:
 
 def _iter_optional_templates(include: Iterable[str]) -> list[tuple[str, str, str]]:
     mapping = {
-        "workflow": (".github/workflows/issuesuite-sync.yml", WORKFLOW_TEMPLATE, "GitHub workflow"),
+        "workflow": (
+            ".github/workflows/issuesuite-sync.yml",
+            WORKFLOW_TEMPLATE,
+            "GitHub workflow",
+        ),
         "vscode": (".vscode/tasks.json", VSCODE_TASKS_TEMPLATE, "VS Code tasks"),
         "gitignore": (".gitignore", GITIGNORE_TEMPLATE, ".gitignore entries"),
     }

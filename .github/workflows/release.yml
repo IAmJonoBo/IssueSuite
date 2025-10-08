@@ -10,8 +10,8 @@ jobs:
   build-publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
         with:
           python-version: "3.13"
       - name: Build
@@ -22,7 +22,7 @@ jobs:
       - name: Generate Homebrew formula
         run: python scripts/homebrew_formula.py --dist-dir dist --output packaging/homebrew/Formula/issuesuite.rb
       - name: Upload Homebrew formula
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: homebrew-formula
           path: packaging/homebrew/Formula/issuesuite.rb

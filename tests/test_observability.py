@@ -1,6 +1,5 @@
-from opentelemetry import trace
-
 from issuesuite.observability import configure_telemetry
+from opentelemetry import trace
 
 
 def test_configure_telemetry_sets_tracer_provider():

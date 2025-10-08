@@ -200,11 +200,13 @@ def refresh_advisories(
     """Refresh the offline advisory dataset and write it to disk."""
 
     output = output_path or _DEFAULT_DATASET
-    findings = collect_online_findings()
+    findings = list(collect_online_findings())
     dataset = generate_dataset(findings, fetcher=fetcher)
     if output.exists():
         existing = json.loads(output.read_text(encoding="utf-8"))
-        dataset["advisories"] = _merge_advisories(existing.get("advisories", []), dataset["advisories"])
+        dataset["advisories"] = _merge_advisories(
+            existing.get("advisories", []), dataset["advisories"]
+        )
     if max_age_days is not None:
         check_dataset_age(dataset, max_age_days=max_age_days)
     output.write_text(json.dumps(dataset, indent=2) + "\n", encoding="utf-8")

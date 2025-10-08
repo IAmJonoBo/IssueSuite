@@ -32,13 +32,13 @@ issuesuite init --all-extras
 
 The command creates:
 
-| File | Purpose |
-| --- | --- |
-| `issue_suite.config.yaml` | Primary configuration referencing `ISSUES.md` |
-| `ISSUES.md` | Sample backlog containing two editable issues |
-| `.github/workflows/issuesuite-sync.yml` | Scheduled dry-run workflow template |
-| `.vscode/tasks.json` | One-click Validate, Dry-run Sync, and Full Sync tasks |
-| `scripts/issuesuite-preflight.sh` | Convenience script to run local validations |
+| File                                    | Purpose                                               |
+| --------------------------------------- | ----------------------------------------------------- |
+| `issue_suite.config.yaml`               | Primary configuration referencing `ISSUES.md`         |
+| `ISSUES.md`                             | Sample backlog containing two editable issues         |
+| `.github/workflows/issuesuite-sync.yml` | Scheduled dry-run workflow template                   |
+| `.vscode/tasks.json`                    | One-click Validate, Dry-run Sync, and Full Sync tasks |
+| `scripts/issuesuite-preflight.sh`       | Convenience script to run local validations           |
 
 Re-run with `--force` to overwrite or use `--include` to request specific extras.
 

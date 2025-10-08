@@ -67,7 +67,9 @@ def test_check_dataset_age_raises_when_stale(tmp_path: Path) -> None:
         check_dataset_age(path, max_age_days=30)
 
 
-def test_refresh_advisories_merges_existing(tmp_path: Path, sample_finding: Finding, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_refresh_advisories_merges_existing(
+    tmp_path: Path, sample_finding: Finding, monkeypatch: pytest.MonkeyPatch
+) -> None:
     output = tmp_path / "advisories.json"
     existing = {
         "version": 1,

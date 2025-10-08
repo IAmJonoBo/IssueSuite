@@ -21,7 +21,7 @@ import logging
 import os
 import re
 import sys
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import Any, cast
 
@@ -31,21 +31,21 @@ from issuesuite.ai_context import get_ai_context
 from issuesuite.config import SuiteConfig
 from issuesuite.core import IssueSuite
 from issuesuite.dependency_audit import (
+    Finding,
     collect_installed_packages,
     render_findings_table,
 )
-from issuesuite.dependency_audit import (
-    load_advisories as load_security_advisories,
-)
-from issuesuite.dependency_audit import (
-    perform_audit as run_dependency_audit,
-)
+from issuesuite.dependency_audit import load_advisories as load_security_advisories
+from issuesuite.dependency_audit import perform_audit as run_dependency_audit
 from issuesuite.env_auth import create_env_auth_manager
 from issuesuite.github_issues import IssuesClient, IssuesClientConfig
 from issuesuite.observability import configure_telemetry
 from issuesuite.orchestrator import sync_with_summary
 from issuesuite.parser import render_issue_block
-from issuesuite.pip_audit_integration import collect_online_findings, run_resilient_pip_audit
+from issuesuite.pip_audit_integration import (
+    collect_online_findings,
+    run_resilient_pip_audit,
+)
 from issuesuite.reconcile import format_report, reconcile
 from issuesuite.runtime import execute_command, prepare_config
 from issuesuite.scaffold import scaffold_project
@@ -167,7 +167,6 @@ def _build_parser() -> argparse.ArgumentParser:
     val.add_argument("--config", default=CONFIG_DEFAULT)
     val.add_argument("--repo", help=REPO_HELP)
 
-    # Agent updates subcommand: ingest completion summaries and update ISSUES.md/docs
     au = sub.add_parser(
         "agent-apply",
         help="Apply agent completion summaries to ISSUES.md and optional docs, then sync",
@@ -197,17 +196,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional path to write sync summary json (passed through to sync)",
     )
     au.add_argument(
-        '--require-approval',
-        action='store_true',
-        help='Require explicit --approve acknowledgement before applying agent updates',
+        "--require-approval",
+        action="store_true",
+        help="Require explicit --approve acknowledgement before applying agent updates",
     )
     au.add_argument(
-        '--approve',
-        action='store_true',
-        help='Acknowledge review approval when used with --require-approval',
+        "--approve",
+        action="store_true",
+        help="Acknowledge review approval when used with --require-approval",
     )
 
-    # Setup command for VS Code and online integration
     setup = sub.add_parser("setup", help="Setup authentication and VS Code integration")
     setup.add_argument("--create-env", action="store_true", help="Create sample .env file")
     setup.add_argument("--check-auth", action="store_true", help="Check authentication status")
@@ -527,8 +525,11 @@ def _cmd_agent_apply(cfg: SuiteConfig, args: argparse.Namespace) -> int:
         print(f"[agent-apply] failed to read updates: {exc}", file=sys.stderr)
         return 2
 
-    if getattr(args, 'require_approval', False) and not getattr(args, 'approve', False):
-        print('[agent-apply] approval required: rerun with --approve after review', file=sys.stderr)
+    if getattr(args, "require_approval", False) and not getattr(args, "approve", False):
+        print(
+            "[agent-apply] approval required: rerun with --approve after review",
+            file=sys.stderr,
+        )
         return 3
 
     # Apply updates to ISSUES.md and docs
@@ -733,23 +734,20 @@ def _cmd_doctor(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     _doctor_issue_list(repo, mock, problems)
     return _doctor_emit_results(warnings, problems)
 
-def _cmd_security(args: argparse.Namespace) -> int:
-    if args.refresh_offline:
-        try:
-            refresh_advisories()
-        except Exception as exc:  # pragma: no cover - network/OSV availability
-            print(f"[security] Failed to refresh offline advisories: {exc}", file=sys.stderr)
 
-    advisories = load_security_advisories()
-    packages = collect_installed_packages()
-    findings, fallback_reason = run_dependency_audit(
-        advisories=advisories,
-        packages=packages,
-        online_probe=not args.offline_only,
-        online_collector=collect_online_findings,
-    )
+def _maybe_refresh_offline_advisories(requested: bool) -> None:
+    if not requested:
+        return
+    try:
+        refresh_advisories()
+    except Exception as exc:  # pragma: no cover - network/OSV availability
+        print(f"[security] Failed to refresh offline advisories: {exc}", file=sys.stderr)
 
-    output_payload = {
+
+def _build_security_payload(
+    findings: Sequence[Finding], fallback_reason: str | None
+) -> dict[str, object]:
+    return {
         "findings": [
             {
                 "package": finding.package,
@@ -764,39 +762,54 @@ def _cmd_security(args: argparse.Namespace) -> int:
         "fallback_reason": fallback_reason,
     }
 
-    if args.output_json:
-        Path(args.output_json).write_text(
-            json.dumps(output_payload, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
+
+def _emit_security_table(findings: Sequence[Finding], fallback_reason: str | None) -> None:
+    print(render_findings_table(findings))
+    if fallback_reason:
+        print(
+            f"[security] Warning: online audit unavailable ({fallback_reason}).",
+            file=sys.stderr,
         )
+
+
+def _write_security_json(path: Path, payload: dict[str, object]) -> None:
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _maybe_run_pip_audit(args: argparse.Namespace, exit_code: int) -> int:
+    if not args.pip_audit:
+        return exit_code
+    forwarded: list[str] = list(args.pip_audit_arg or [])
+    if not any(arg.startswith("--progress-spinner") for arg in forwarded):
+        forwarded = ["--progress-spinner", "off", *forwarded]
+    if "--strict" not in forwarded:
+        forwarded.append("--strict")
+    rc = run_resilient_pip_audit(forwarded)
+    return exit_code if rc == 0 else rc
+
+
+def _cmd_security(args: argparse.Namespace) -> int:
+    _maybe_refresh_offline_advisories(args.refresh_offline)
+    advisories = load_security_advisories()
+    packages = collect_installed_packages()
+    findings, fallback_reason = run_dependency_audit(
+        advisories=advisories,
+        packages=packages,
+        online_probe=not args.offline_only,
+        online_collector=collect_online_findings,
+    )
+    output_payload = _build_security_payload(findings, fallback_reason)
+    if args.output_json:
+        _write_security_json(Path(args.output_json), output_payload)
     else:
-        print(render_findings_table(findings))
-        if fallback_reason:
-            print(
-                f"[security] Warning: online audit unavailable ({fallback_reason}).",
-                file=sys.stderr,
-            )
-
+        _emit_security_table(findings, fallback_reason)
     exit_code = 0 if not findings else 1
-
-    if args.pip_audit:
-        forwarded: list[str] = list(args.pip_audit_arg or [])
-        has_spinner = any(arg.startswith("--progress-spinner") for arg in forwarded)
-        if not has_spinner:
-            forwarded = ["--progress-spinner", "off", *forwarded]
-        if "--strict" not in forwarded:
-            forwarded.append("--strict")
-        rc = run_resilient_pip_audit(forwarded)
-        if rc != 0:
-            exit_code = rc
-
+    exit_code = _maybe_run_pip_audit(args, exit_code)
     args._plugin_payload = {
-        "security": {
-            "finding_count": len(findings),
-            "fallback_reason": fallback_reason,
-        }
+        "security": {"findings": len(findings), "fallback_reason": fallback_reason}
     }
     return exit_code
+
 
 def _collect_upgrade_suggestions(cfg: SuiteConfig) -> list[dict[str, Any]]:
     suggestions: list[dict[str, Any]] = []
@@ -873,10 +886,11 @@ def _build_handlers(args: argparse.Namespace, cfg: SuiteConfig | None) -> dict[s
         "import": lambda: _cmd_import(_require_cfg(cfg), args),
         "reconcile": lambda: _cmd_reconcile(_require_cfg(cfg), args),
         "doctor": lambda: _cmd_doctor(_require_cfg(cfg), args),
+        "security": lambda: _cmd_security(args),
         "init": lambda: _cmd_init(args),
         "upgrade": lambda: _cmd_upgrade(_require_cfg(cfg), args),
-        "security": lambda: _cmd_security(args),
     }
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()

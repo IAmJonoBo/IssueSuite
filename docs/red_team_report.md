@@ -14,11 +14,11 @@ We exercised IssueSuite’s CLI and automation stack with a red-team mindset to 
 
 ## Findings
 
-| ID | Severity | Description | Remediation |
-| --- | --- | --- | --- |
-| RT-01 | Medium | Offline advisories are static. Without scheduled refresh, new disclosures may be missed when runners lack internet. | ✅ Automated via `issuesuite.advisory_refresh` with CI gate enforcing dataset freshness.【F:src/issuesuite/advisory_refresh.py†L1-L236】【F:scripts/quality_gates.py†L20-L94】 |
-| RT-02 | Low | Operators might still call the legacy `python -m pip_audit` command, bypassing our wrapper. | ✅ Documented `issuesuite security --refresh-offline` workflow plus internal comms brief to steer operators to the wrapped entry points.【F:README.md†L40-L55】【F:docs/internal_comms_security_workflow.md†L1-L60】 |
-| RT-03 | Low | The resilient wrapper logs fallback reasons but does not currently emit telemetry. | ✅ Telemetry spans emitted when fallbacks occur, surfacing degraded remote feeds via OTEL.【F:src/issuesuite/pip_audit_integration.py†L1-L240】 |
+| ID    | Severity | Description                                                                                                         | Remediation                                                                                                                                                                                                          |
+| ----- | -------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RT-01 | Medium   | Offline advisories are static. Without scheduled refresh, new disclosures may be missed when runners lack internet. | ✅ Automated via `issuesuite.advisory_refresh` with CI gate enforcing dataset freshness.【F:src/issuesuite/advisory_refresh.py†L1-L236】【F:scripts/quality_gates.py†L20-L94】                                       |
+| RT-02 | Low      | Operators might still call the legacy `python -m pip_audit` command, bypassing our wrapper.                         | ✅ Documented `issuesuite security --refresh-offline` workflow plus internal comms brief to steer operators to the wrapped entry points.【F:README.md†L40-L55】【F:docs/internal_comms_security_workflow.md†L1-L60】 |
+| RT-03 | Low      | The resilient wrapper logs fallback reasons but does not currently emit telemetry.                                  | ✅ Telemetry spans emitted when fallbacks occur, surfacing degraded remote feeds via OTEL.【F:src/issuesuite/pip_audit_integration.py†L1-L240】                                                                      |
 
 ## Recommendations
 

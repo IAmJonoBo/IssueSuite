@@ -9,9 +9,7 @@
       "specifiers": "<5.9.6",
       "severity": "medium",
       "description": "Older psutil releases expose process information to unprivileged users on restricted systems.",
-      "fixed_in": [
-        "5.9.6"
-      ],
+      "fixed_in": ["5.9.6"],
       "reference": "https://nvd.nist.gov/vuln/detail/CVE-2024-8563"
     },
     {
@@ -20,10 +18,7 @@
       "specifiers": "<1.26.18",
       "severity": "high",
       "description": "urllib3 releases prior to 1.26.18 allow request smuggling when combined with vulnerable proxies.",
-      "fixed_in": [
-        "1.26.18",
-        "2.0.0"
-      ],
+      "fixed_in": ["1.26.18", "2.0.0"],
       "reference": "https://github.com/advisories/GHSA-xrqq-cpx3-44h2"
     }
   ]

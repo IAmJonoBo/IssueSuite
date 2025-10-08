@@ -38,21 +38,21 @@ INCLUDE_GIT=0
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
-		--dry-run)
-			DRY_RUN=1
-			shift
-			;;
-		--include-git)
-			INCLUDE_GIT=1
-			shift
-			;;
-		-h|--help)
-			usage
-			exit 0
-			;;
-		*)
-			die "Unknown option: $1"
-			;;
+	--dry-run)
+		DRY_RUN=1
+		shift
+		;;
+	--include-git)
+		INCLUDE_GIT=1
+		shift
+		;;
+	-h | --help)
+		usage
+		exit 0
+		;;
+	*)
+		die "Unknown option: $1"
+		;;
 	esac
 done
 
@@ -62,7 +62,7 @@ log() {
 
 remove_path() {
 	local target=$1
-	if (( DRY_RUN )); then
+	if ((DRY_RUN)); then
 		log "Would remove: ${target}"
 	else
 		rm -rf -- "${target}"
@@ -75,7 +75,7 @@ find_and_remove() {
 	local pattern=$2
 	local -a cmd=(find "${PROJECT_ROOT}")
 
-	if (( INCLUDE_GIT )); then
+	if ((INCLUDE_GIT)); then
 		cmd+=(-type "${type_flag}" -name "${pattern}" -print0)
 	else
 		cmd+=(
@@ -87,7 +87,7 @@ find_and_remove() {
 
 	while IFS= read -r -d '' match; do
 		remove_path "${match}"
-	done < <("${cmd[@]}")
+	done < <("${cmd[@]}" || true)
 }
 
 CLEAN_FILE_PATTERNS=(
@@ -109,7 +109,7 @@ CLEAN_DIR_PATTERNS=(
 )
 
 log "Cleaning macOS metadata from ${PROJECT_ROOT}"
-(( DRY_RUN )) && log "Dry run enabled; no files will be deleted."
+((DRY_RUN)) && log "Dry run enabled; no files will be deleted."
 
 for pattern in "${CLEAN_FILE_PATTERNS[@]}"; do
 	find_and_remove f "${pattern}"

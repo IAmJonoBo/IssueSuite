@@ -22,15 +22,15 @@ from .logging import get_logger
 
 jwt: Any | None
 try:  # pragma: no cover - optional dependency
-    jwt = importlib.import_module('jwt')
+    jwt = importlib.import_module("jwt")
 except Exception:  # pragma: no cover - library not installed
     jwt = None
 
 KeyringErrorType: type[Exception]
 keyring: Any | None
 try:  # pragma: no cover - optional dependency
-    keyring = importlib.import_module('keyring')
-    keyring_errors = importlib.import_module('keyring.errors')
+    keyring = importlib.import_module("keyring")
+    keyring_errors = importlib.import_module("keyring.errors")
     KeyringErrorType = cast(type[Exception], keyring_errors.KeyringError)
 except Exception:  # pragma: no cover - library not installed
     keyring = None
@@ -43,14 +43,14 @@ except Exception:  # pragma: no cover - library not installed
     KeyringErrorType = cast(type[Exception], KeyringUnavailableError)
 
 
-_KEYRING_SERVICE = 'issuesuite.github_app'
+_KEYRING_SERVICE = "issuesuite.github_app"
 _CACHE_FILE_VERSION = 2
 
 
 def _gh_command(*args: str) -> list[str]:
     """Return a GitHub CLI command preferring the absolute path when available."""
-    gh_path = shutil.which('gh')
-    base = gh_path if gh_path else 'gh'
+    gh_path = shutil.which("gh")
+    base = gh_path if gh_path else "gh"
     return [base, *args]
 
 
@@ -62,7 +62,7 @@ class GitHubAppConfig:
     app_id: str | None
     private_key_path: str | None
     installation_id: str | None
-    token_cache_path: str = '.github_app_token.json'
+    token_cache_path: str = ".github_app_token.json"
 
 
 class GitHubAppTokenManager:
@@ -90,7 +90,7 @@ class GitHubAppTokenManager:
             return None
 
         if self.mock:
-            return 'mock_github_app_token'
+            return "mock_github_app_token"
 
         # Check if we have a valid cached token
         if self._is_token_valid():
@@ -114,8 +114,8 @@ class GitHubAppTokenManager:
 
     def _cache_key(self) -> str:
         """Return stable cache key for this app/installation pair."""
-        app_id = self.config.app_id or 'unknown-app'
-        installation_id = self.config.installation_id or 'unknown-installation'
+        app_id = self.config.app_id or "unknown-app"
+        installation_id = self.config.installation_id or "unknown-installation"
         return f"{app_id}:{installation_id}"
 
     def _encode_cache_blob(self) -> str:
@@ -124,24 +124,24 @@ class GitHubAppTokenManager:
             raise ValueError("No token available to encode")
 
         payload = {
-            'token': self._cached_token,
-            'expires_at': self._token_expires_at.isoformat(),
+            "token": self._cached_token,
+            "expires_at": self._token_expires_at.isoformat(),
         }
-        raw = json.dumps(payload, separators=(',', ':')).encode('utf-8')
-        return base64.urlsafe_b64encode(raw).decode('utf-8')
+        raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+        return base64.urlsafe_b64encode(raw).decode("utf-8")
 
     def _apply_cache_blob(self, blob: str, source: str) -> bool:
         """Decode cache payload and populate local state."""
         try:
-            padded = blob + '=' * (-len(blob) % 4)
-            decoded = base64.urlsafe_b64decode(padded.encode('utf-8'))
-            data = json.loads(decoded.decode('utf-8'))
+            padded = blob + "=" * (-len(blob) % 4)
+            decoded = base64.urlsafe_b64decode(padded.encode("utf-8"))
+            data = json.loads(decoded.decode("utf-8"))
         except (binascii.Error, json.JSONDecodeError, UnicodeDecodeError) as exc:
             self.logger.log_error("Failed to decode cached token", source=source, error=str(exc))
             return False
 
-        token_val = data.get('token')
-        expires_str = data.get('expires_at')
+        token_val = data.get("token")
+        expires_str = data.get("expires_at")
         if not isinstance(token_val, str) or not token_val:
             return False
         if not isinstance(expires_str, str) or not expires_str:
@@ -175,7 +175,7 @@ class GitHubAppTokenManager:
         if not isinstance(secret, str) or not secret:
             return False
 
-        return self._apply_cache_blob(secret, 'keyring')
+        return self._apply_cache_blob(secret, "keyring")
 
     def _load_file_cache(self) -> bool:
         """Attempt to load cached token from filesystem."""
@@ -184,7 +184,7 @@ class GitHubAppTokenManager:
             return False
 
         try:
-            with cache_path.open('r', encoding='utf-8') as f:
+            with cache_path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
         except Exception as exc:
             self.logger.log_error("Failed to load cached token", error=str(exc))
@@ -193,20 +193,20 @@ class GitHubAppTokenManager:
         if not isinstance(data, dict):
             return False
 
-        payload = data.get('payload')
-        if isinstance(payload, str) and self._apply_cache_blob(payload, 'file'):
+        payload = data.get("payload")
+        if isinstance(payload, str) and self._apply_cache_blob(payload, "file"):
             return True
 
         return self._load_legacy_file_payload(data)
 
     def _load_legacy_file_payload(self, data: dict[str, Any]) -> bool:
         """Support legacy plaintext cache files from previous releases."""
-        legacy_token = data.get('token')
+        legacy_token = data.get("token")
         if not isinstance(legacy_token, str) or not legacy_token:
             return False
 
         self._cached_token = legacy_token
-        expires_str = data.get('expires_at')
+        expires_str = data.get("expires_at")
         if isinstance(expires_str, str) and expires_str:
             try:
                 expires_at = datetime.fromisoformat(expires_str)
@@ -219,7 +219,7 @@ class GitHubAppTokenManager:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
 
         self._token_expires_at = expires_at
-        self.logger.debug("Loaded legacy cached GitHub App token", source='file')
+        self.logger.debug("Loaded legacy cached GitHub App token", source="file")
         return True
 
     def _load_cached_token(self) -> bool:
@@ -244,11 +244,11 @@ class GitHubAppTokenManager:
         try:
             cache_path = Path(self.config.token_cache_path)
             data = {
-                'payload': payload,
-                'version': _CACHE_FILE_VERSION,
-                'cached_at': datetime.now(timezone.utc).isoformat(),
+                "payload": payload,
+                "version": _CACHE_FILE_VERSION,
+                "cached_at": datetime.now(timezone.utc).isoformat(),
             }
-            with cache_path.open('w', encoding='utf-8') as f:
+            with cache_path.open("w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
 
             cache_path.chmod(0o600)
@@ -284,13 +284,13 @@ class GitHubAppTokenManager:
             if not installation_token:
                 return None
 
-            self._cached_token = str(installation_token['token'])
+            self._cached_token = str(installation_token["token"])
 
             # Parse expiration time
-            expires_str = installation_token.get('expires_at')
+            expires_str = installation_token.get("expires_at")
             if isinstance(expires_str, str) and expires_str:
                 # GitHub uses ISO format: 2025-01-01T10:00:00Z
-                self._token_expires_at = datetime.fromisoformat(expires_str.replace('Z', '+00:00'))
+                self._token_expires_at = datetime.fromisoformat(expires_str.replace("Z", "+00:00"))
             else:
                 # Default to 1 hour if no expiration provided
                 self._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
@@ -322,16 +322,16 @@ class GitHubAppTokenManager:
             if not private_key_path.exists():
                 self.logger.log_error(f"Private key file not found: {private_key_path}")
                 return None
-            private_key = private_key_path.read_text(encoding='utf-8')
+            private_key = private_key_path.read_text(encoding="utf-8")
             if not private_key.strip():
                 self.logger.log_error("Private key file is empty", path=str(private_key_path))
                 return None
 
             now = datetime.now(timezone.utc)
             payload = {
-                'iat': int(now.timestamp()) - 60,
-                'exp': int((now + timedelta(minutes=10)).timestamp()),
-                'iss': self.config.app_id,
+                "iat": int(now.timestamp()) - 60,
+                "exp": int((now + timedelta(minutes=10)).timestamp()),
+                "iss": self.config.app_id,
             }
 
             if jwt is None:
@@ -344,12 +344,12 @@ class GitHubAppTokenManager:
             signed_jwt = jwt.encode(
                 payload,
                 private_key,
-                algorithm='RS256',
-                headers={'typ': 'JWT'},
+                algorithm="RS256",
+                headers={"typ": "JWT"},
             )
 
             if isinstance(signed_jwt, bytes):
-                signed_jwt = signed_jwt.decode('utf-8')
+                signed_jwt = signed_jwt.decode("utf-8")
 
             token_str: str = cast(str, signed_jwt)
             self.logger.debug("Generated signed JWT for GitHub App", app_id=self.config.app_id)
@@ -361,9 +361,9 @@ class GitHubAppTokenManager:
 
     def _generate_unsigned_jwt(self, payload: dict[str, Any]) -> str:
         """Fallback unsigned JWT (legacy behaviour)."""
-        header = {'typ': 'JWT', 'alg': 'RS256'}
-        header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip('=')
-        payload_b64 = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip('=')
+        header = {"typ": "JWT", "alg": "RS256"}
+        header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
+        payload_b64 = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
         return f"{header_b64}.{payload_b64}.signature_placeholder"
 
     def _get_installation_token(self, jwt_token: str) -> dict[str, Any] | None:
@@ -374,23 +374,22 @@ class GitHubAppTokenManager:
                 self.logger.log_error("Installation ID not configured")
                 return None
             cmd = [
-                'api',
-                f'/app/installations/{self.config.installation_id}/access_tokens',
-                '--method',
-                'POST',
-                '--header',
-                f'Authorization: Bearer {jwt_token}',
-                '--header',
-                'Accept: application/vnd.github.v3+json',
+                "api",
+                f"/app/installations/{self.config.installation_id}/access_tokens",
+                "--method",
+                "POST",
+                "--header",
+                f"Authorization: Bearer {jwt_token}",
+                "--header",
+                "Accept: application/vnd.github.v3+json",
             ]
 
-            result = subprocess.run(
-                _gh_command(*cmd), capture_output=True, text=True, check=True
-            )
+            result = subprocess.run(_gh_command(*cmd), capture_output=True, text=True, check=True)
             token_data: dict[str, Any] = json.loads(result.stdout)
 
             self.logger.debug(
-                "Retrieved installation token", installation_id=self.config.installation_id
+                "Retrieved installation token",
+                installation_id=self.config.installation_id,
             )
 
             return token_data
@@ -419,11 +418,14 @@ class GitHubAppTokenManager:
 
         try:
             # Set the token as environment variable for gh CLI
-            os.environ['GITHUB_TOKEN'] = token
+            os.environ["GITHUB_TOKEN"] = token
 
             # Verify authentication
             result = subprocess.run(
-                _gh_command('auth', 'status'), capture_output=True, text=True, check=False
+                _gh_command("auth", "status"),
+                capture_output=True,
+                text=True,
+                check=False,
             )
 
             if result.returncode == 0:

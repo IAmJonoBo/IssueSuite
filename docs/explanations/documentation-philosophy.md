@@ -11,12 +11,12 @@ IssueSuite follows the [Diátaxis](https://diataxis.fr/) framework to keep docum
 
 ## Structure
 
-| Category | Location | Purpose |
-| --- | --- | --- |
-| Tutorials | `docs/tutorials/` | Guided learning experiences for newcomers |
-| How-to guides | `docs/how-to/` | Task-oriented instructions for practitioners |
-| Reference | `docs/reference/` | Authoritative, factual resources (CLI, configuration) |
-| Explanations | `docs/explanations/` | Architectural context, design docs, and philosophy |
+| Category      | Location             | Purpose                                               |
+| ------------- | -------------------- | ----------------------------------------------------- |
+| Tutorials     | `docs/tutorials/`    | Guided learning experiences for newcomers             |
+| How-to guides | `docs/how-to/`       | Task-oriented instructions for practitioners          |
+| Reference     | `docs/reference/`    | Authoritative, factual resources (CLI, configuration) |
+| Explanations  | `docs/explanations/` | Architectural context, design docs, and philosophy    |
 
 ## Maintenance tips
 

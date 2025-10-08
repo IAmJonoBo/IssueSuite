@@ -3,7 +3,7 @@ repos:
     rev: v0.13.2
     hooks:
       - id: ruff
-        args: ["--fix"]
+        args: [--fix]
       - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.18.2
@@ -12,6 +12,7 @@ repos:
         additional_dependencies:
           - types-psutil>=5.9.5.20240516
           - types-PyYAML>=6.0.12.20240917
+          - types-requests>=2.32.0.20240914
         files: ^src/
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -25,7 +26,7 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=1000]
       - id: mixed-line-ending
-        args: ["--fix=lf"]
+        args: [--fix=lf]
       - id: detect-private-key
         exclude: ^(tests/test_github_app_auth\.py|tests/test_github_app_integration\.py|tests/test_errors\.py|src/issuesuite/errors\.py)$
       - id: debug-statements

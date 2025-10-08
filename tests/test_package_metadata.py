@@ -9,7 +9,14 @@ import pytest
 def test_issue_suite_dunder_all_exports() -> None:
     module = import_module("issuesuite")
     exported = set(module.__all__)
-    expected = {"load_config", "SuiteConfig", "IssueSuite", "IssueSpec", "get_ai_context", "__version__"}
+    expected = {
+        "load_config",
+        "SuiteConfig",
+        "IssueSuite",
+        "IssueSpec",
+        "get_ai_context",
+        "__version__",
+    }
     assert expected <= exported
 
 
@@ -44,4 +51,3 @@ def test_module_main_run_invokes_cli(monkeypatch: pytest.MonkeyPatch) -> None:
     result = module.run()
     assert called["argv"] is None
     assert result == 123
-

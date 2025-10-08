@@ -122,7 +122,9 @@ def test_vscode_secrets_detection(monkeypatch: MonkeyPatch) -> None:
     assert "github_token" in secrets
 
 
-def test_vscode_secrets_snapshot_ignored_until_changed(monkeypatch: MonkeyPatch) -> None:
+def test_vscode_secrets_snapshot_ignored_until_changed(
+    monkeypatch: MonkeyPatch,
+) -> None:
     """Initial VS Code env vars present at construction should not appear until changed."""
     # Set variables BEFORE manager construction (baseline)
     monkeypatch.setenv("VSCODE_GIT_ASKPASS_MAIN", "/original/askpass")
@@ -149,7 +151,9 @@ def test_authentication_recommendations_no_token() -> None:
     assert any("GITHUB_TOKEN" in rec for rec in recommendations)
 
 
-def test_authentication_recommendations_incomplete_app(monkeypatch: MonkeyPatch) -> None:
+def test_authentication_recommendations_incomplete_app(
+    monkeypatch: MonkeyPatch,
+) -> None:
     """Test recommendations with incomplete GitHub App config."""
     monkeypatch.setenv("GITHUB_APP_ID", "12345")
     # Missing other app config

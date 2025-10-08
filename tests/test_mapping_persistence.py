@@ -96,7 +96,9 @@ def test_mapping_persistence_mock_mode(tmp_path: Path) -> None:
     assert index_file.exists(), "index.json should be written"
     stored_any: Any = json.loads(index_file.read_text())
     assert isinstance(stored_any, dict)
-    stored_entries = stored_any.get("entries") if isinstance(stored_any.get("entries"), dict) else {}
+    stored_entries = (
+        stored_any.get("entries") if isinstance(stored_any.get("entries"), dict) else {}
+    )
     stored_map: dict[str, int] = {}
     for k, v in stored_entries.items():
         if isinstance(v, dict) and isinstance(v.get("issue"), int):

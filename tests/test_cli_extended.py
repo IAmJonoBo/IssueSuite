@@ -7,7 +7,6 @@ import pytest
 from issuesuite.cli import main
 from issuesuite.github_issues import IssuesClient
 
-
 SAMPLE_ISSUES = textwrap.dedent(
     """\
 ## [slug: extended-alpha]
@@ -117,7 +116,9 @@ def test_cli_ai_context_writes_file_and_configures_telemetry(
 
 
 def test_cli_import_generates_markdown_with_unique_slugs(
-    fixture_repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    fixture_repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     sample_issues = [
         {
@@ -169,7 +170,9 @@ def test_cli_import_generates_markdown_with_unique_slugs(
 
 
 def test_cli_reconcile_detects_drift(
-    fixture_repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    fixture_repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setattr(IssuesClient, "list_existing", lambda self: [])
 
@@ -199,11 +202,13 @@ def test_cli_doctor_reports_warnings_and_problems(
     monkeypatch.delenv("GH_TOKEN", raising=False)
     monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
 
-    rc = main([
-        "doctor",
-        "--config",
-        str(tmp_path / "issue_suite.config.yaml"),
-    ])
+    rc = main(
+        [
+            "doctor",
+            "--config",
+            str(tmp_path / "issue_suite.config.yaml"),
+        ]
+    )
 
     assert rc == 2
     captured = capsys.readouterr()
@@ -214,22 +219,24 @@ def test_cli_doctor_reports_warnings_and_problems(
 
 
 def test_cli_security_offline(capsys: pytest.CaptureFixture[str]) -> None:
-    rc = main(['security', '--offline-only'])
+    rc = main(["security", "--offline-only"])
     captured = capsys.readouterr()
     assert rc == 0
-    assert 'No known vulnerabilities detected.' in captured.out
+    assert "No known vulnerabilities detected." in captured.out
 
 
-def test_cli_security_refresh_offline(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_security_refresh_offline(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     invoked: dict[str, bool] = {}
 
     def _refresh() -> None:
-        invoked['called'] = True
+        invoked["called"] = True
 
-    monkeypatch.setattr('issuesuite.cli.refresh_advisories', _refresh)
-    rc = main(['security', '--offline-only', '--refresh-offline'])
+    monkeypatch.setattr("issuesuite.cli.refresh_advisories", _refresh)
+    rc = main(["security", "--offline-only", "--refresh-offline"])
     captured = capsys.readouterr()
 
     assert rc == 0
-    assert invoked.get('called') is True
-    assert 'No known vulnerabilities detected.' in captured.out
+    assert invoked.get("called") is True
+    assert "No known vulnerabilities detected." in captured.out

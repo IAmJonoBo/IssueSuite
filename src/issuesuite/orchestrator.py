@@ -9,12 +9,15 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TypedDict, cast
 
 from .config import SuiteConfig
 from .core import IssueSuite
+from .index_store import IndexDocument, load_index_document, persist_index_document
+from .logging import get_logger
 
 # Threshold for including full mapping snapshot inline in enriched summary output
 MAPPING_SNAPSHOT_THRESHOLD = 500
@@ -90,22 +93,69 @@ def _load_index_mapping(cfg: SuiteConfig) -> dict[str, int]:
     idx_file = cfg.source_file.parent / ".issuesuite" / "index.json"
     if not idx_file.exists():
         return {}
+    doc = load_index_document(idx_file)
+    result: dict[str, int] = {}
+    for slug, payload in doc.entries.items():
+        issue_value: Any = payload.get("issue") if isinstance(payload, dict) else payload
+        try:
+            result[str(slug)] = int(issue_value)
+        except Exception:
+            continue
+    if result:
+        return result
     try:
-        raw: Any = json.loads(idx_file.read_text())
+        raw_any: Any = json.loads(idx_file.read_text())
     except Exception:
         return {}
-    if not isinstance(raw, dict):  # defensive
+    if not isinstance(raw_any, dict):
         return {}
-    raw_map: Any = raw.get("mapping")
+    raw_map = raw_any.get("mapping")
     if not isinstance(raw_map, dict):
         return {}
-    result: dict[str, int] = {}
-    for k, v in raw_map.items():
+    for slug, value in raw_map.items():
         try:
-            result[str(k)] = int(v)  # cast numeric-like values
+            result[str(slug)] = int(value)
         except Exception:
             continue
     return result
+
+
+def _normalize_mapping(
+    raw: Mapping[Any, Any],
+    *,
+    context: str,
+    value_getter: Callable[[Any], Any],
+) -> dict[str, int]:
+    """Normalize arbitrary mapping objects to ``{slug: issue_number}``."""
+
+    normalized: dict[str, int] = {}
+    for slug, value in raw.items():
+        if not isinstance(slug, str):
+            continue
+        try:
+            extracted = value_getter(value)
+        except Exception:  # pragma: no cover - defensive guard
+            continue
+        try:
+            normalized[slug] = int(extracted)
+        except Exception:  # pragma: no cover - incompatible value shape
+            continue
+    if len(normalized) != len(raw):
+        get_logger().debug(
+            "mapping_normalized",
+            context=context,
+            normalized=len(normalized),
+            dropped=len(raw) - len(normalized),
+        )
+    return normalized
+
+
+def _prune_stale_entries(mapping: dict[str, int], current_slugs: set[str]) -> None:
+    """Remove mapping entries whose slugs are no longer present."""
+
+    stale = [slug for slug in mapping if slug not in current_slugs]
+    for slug in stale:
+        mapping.pop(slug, None)
 
 
 def _truncate_body_diffs(summary: dict[str, Any], truncate: int | None) -> None:
@@ -132,10 +182,54 @@ def _persist_mapping(
 ) -> None:
     """Persist mapping to legacy path and canonical index.json."""
     legacy_mp = Path(mapping_path or cfg.mapping_file)
+    legacy_mp.parent.mkdir(parents=True, exist_ok=True)
     legacy_mp.write_text(json.dumps(mapping, indent=2) + "\n")
     index_dir = cfg.source_file.parent / ".issuesuite"
     index_dir.mkdir(exist_ok=True)
-    (index_dir / "index.json").write_text(json.dumps({"mapping": mapping}, indent=2) + "\n")
+    entries = {slug: {"issue": issue} for slug, issue in mapping.items()}
+    index_path = index_dir / "index.json"
+    mirror_env = os.environ.get("ISSUESUITE_INDEX_MIRROR")
+    mirror_path = Path(mirror_env) if mirror_env else None
+    persist_index_document(index_path, IndexDocument(entries=entries), mirror=mirror_path)
+
+
+def _merge_index_mapping(
+    index_mapping: dict[str, int],
+    latest_mapping: dict[str, int],
+    current_slugs: set[str],
+) -> dict[str, int]:
+    merged = dict(index_mapping)
+    if merged and current_slugs:
+        _prune_stale_entries(merged, current_slugs)
+    if latest_mapping:
+        merged.update(latest_mapping)
+    return merged
+
+
+def _prepare_mapping(
+    cfg: SuiteConfig,
+    summary_raw: dict[str, Any],
+    *,
+    effective_dry_run: bool,
+    mapping_path: str | None,
+) -> dict[str, int]:
+    existing_mapping = _load_index_mapping(cfg)
+    latest_mapping_raw = summary_raw.get("mapping")
+    latest_mapping = (
+        _normalize_mapping(
+            latest_mapping_raw,
+            context="summary.mapping",
+            value_getter=lambda value: value,
+        )
+        if isinstance(latest_mapping_raw, dict)
+        else {}
+    )
+    merged_mapping = _merge_index_mapping(
+        existing_mapping, latest_mapping, set(latest_mapping.keys())
+    )
+    if not effective_dry_run and merged_mapping:
+        _persist_mapping(cfg, merged_mapping, mapping_path=mapping_path)
+    return merged_mapping
 
 
 def sync_with_summary(
@@ -165,41 +259,21 @@ def sync_with_summary(
         prune=prune,
     )
 
-    # Merge existing mapping (from prior runs) with this run's mapping and prune stale.
-    index_mapping = _load_index_mapping(cfg)
-    latest_mapping_raw = summary_raw.get("mapping")
-    latest_mapping: dict[str, int] = {}
-    if isinstance(latest_mapping_raw, dict):
-        for k, v in latest_mapping_raw.items():
-            try:
-                latest_mapping[str(k)] = int(v)  # cast numeric-ish
-            except Exception:
-                continue
-    # Determine current slugs (parsed specs count in summary_raw if present or derive from mapping)
-    current_slugs: set[str] = set()
-    if latest_mapping:
-        current_slugs.update(latest_mapping.keys())
-    # Prune any stale entries (slugs not present anymore)
-    if index_mapping:
-        stale = [k for k in index_mapping.keys() if k not in current_slugs and current_slugs]
-        if stale:
-            for k in stale:
-                index_mapping.pop(k, None)
-    if latest_mapping:
-        index_mapping.update(latest_mapping)
+    merged_mapping = _prepare_mapping(
+        cfg,
+        summary_raw,
+        effective_dry_run=effective_dry_run,
+        mapping_path=mapping_path,
+    )
 
-    # Truncate body diffs if configured
     _truncate_body_diffs(summary_raw, cfg.truncate_body_diff)
-
-    # Persist mapping only if not an effective dry-run (write merged/pruned set)
-    if not effective_dry_run and index_mapping:
-        _persist_mapping(cfg, index_mapping, mapping_path=mapping_path)
 
     # summary_raw is a plain dict produced by IssueSuite.sync; selective unpack
     # Note: dynamic dict assembly; rely on runtime shape not strict static typing here.
     plan_value = summary_raw.get("plan")
     plan_data = cast(
-        list[dict[str, Any]] | None, plan_value if isinstance(plan_value, list) else None
+        list[dict[str, Any]] | None,
+        plan_value if isinstance(plan_value, list) else None,
     )
     enriched = cast(
         EnrichedSummary,
@@ -208,16 +282,16 @@ def sync_with_summary(
             "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "dry_run": effective_dry_run,
             "ai_mode": ai_mode,
-            "mapping_present": bool(index_mapping),
-            "mapping_size": len(index_mapping),
+            "mapping_present": bool(merged_mapping),
+            "mapping_size": len(merged_mapping),
             "totals": summary_raw.get("totals", {}),
             "changes": summary_raw.get("changes", {}),
             "mapping": summary_raw.get("mapping", {}),
             **({"plan": plan_data} if plan_data is not None else {}),
         },
     )
-    if index_mapping and len(index_mapping) <= MAPPING_SNAPSHOT_THRESHOLD:
-        enriched["mapping_snapshot"] = dict(index_mapping)
+    if merged_mapping and len(merged_mapping) <= MAPPING_SNAPSHOT_THRESHOLD:
+        enriched["mapping_snapshot"] = dict(merged_mapping)
 
     # Attach last error if surfaced by suite (only populated on failure path, so none on success)
     if getattr(suite, "_last_error", None):  # attribute is best-effort internal
@@ -225,5 +299,6 @@ def sync_with_summary(
         if isinstance(le, dict):
             enriched["last_error"] = le
     sp = Path(summary_path or cfg.summary_json)
+    sp.parent.mkdir(parents=True, exist_ok=True)
     sp.write_text(json.dumps(enriched, indent=2) + "\n")
     return enriched

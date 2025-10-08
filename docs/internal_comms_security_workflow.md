@@ -3,16 +3,19 @@
 _Date: 2025-10-06_
 
 ## Summary
+
 - `issuesuite security` now supports `--refresh-offline` to update the curated advisory dataset before scanning.
 - A resilient `pip-audit` wrapper is installed with the package; invoking `issuesuite security --pip-audit` forwards to the wrapped entry point with hermetic-safe defaults.
 - Offline advisories are refreshed via `python -m issuesuite.advisory_refresh --refresh --check`, which merges OSV metadata and enforces freshness through CI quality gates.
 
 ## Why it matters
+
 - Hermetic builders no longer fail on SSL trust issues because the wrapper automatically falls back to curated advisories.
 - Operators receive telemetry breadcrumbs whenever the wrapper relies on offline data so incidents tied to upstream outages are visible in observability stacks.
 - Packaging runbooks can rely on a single command (`issuesuite security`) for both JSON reporting and pip-audit parity.
 
 ## Required Actions
+
 1. Update internal release runbooks to call:
    ```bash
    python -m issuesuite.advisory_refresh --refresh --check --max-age-days 30
@@ -22,6 +25,7 @@ _Date: 2025-10-06_
 3. Archive previous instructions pointing to `python -m pip_audit`; the IssueSuite wrapper should be the only supported entry point going forward.
 
 ## Contacts
+
 - Security Engineering: security@example.com
 - Release Management: releases@example.com
 - Maintainers: @IAmJonoBo

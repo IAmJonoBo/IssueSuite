@@ -43,7 +43,6 @@ def test_update_changelog_inserts_entry(tmp_path: Path) -> None:
 
 
 def test_acquire_lock_raises_when_blocked(monkeypatch: pytest.MonkeyPatch) -> None:
-
     class DummyHandle:
         def fileno(self) -> int:  # pragma: no cover - trivial helper
             return 0
@@ -64,7 +63,9 @@ def test_update_changelog_preserves_file_on_lock_failure(
     original = "# Changelog\n\n## 0.1.10 - 2024-01-01\n\n- Previous entry\n"
     changelog.write_text(original)
 
-    def fail_lock(handle) -> None:  # pragma: no cover - behaviour asserted via exception
+    def fail_lock(
+        handle,
+    ) -> None:  # pragma: no cover - behaviour asserted via exception
         raise RuntimeError("locked")
 
     monkeypatch.setattr(_module, "_acquire_lock", fail_lock)
@@ -77,4 +78,3 @@ def test_update_changelog_preserves_file_on_lock_failure(
         )
 
     assert changelog.read_text() == original
-

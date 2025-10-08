@@ -329,7 +329,7 @@ def test_installation_token_success(mock_run: MagicMock) -> None:
     # Verify the correct API call was made
     mock_run.assert_called_once()
     args = mock_run.call_args[0][0]
-    assert "gh" in args
+    assert os.path.basename(args[0]) == "gh"
     assert "api" in args
     assert "/app/installations/67890/access_tokens" in args
 

@@ -259,7 +259,8 @@ def perform_audit(
 
 def _render_table(findings: Sequence[Finding]) -> str:
     if not findings:
-        return "[security] No vulnerable packages detected"
+        return "[security] No known vulnerabilities detected."
+
     headers = ("Package", "Installed", "Advisory", "Fixed", "Source")
     rows: list[list[str]] = [list(headers)]
     for finding in findings:

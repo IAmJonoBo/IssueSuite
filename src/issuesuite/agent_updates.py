@@ -92,12 +92,12 @@ def _collect_manual_validation_errors(updates: list[Any]) -> list[str]:
         if not isinstance(upd, dict):
             errors.append(f"{idx}: update must be an object")
             continue
-        slug = upd.get('slug')
-        external_id = upd.get('external_id')
+        slug = upd.get("slug")
+        external_id = upd.get("external_id")
         if not isinstance(slug, str) or not slug.strip():
             if not isinstance(external_id, str) or not external_id.strip():
                 errors.append(f"{idx}: missing slug or external_id")
-        docs = upd.get('docs')
+        docs = upd.get("docs")
         if docs is None:
             continue
         if not isinstance(docs, list):
@@ -107,17 +107,15 @@ def _collect_manual_validation_errors(updates: list[Any]) -> list[str]:
             if not isinstance(doc, dict):
                 errors.append(f"{idx}/docs/{doc_idx}: must be an object")
                 continue
-            path = doc.get('path')
+            path = doc.get("path")
             if not isinstance(path, str) or not path.strip():
                 errors.append(f"{idx}/docs/{doc_idx}/path: must be a non-empty string")
-            for key in ('append', 'replace'):
+            for key in ("append", "replace"):
                 if key in doc and doc[key] is not None and not isinstance(doc[key], str):
                     errors.append(f"{idx}/docs/{doc_idx}/{key}: must be a string")
             extra = sorted(k for k in doc.keys() if k not in _DOC_ALLOWED_KEYS)
             if extra:
-                errors.append(
-                    f"{idx}/docs/{doc_idx}: unsupported keys {', '.join(extra)}"
-                )
+                errors.append(f"{idx}/docs/{doc_idx}: unsupported keys {', '.join(extra)}")
     return errors
 
 
