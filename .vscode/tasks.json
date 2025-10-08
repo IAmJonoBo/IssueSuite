@@ -21,8 +21,7 @@
 				"reveal": "always",
 				"focus": false,
 				"panel": "shared"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "IssueSuite: Agent Apply (apply)",
@@ -45,8 +44,58 @@
 				"reveal": "always",
 				"focus": true,
 				"panel": "shared"
+			}
+		},
+		{
+			"label": "IssueSuite: Preflight",
+			"type": "shell",
+			"command": "${workspaceFolder}/scripts/issuesuite-preflight.sh",
+			"options": {
+				"cwd": "${workspaceFolder}"
 			},
-			"problemMatcher": []
+			"group": "build",
+			"detail": "Validate and dry-run sync with summary/plan artifacts",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "IssueSuite: DX Sweep",
+			"type": "shell",
+			"command": "${workspaceFolder}/scripts/issuesuite-dx-sweep.sh",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"group": "build",
+			"detail": "Preflight + summary/export/schema/ai-context",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "IssueSuite: DX Sweep (with reconcile)",
+			"type": "shell",
+			"command": "${workspaceFolder}/scripts/issuesuite-dx-sweep.sh",
+			"args": [
+				"--with-reconcile"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"group": "build",
+			"detail": "DX sweep plus reconcile (drift tolerated)",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			}
 		},
 		{
 			"label": "IssueSuite: Validate",
@@ -63,8 +112,7 @@
 				"reveal": "always",
 				"focus": false,
 				"panel": "shared"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "IssueSuite: Dry-run Sync",
@@ -74,10 +122,13 @@
 				"sync",
 				"--dry-run",
 				"--update",
+				"--preflight",
 				"--config",
 				"${workspaceFolder}/issue_suite.config.yaml",
 				"--summary-json",
-				"${workspaceFolder}/issues_summary.json"
+				"${workspaceFolder}/issues_summary.json",
+				"--plan-json",
+				"${workspaceFolder}/issues_plan.json"
 			],
 			"group": {
 				"kind": "build",
@@ -88,8 +139,7 @@
 				"reveal": "always",
 				"focus": false,
 				"panel": "shared"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "IssueSuite: Full Sync",
@@ -98,10 +148,13 @@
 			"args": [
 				"sync",
 				"--update",
+				"--preflight",
 				"--config",
 				"${workspaceFolder}/issue_suite.config.yaml",
 				"--summary-json",
-				"${workspaceFolder}/issues_summary.json"
+				"${workspaceFolder}/issues_summary.json",
+				"--plan-json",
+				"${workspaceFolder}/issues_plan.json"
 			],
 			"group": "build",
 			"presentation": {
@@ -109,8 +162,7 @@
 				"reveal": "always",
 				"focus": true,
 				"panel": "shared"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "IssueSuite: Export",
@@ -130,8 +182,7 @@
 				"reveal": "always",
 				"focus": false,
 				"panel": "shared"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "IssueSuite: Summary",
@@ -148,8 +199,7 @@
 				"reveal": "always",
 				"focus": false,
 				"panel": "shared"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "IssueSuite: Generate Schemas",
@@ -166,8 +216,7 @@
 				"reveal": "always",
 				"focus": false,
 				"panel": "shared"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Setup IssueSuite Environment",
@@ -183,8 +232,7 @@
 				"reveal": "always",
 				"focus": false,
 				"panel": "shared"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "IssueSuite: Reconcile",
@@ -201,8 +249,7 @@
 				"reveal": "always",
 				"focus": false,
 				"panel": "shared"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "IssueSuite: AI Context",
@@ -220,8 +267,7 @@
 				"reveal": "always",
 				"focus": false,
 				"panel": "shared"
-			},
-			"problemMatcher": []
+			}
 		}
 	]
 }

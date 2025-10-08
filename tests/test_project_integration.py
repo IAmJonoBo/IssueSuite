@@ -37,12 +37,12 @@ body: |
 
 def test_sync_with_project_assignment(monkeypatch, tmp_path):
     """Test sync process with project assignment enabled."""
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
-    (tmp_path / 'ISSUES.md').write_text(ISSUES)
+    cfg_path = tmp_path / "issue_suite.config.yaml"
+    (tmp_path / "ISSUES.md").write_text(ISSUES)
     cfg_path.write_text(CONFIG_WITH_PROJECT)
 
     # Set mock mode to avoid GitHub CLI calls
-    monkeypatch.setenv('ISSUES_SUITE_MOCK', '1')
+    monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
 
     cfg = load_config(cfg_path)
     suite = IssueSuite(cfg)
@@ -50,26 +50,26 @@ def test_sync_with_project_assignment(monkeypatch, tmp_path):
     # Verify project config is loaded correctly
     assert cfg.project_enable is True
     assert cfg.project_number == 123
-    assert cfg.project_field_mappings == {'labels': 'Status', 'milestone': 'Priority'}
+    assert cfg.project_field_mappings == {"labels": "Status", "milestone": "Priority"}
 
     # Run sync to test project assignment integration
     summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should complete without errors
-    assert summary['totals']['specs'] == 1
-    assert summary['totals']['created'] == 1
+    assert summary["totals"]["specs"] == 1
+    assert summary["totals"]["created"] == 1
 
 
 def test_sync_without_project_assignment(monkeypatch, tmp_path):
     """Test sync process with project assignment disabled."""
-    cfg_content = CONFIG_WITH_PROJECT.replace('enable: true', 'enable: false')
+    cfg_content = CONFIG_WITH_PROJECT.replace("enable: true", "enable: false")
 
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
-    (tmp_path / 'ISSUES.md').write_text(ISSUES)
+    cfg_path = tmp_path / "issue_suite.config.yaml"
+    (tmp_path / "ISSUES.md").write_text(ISSUES)
     cfg_path.write_text(cfg_content)
 
     # Set mock mode to avoid GitHub CLI calls
-    monkeypatch.setenv('ISSUES_SUITE_MOCK', '1')
+    monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
 
     cfg = load_config(cfg_path)
     suite = IssueSuite(cfg)
@@ -81,5 +81,5 @@ def test_sync_without_project_assignment(monkeypatch, tmp_path):
     summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should complete without errors
-    assert summary['totals']['specs'] == 1
-    assert summary['totals']['created'] == 1
+    assert summary["totals"]["specs"] == 1
+    assert summary["totals"]["created"] == 1

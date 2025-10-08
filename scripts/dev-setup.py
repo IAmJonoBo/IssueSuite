@@ -8,16 +8,28 @@ This script helps set up a complete development environment including:
 - Development configuration
 """
 
+from __future__ import annotations
+
 import os
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
+from subprocess import CompletedProcess
 
 
-def run_command(cmd: list[str], check: bool = True) -> subprocess.CompletedProcess:
+def run_command(
+    cmd: Sequence[str],
+    check: bool = True,
+) -> CompletedProcess[str]:
     """Run a command and handle errors."""
     print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, check=check, capture_output=True, text=True)
+    result: CompletedProcess[str] = subprocess.run(
+        cmd,
+        check=check,
+        capture_output=True,
+        text=True,
+    )
     if result.stdout:
         print(result.stdout)
     if result.stderr and result.returncode != 0:
@@ -25,7 +37,7 @@ def run_command(cmd: list[str], check: bool = True) -> subprocess.CompletedProce
     return result
 
 
-def main():
+def main() -> int:
     """Set up development environment."""
     project_root = Path(__file__).parent.parent
     os.chdir(project_root)

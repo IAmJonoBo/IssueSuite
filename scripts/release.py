@@ -24,9 +24,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PKG_INIT = ROOT / 'src' / 'issuesuite' / '__init__.py'
-PYPROJECT = ROOT / 'pyproject.toml'
-CHANGELOG = ROOT / 'CHANGELOG.md'
+PKG_INIT = ROOT / "src" / "issuesuite" / "__init__.py"
+PYPROJECT = ROOT / "pyproject.toml"
+CHANGELOG = ROOT / "CHANGELOG.md"
 
 VERSION_RE = re.compile(r"^__version__\s*=\s*['\"]([^'\"]+)['\"]", re.MULTILINE)
 PYPROJECT_VERSION_RE = re.compile(r"^version\s*=\s*['\"]([^'\"]+)['\"]", re.MULTILINE)
@@ -35,72 +35,74 @@ VERSION_PARTS = 3  # semantic version segments: major.minor.patch
 
 
 def read_version_from_init() -> str:
-    text = PKG_INIT.read_text(encoding='utf-8')
+    text = PKG_INIT.read_text(encoding="utf-8")
     m = VERSION_RE.search(text)
     if not m:
-        raise SystemExit('Could not locate __version__ in __init__.py')
+        raise SystemExit("Could not locate __version__ in __init__.py")
     return m.group(1)
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description='IssueSuite release helper')
+    p = argparse.ArgumentParser(description="IssueSuite release helper")
     g = p.add_mutually_exclusive_group(required=False)
-    g.add_argument('--major', action='store_true')
-    g.add_argument('--minor', action='store_true')
-    g.add_argument('--patch', action='store_true')
-    p.add_argument('version', nargs='?', help='Explicit version (overrides semantic flags)')
-    p.add_argument('--no-tests', action='store_true', help='Skip running test suite')
-    p.add_argument('--no-lint', action='store_true', help='Skip ruff & mypy checks')
-    p.add_argument('--prerelease', help='Append prerelease tag (e.g. rc1, beta1)')
-    p.add_argument('--skip-changelog', action='store_true', help='Do not modify CHANGELOG')
-    p.add_argument('--push', action='store_true', help='Push commit and tag to origin')
+    g.add_argument("--major", action="store_true")
+    g.add_argument("--minor", action="store_true")
+    g.add_argument("--patch", action="store_true")
+    p.add_argument("version", nargs="?", help="Explicit version (overrides semantic flags)")
+    p.add_argument("--no-tests", action="store_true", help="Skip running test suite")
+    p.add_argument("--no-lint", action="store_true", help="Skip ruff & mypy checks")
+    p.add_argument("--prerelease", help="Append prerelease tag (e.g. rc1, beta1)")
+    p.add_argument("--skip-changelog", action="store_true", help="Do not modify CHANGELOG")
+    p.add_argument("--push", action="store_true", help="Push commit and tag to origin")
     p.add_argument(
-        '--create-github-release',
-        action='store_true',
-        help='Create GitHub release via gh CLI (requires gh auth)',
+        "--create-github-release",
+        action="store_true",
+        help="Create GitHub release via gh CLI (requires gh auth)",
     )
-    p.add_argument('--dry-run', action='store_true', help='Do not write files or run git commands')
+    p.add_argument("--dry-run", action="store_true", help="Do not write files or run git commands")
     return p.parse_args()
 
 
 def bump_semantic(current: str, major: bool, minor: bool, patch: bool) -> str:
-    parts = current.split('.')
+    parts = current.split(".")
     if len(parts) != VERSION_PARTS:
-        raise SystemExit(f'Unexpected version format: {current}')
+        raise SystemExit(f"Unexpected version format: {current}")
     major_v, minor_v, patch_v = map(int, parts)
     if major:
-        return f'{major_v + 1}.0.0'
+        return f"{major_v + 1}.0.0"
     if minor:
-        return f'{major_v}.{minor_v + 1}.0'
+        return f"{major_v}.{minor_v + 1}.0"
     # default patch
-    return f'{major_v}.{minor_v}.{patch_v + 1}'
+    return f"{major_v}.{minor_v}.{patch_v + 1}"
 
 
 def determine_new_version(args: argparse.Namespace, current: str) -> str:
+    base: str
     if args.version:
-        base = args.version
+        base = str(args.version)
     elif args.major or args.minor or args.patch:
         base = bump_semantic(current, args.major, args.minor, args.patch)
     else:
         base = bump_semantic(current, False, False, True)
-    if args.prerelease:
-        base = f"{base}-{args.prerelease}"
+    prerelease = args.prerelease
+    if prerelease:
+        base = f"{base}-{prerelease}"
     return base
 
 
 def update_init(version: str, dry_run: bool) -> None:
-    text = PKG_INIT.read_text(encoding='utf-8')
+    text = PKG_INIT.read_text(encoding="utf-8")
     new_text = VERSION_RE.sub(f"__version__ = '{version}'", text)
     if text == new_text:
         return
     if dry_run:
-        print('[dry-run] Would update __init__.py version')
+        print("[dry-run] Would update __init__.py version")
     else:
-        PKG_INIT.write_text(new_text, encoding='utf-8')
+        PKG_INIT.write_text(new_text, encoding="utf-8")
 
 
 def update_pyproject(version: str, dry_run: bool) -> None:
-    text = PYPROJECT.read_text(encoding='utf-8')
+    text = PYPROJECT.read_text(encoding="utf-8")
     # Replace first occurrence only inside [project] section
     new_text = re.sub(
         r"(\n\[project\][\s\S]*?\nversion\s*=\s*['\"])([^'\"]+)(['\"])",
@@ -111,74 +113,74 @@ def update_pyproject(version: str, dry_run: bool) -> None:
     if text == new_text:
         return
     if dry_run:
-        print('[dry-run] Would update pyproject.toml version')
+        print("[dry-run] Would update pyproject.toml version")
     else:
-        PYPROJECT.write_text(new_text, encoding='utf-8')
+        PYPROJECT.write_text(new_text, encoding="utf-8")
 
 
 def ensure_changelog_entry(version: str, dry_run: bool) -> None:
     if not CHANGELOG.exists():
         return
-    content = CHANGELOG.read_text(encoding='utf-8')
-    if f'## {version}' in content:
+    content = CHANGELOG.read_text(encoding="utf-8")
+    if f"## {version}" in content:
         return
-    insert_marker = '## Unreleased'
+    insert_marker = "## Unreleased"
     stub = f"\n### {version} - YYYY-MM-DD\n- (placeholder)\n"
     if insert_marker in content:
         new_content = content.replace(insert_marker, insert_marker + stub)
     else:
         new_content = content + f"\n## {version}\n- (placeholder)\n"
     if dry_run:
-        print('[dry-run] Would insert changelog stub')
+        print("[dry-run] Would insert changelog stub")
     else:
-        CHANGELOG.write_text(new_content, encoding='utf-8')
+        CHANGELOG.write_text(new_content, encoding="utf-8")
 
 
 def run_tests(dry_run: bool) -> None:
     if dry_run:
-        print('[dry-run] Would run tests')
+        print("[dry-run] Would run tests")
         return
-    print('Running tests...')
-    rc = subprocess.call([sys.executable, '-m', 'pytest', '-q'])
+    print("Running tests...")
+    rc = subprocess.call([sys.executable, "-m", "pytest", "-q"])
     if rc != 0:
-        raise SystemExit('Tests failed, aborting release')
+        raise SystemExit("Tests failed, aborting release")
 
 
 def run_quality_checks(dry_run: bool) -> None:
     if dry_run:
-        print('[dry-run] Would run ruff & mypy')
+        print("[dry-run] Would run ruff & mypy")
         return
-    print('Running ruff lint...')
-    if subprocess.call([sys.executable, '-m', 'ruff', 'check', 'src/issuesuite']) != 0:
-        raise SystemExit('Ruff lint failed')
-    print('Running mypy...')
-    if subprocess.call([sys.executable, '-m', 'mypy', 'src/issuesuite']) != 0:
-        raise SystemExit('mypy failed')
+    print("Running ruff lint...")
+    if subprocess.call([sys.executable, "-m", "ruff", "check", "src/issuesuite"]) != 0:
+        raise SystemExit("Ruff lint failed")
+    print("Running mypy...")
+    if subprocess.call([sys.executable, "-m", "mypy", "src/issuesuite"]) != 0:
+        raise SystemExit("mypy failed")
 
 
 def git_commit_tag(version: str, dry_run: bool, push: bool) -> None:
     if dry_run:
-        print(f'[dry-run] Would git add/commit/tag v{version}')
+        print(f"[dry-run] Would git add/commit/tag v{version}")
         if push:
-            print('[dry-run] Would push to origin')
+            print("[dry-run] Would push to origin")
         return
-    subprocess.check_call(['git', 'add', str(PKG_INIT), str(PYPROJECT), str(CHANGELOG)])
-    subprocess.check_call(['git', 'commit', '-m', f'chore(release): v{version}'])
-    subprocess.check_call(['git', 'tag', f'v{version}'])
+    subprocess.check_call(["git", "add", str(PKG_INIT), str(PYPROJECT), str(CHANGELOG)])
+    subprocess.check_call(["git", "commit", "-m", f"chore(release): v{version}"])
+    subprocess.check_call(["git", "tag", f"v{version}"])
     if push:
-        subprocess.check_call(['git', 'push', 'origin', 'HEAD'])
-        subprocess.check_call(['git', 'push', 'origin', f'v{version}'])
+        subprocess.check_call(["git", "push", "origin", "HEAD"])
+        subprocess.check_call(["git", "push", "origin", f"v{version}"])
 
 
 def gh_release(version: str, dry_run: bool) -> None:
     notes = f"Release v{version}\n\nSee CHANGELOG for details."
     if dry_run:
-        print(f'[dry-run] Would create GitHub release v{version}')
+        print(f"[dry-run] Would create GitHub release v{version}")
         return
     try:
-        subprocess.check_call(['gh', 'release', 'create', f'v{version}', '--notes', notes])
+        subprocess.check_call(["gh", "release", "create", f"v{version}", "--notes", notes])
     except Exception as e:  # pragma: no cover
-        print(f'Warning: failed to create GitHub release: {e}')
+        print(f"Warning: failed to create GitHub release: {e}")
 
 
 def main() -> None:
@@ -186,9 +188,9 @@ def main() -> None:
     current = read_version_from_init()
     new_version = determine_new_version(args, current)
     if current == new_version:
-        print(f'Version unchanged ({current}), nothing to do.')
+        print(f"Version unchanged ({current}), nothing to do.")
         return
-    print(f'Releasing {current} -> {new_version}')
+    print(f"Releasing {current} -> {new_version}")
     update_init(new_version, args.dry_run)
     update_pyproject(new_version, args.dry_run)
     if not args.skip_changelog:
@@ -200,8 +202,8 @@ def main() -> None:
     git_commit_tag(new_version, args.dry_run, args.push)
     if args.create_github_release:
         gh_release(new_version, args.dry_run)
-    print('Done.')
+    print("Done.")
 
 
-if __name__ == '__main__':  # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     main()

@@ -6,24 +6,24 @@ This guide will help you set up IssueSuite for optimal integration with VS Code,
 
 1. Create a local virtual environment and install dev extras:
 
-  ```bash
-  python3 -m venv .venv
-  . .venv/bin/activate
-  python -m pip install --upgrade pip
-  pip install -e '.[dev,all]'
-  ```
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -e '.[dev,all]'
+```
 
 1. Setup authentication and optional VS Code integration files:
 
-  ```bash
-  issuesuite setup --create-env --check-auth --vscode
-  ```
+```bash
+issuesuite setup --create-env --check-auth --vscode
+```
 
 1. Open VS Code in your project directory:
 
-  ```bash
-  code .
-  ```
+```bash
+code .
+```
 
 ## Authentication Setup
 
@@ -49,6 +49,8 @@ GITHUB_APP_PRIVATE_KEY=path/to/private-key.pem
 GITHUB_APP_INSTALLATION_ID=67890
 ```
 
+After populating the file, run `issuesuite setup --check-auth` to confirm the credentials are detected.
+
 ### Option 2: VS Code/GitHub Codespaces secrets
 
 In VS Code or GitHub Codespaces, the `GITHUB_TOKEN` is often automatically available. IssueSuite will detect and use it automatically.
@@ -69,12 +71,14 @@ The VS Code integration provides:
 
 - **IssueSuite: Agent Apply (dry-run)** - Apply `agent_updates.json` to `ISSUES.md` and run a dry-run sync (writes `issues_summary.json`)
 - **IssueSuite: Agent Apply (apply)** - Apply `agent_updates.json` and perform a real sync to GitHub (writes `issues_summary.json`)
-- **IssueSuite: Dry-run Sync** - Test your changes safely
-- **IssueSuite: Full Sync** - Apply changes to GitHub
+- **IssueSuite: Dry-run Sync** - Test your changes safely with preflight checks and save both `issues_summary.json` and `issues_plan.json`
+- **IssueSuite: Full Sync** - Apply changes to GitHub with preflight checks and emit fresh summary/plan artifacts
 - **IssueSuite: Export** - Generate JSON exports
 - **IssueSuite: Summary** - Quick roadmap overview
 - **IssueSuite: Validate** - Check configuration and issues
 - You can also run the `agent-apply` command from the integrated terminal to apply Copilot/agent updates to `ISSUES.md` and optionally sync.
+
+The plan JSON path is configurable via `output.plan_json` in `issue_suite.config.yaml`; the default task writes to `${workspaceFolder}/issues_plan.json`.
 
 ### 2. Debugging
 
@@ -121,7 +125,7 @@ source:
 github:
   project:
     enable: true
-    number: $PROJECT_NUMBER  # Resolves from environment
+    number: $PROJECT_NUMBER # Resolves from environment
     field_mappings:
       labels: "Status"
       milestone: "Priority"
@@ -187,7 +191,7 @@ Use different `.env` files for different environments:
 environment:
   enabled: true
   load_dotenv: true
-  dotenv_path: ".env.production"  # or .env.development
+  dotenv_path: ".env.production" # or .env.development
 ```
 
 ### Custom VS Code Settings

@@ -25,16 +25,16 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 # Force mock mode for the entire test session to avoid hanging on real GitHub CLI calls
-os.environ.setdefault('ISSUES_SUITE_MOCK', '1')
+os.environ.setdefault("ISSUES_SUITE_MOCK", "1")
 
 # Ensure subprocesses (invoked by tests via `python -m issuesuite.cli`) can
 # also import the in-repo package without requiring an editable install. We do
 # this by injecting the src path into PYTHONPATH if it's not already present.
-py_path = os.environ.get('PYTHONPATH', '')
+py_path = os.environ.get("PYTHONPATH", "")
 parts = [p for p in py_path.split(os.pathsep) if p]
 if str(SRC) not in parts:
     parts.insert(0, str(SRC))
-    os.environ['PYTHONPATH'] = os.pathsep.join(parts)
+    os.environ["PYTHONPATH"] = os.pathsep.join(parts)
 
 # Ensure pytest-asyncio plugin is loaded explicitly so @pytest.mark.asyncio tests run
 pytest_plugins = ["pytest_asyncio"]

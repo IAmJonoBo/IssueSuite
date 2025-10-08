@@ -65,12 +65,12 @@ For TestPyPI, repeat the same at [test.pypi.org](https://test.pypi.org/) for the
 
 ### Release steps
 
-1. Bump version in both `pyproject.toml` and `src/issuesuite/__init__.py`.
-2. Update `CHANGELOG.md`.
-3. Create a GitHub Release (or push a tag and then publish a release).
-4. The “Publish to PyPI” workflow builds and uploads. Re-runs are safe due to `skip-existing: true`.
+1. Run `python scripts/release.py --patch` (or `--minor/--major`) to bump versions in sync, update the changelog, and run lint/tests.
+2. Review the git diff, commit, and push the tag (`--push` optional flag).
+3. The `release.yml` workflow builds artifacts, generates `packaging/homebrew/Formula/issuesuite.rb`, uploads the formula, and publishes to PyPI via Trusted Publishing.
+4. Fetch the uploaded formula artifact and update your Homebrew tap (see [docs/how-to/homebrew.md](docs/how-to/homebrew.md)).
 
-To publish to TestPyPI instead, dispatch the workflow with the `test_pypi` input set to true.
+To publish to TestPyPI, trigger `publish.yml` manually with the `repository-url` override.
 
 ## Installation methods
 

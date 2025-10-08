@@ -1,7 +1,11 @@
-from issuesuite import IssueSuite, load_config
+from __future__ import annotations
 
-KEY_HEADER = "-----BEGIN " "PRIVATE KEY-----"
-KEY_FOOTER = "-----END " "PRIVATE KEY-----"
+from pathlib import Path
+
+from _pytest.capture import CaptureFixture
+from _pytest.monkeypatch import MonkeyPatch
+
+from issuesuite import IssueSuite, load_config
 
 CONFIG_WITH_GITHUB_APP = """
 version: 1
@@ -56,14 +60,14 @@ body: |
 """
 
 
-def test_sync_with_github_app_enabled(monkeypatch, tmp_path):
+def test_sync_with_github_app_enabled(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     """Test sync with GitHub App authentication enabled."""
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
-    (tmp_path / 'ISSUES.md').write_text(ISSUES)
+    cfg_path = tmp_path / "issue_suite.config.yaml"
+    (tmp_path / "ISSUES.md").write_text(ISSUES)
     cfg_path.write_text(CONFIG_WITH_GITHUB_APP)
 
     # Set mock mode to avoid actual GitHub authentication
-    monkeypatch.setenv('ISSUES_SUITE_MOCK', '1')
+    monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
 
     cfg = load_config(cfg_path)
     suite = IssueSuite(cfg)
@@ -83,18 +87,18 @@ def test_sync_with_github_app_enabled(monkeypatch, tmp_path):
     summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should complete successfully
-    assert summary['totals']['specs'] == 1
-    assert summary['totals']['created'] == 1
+    assert summary["totals"]["specs"] == 1
+    assert summary["totals"]["created"] == 1
 
 
-def test_sync_with_github_app_disabled(monkeypatch, tmp_path):
+def test_sync_with_github_app_disabled(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     """Test sync with GitHub App authentication disabled."""
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
-    (tmp_path / 'ISSUES.md').write_text(ISSUES)
+    cfg_path = tmp_path / "issue_suite.config.yaml"
+    (tmp_path / "ISSUES.md").write_text(ISSUES)
     cfg_path.write_text(CONFIG_WITHOUT_GITHUB_APP)
 
     # Set mock mode
-    monkeypatch.setenv('ISSUES_SUITE_MOCK', '1')
+    monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
 
     cfg = load_config(cfg_path)
     suite = IssueSuite(cfg)
@@ -107,13 +111,13 @@ def test_sync_with_github_app_disabled(monkeypatch, tmp_path):
     summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should complete successfully
-    assert summary['totals']['specs'] == 1
-    assert summary['totals']['created'] == 1
+    assert summary["totals"]["specs"] == 1
+    assert summary["totals"]["created"] == 1
 
 
-def test_github_app_config_loading(tmp_path):
+def test_github_app_config_loading(tmp_path: Path) -> None:
     """Test loading GitHub App configuration from config file."""
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
+    cfg_path = tmp_path / "issue_suite.config.yaml"
     cfg_path.write_text(CONFIG_WITH_GITHUB_APP)
 
     cfg = load_config(cfg_path)
@@ -125,7 +129,7 @@ def test_github_app_config_loading(tmp_path):
     assert cfg.github_app_installation_id == "67890"
 
 
-def test_github_app_config_defaults(tmp_path):
+def test_github_app_config_defaults(tmp_path: Path) -> None:
     """Test default GitHub App configuration when not specified."""
     config_without_app_section = """
 version: 1
@@ -142,7 +146,7 @@ behavior: {}
 ai: {}
 """
 
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
+    cfg_path = tmp_path / "issue_suite.config.yaml"
     cfg_path.write_text(config_without_app_section)
 
     cfg = load_config(cfg_path)
@@ -154,18 +158,14 @@ ai: {}
     assert cfg.github_app_installation_id is None
 
 
-def test_github_app_with_existing_private_key(monkeypatch, tmp_path):
+def test_github_app_with_existing_private_key(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     """Test GitHub App integration with an actual private key file."""
     # Create a dummy private key file
-    key_path = tmp_path / 'test-key.pem'
+    key_path = tmp_path / "test-key.pem"
     key_path.write_text(
-        "\n".join(
-            [
-                KEY_HEADER,
-                "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...",
-                KEY_FOOTER,
-            ]
-        )
+        """-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
+-----END PRIVATE KEY-----"""
     )
 
     config_with_real_key = f"""
@@ -191,12 +191,12 @@ logging:
   level: INFO
 """
 
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
-    (tmp_path / 'ISSUES.md').write_text(ISSUES)
+    cfg_path = tmp_path / "issue_suite.config.yaml"
+    (tmp_path / "ISSUES.md").write_text(ISSUES)
     cfg_path.write_text(config_with_real_key)
 
     # Set mock mode
-    monkeypatch.setenv('ISSUES_SUITE_MOCK', '1')
+    monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
 
     cfg = load_config(cfg_path)
     suite = IssueSuite(cfg)
@@ -207,10 +207,14 @@ logging:
 
     # In mock mode, authentication should work
     summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
-    assert summary['totals']['specs'] == 1
+    assert summary["totals"]["specs"] == 1
 
 
-def test_github_app_error_handling(monkeypatch, tmp_path, capsys):
+def test_github_app_error_handling(
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+    capsys: CaptureFixture[str],
+) -> None:
     """Test error handling when GitHub App setup fails."""
     # Config with invalid key path
     config_with_invalid_key = """
@@ -236,8 +240,8 @@ logging:
   level: INFO
 """
 
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
-    (tmp_path / 'ISSUES.md').write_text(ISSUES)
+    cfg_path = tmp_path / "issue_suite.config.yaml"
+    (tmp_path / "ISSUES.md").write_text(ISSUES)
     cfg_path.write_text(config_with_invalid_key)
 
     # Don't set mock mode to test real error handling
@@ -248,9 +252,9 @@ logging:
     # Should handle GitHub App setup errors gracefully
     # The sync should still work (falling back to regular auth)
     summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
-    assert summary['totals']['specs'] == 1
+    assert summary["totals"]["specs"] == 1
 
     # Check for error logs
     captured = capsys.readouterr()
-    captured.out + captured.err
+    assert captured.out or captured.err
     # In mock mode OFF, may get authentication errors, but shouldn't crash

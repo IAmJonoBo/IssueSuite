@@ -154,12 +154,12 @@ body: |
 
 def test_sync_with_concurrency_enabled(monkeypatch, tmp_path):
     """Test sync with concurrency enabled for large roadmap."""
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
-    (tmp_path / 'ISSUES.md').write_text(LARGE_ISSUES)
+    cfg_path = tmp_path / "issue_suite.config.yaml"
+    (tmp_path / "ISSUES.md").write_text(LARGE_ISSUES)
     cfg_path.write_text(CONFIG_WITH_CONCURRENCY)
 
     # Set mock mode to avoid GitHub CLI calls
-    monkeypatch.setenv('ISSUES_SUITE_MOCK', '1')
+    monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
 
     cfg = load_config(cfg_path)
     suite = IssueSuite(cfg)
@@ -174,18 +174,18 @@ def test_sync_with_concurrency_enabled(monkeypatch, tmp_path):
     summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should process all 12 specs
-    assert summary['totals']['specs'] == 12
-    assert summary['totals']['created'] == 12
+    assert summary["totals"]["specs"] == 12
+    assert summary["totals"]["created"] == 12
 
 
 def test_sync_with_concurrency_disabled(monkeypatch, tmp_path):
     """Test sync with concurrency disabled."""
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
-    (tmp_path / 'ISSUES.md').write_text(LARGE_ISSUES)
+    cfg_path = tmp_path / "issue_suite.config.yaml"
+    (tmp_path / "ISSUES.md").write_text(LARGE_ISSUES)
     cfg_path.write_text(CONFIG_WITHOUT_CONCURRENCY)
 
     # Set mock mode to avoid GitHub CLI calls
-    monkeypatch.setenv('ISSUES_SUITE_MOCK', '1')
+    monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
 
     cfg = load_config(cfg_path)
     suite = IssueSuite(cfg)
@@ -198,18 +198,18 @@ def test_sync_with_concurrency_disabled(monkeypatch, tmp_path):
     summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should still process all specs correctly
-    assert summary['totals']['specs'] == 12
-    assert summary['totals']['created'] == 12
+    assert summary["totals"]["specs"] == 12
+    assert summary["totals"]["created"] == 12
 
 
 def test_sync_small_roadmap_uses_sequential(monkeypatch, tmp_path):
     """Test that small roadmaps use sequential processing even with concurrency enabled."""
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
-    (tmp_path / 'ISSUES.md').write_text(SMALL_ISSUES)
+    cfg_path = tmp_path / "issue_suite.config.yaml"
+    (tmp_path / "ISSUES.md").write_text(SMALL_ISSUES)
     cfg_path.write_text(CONFIG_WITH_CONCURRENCY)
 
     # Set mock mode to avoid GitHub CLI calls
-    monkeypatch.setenv('ISSUES_SUITE_MOCK', '1')
+    monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
 
     cfg = load_config(cfg_path)
     suite = IssueSuite(cfg)
@@ -221,19 +221,19 @@ def test_sync_small_roadmap_uses_sequential(monkeypatch, tmp_path):
     summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should process the single spec correctly
-    assert summary['totals']['specs'] == 1
-    assert summary['totals']['created'] == 1
+    assert summary["totals"]["specs"] == 1
+    assert summary["totals"]["created"] == 1
 
 
 @pytest.mark.asyncio
 async def test_sync_async_method(monkeypatch, tmp_path):
     """Test the async sync method directly."""
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
-    (tmp_path / 'ISSUES.md').write_text(LARGE_ISSUES)
+    cfg_path = tmp_path / "issue_suite.config.yaml"
+    (tmp_path / "ISSUES.md").write_text(LARGE_ISSUES)
     cfg_path.write_text(CONFIG_WITH_CONCURRENCY)
 
     # Set mock mode to avoid GitHub CLI calls
-    monkeypatch.setenv('ISSUES_SUITE_MOCK', '1')
+    monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
 
     cfg = load_config(cfg_path)
     suite = IssueSuite(cfg)
@@ -244,13 +244,13 @@ async def test_sync_async_method(monkeypatch, tmp_path):
     )
 
     # Should process all specs with concurrency
-    assert summary['totals']['specs'] == 12
-    assert summary['totals']['created'] == 12
+    assert summary["totals"]["specs"] == 12
+    assert summary["totals"]["created"] == 12
 
 
 def test_concurrency_config_loading(tmp_path):
     """Test loading concurrency configuration from config file."""
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
+    cfg_path = tmp_path / "issue_suite.config.yaml"
     cfg_path.write_text(CONFIG_WITH_CONCURRENCY)
 
     cfg = load_config(cfg_path)
@@ -277,7 +277,7 @@ behavior: {}
 ai: {}
 """
 
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
+    cfg_path = tmp_path / "issue_suite.config.yaml"
     cfg_path.write_text(config_without_concurrency_section)
 
     cfg = load_config(cfg_path)
@@ -289,12 +289,12 @@ ai: {}
 
 def test_optimal_worker_adjustment(monkeypatch, tmp_path):
     """Test that sync works with concurrency configuration."""
-    cfg_path = tmp_path / 'issue_suite.config.yaml'
-    (tmp_path / 'ISSUES.md').write_text(LARGE_ISSUES)
+    cfg_path = tmp_path / "issue_suite.config.yaml"
+    (tmp_path / "ISSUES.md").write_text(LARGE_ISSUES)
     cfg_path.write_text(CONFIG_WITH_CONCURRENCY)
 
     # Set mock mode
-    monkeypatch.setenv('ISSUES_SUITE_MOCK', '1')
+    monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
 
     cfg = load_config(cfg_path)
     suite = IssueSuite(cfg)
@@ -303,5 +303,5 @@ def test_optimal_worker_adjustment(monkeypatch, tmp_path):
     summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should have processed all specs successfully
-    assert summary['totals']['specs'] == 12
-    assert summary['totals']['created'] == 12
+    assert summary["totals"]["specs"] == 12
+    assert summary["totals"]["created"] == 12

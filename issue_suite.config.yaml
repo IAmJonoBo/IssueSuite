@@ -1,7 +1,7 @@
 version: 1
 source:
   file: ISSUES.md
-  id_pattern: '^[a-z0-9][a-z0-9-_]*$'
+  id_pattern: ^[a-z0-9][a-z0-9-_]*$
 behavior:
   truncate_body_diff: 80
   dry_run_default: true

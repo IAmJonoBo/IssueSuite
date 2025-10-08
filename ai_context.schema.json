@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AIContext",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "type",
+    "spec_count",
+    "preview",
+    "mapping",
+    "config",
+    "env",
+    "recommended"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "const": "issuesuite.ai-context"
+    },
+    "spec_count": {
+      "type": "integer"
+    },
+    "preview": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "mapping": {
+      "type": "object"
+    },
+    "config": {
+      "type": "object"
+    },
+    "env": {
+      "type": "object"
+    },
+    "project": {
+      "type": "object"
+    },
+    "recommended": {
+      "type": "object"
+    }
+  }
+}

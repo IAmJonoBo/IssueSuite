@@ -15,28 +15,25 @@ error messages trigger a retry; other failures propagate immediately.
 
 from __future__ import annotations
 
-import logging
 import os
 import random
 import re
-import subprocess  # nosec B404 - subprocess used for retrying CLI operations
+import subprocess
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TypeVar
 
-logger = logging.getLogger(__name__)
-
-T = TypeVar('T')
+T = TypeVar("T")
 
 TRANSIENT_TOKENS = (
-    'rate limit',
-    'abuse detection',
-    'secondary rate',
+    "rate limit",
+    "abuse detection",
+    "secondary rate",
 )
 
-_RE_RETRY_AFTER = re.compile(r'retry[-\s]after:?\s*(\d+)', re.IGNORECASE)
-_RE_SECONDS_HINT = re.compile(r'wait\s*(\d+)\s*seconds', re.IGNORECASE)
+_RE_RETRY_AFTER = re.compile(r"retry[-\s]after:?\s*(\d+)", re.IGNORECASE)
+_RE_SECONDS_HINT = re.compile(r"wait\s*(\d+)\s*seconds", re.IGNORECASE)
 
 
 def _extract_explicit_backoff(text: str) -> float | None:
@@ -69,8 +66,8 @@ def _extract_explicit_backoff(text: str) -> float | None:
 
 @dataclass
 class RetryConfig:
-    attempts: int = int(os.environ.get('ISSUESUITE_RETRY_ATTEMPTS', '3'))
-    base_sleep: float = float(os.environ.get('ISSUESUITE_RETRY_BASE', '0.5'))
+    attempts: int = int(os.environ.get("ISSUESUITE_RETRY_ATTEMPTS", "3"))
+    base_sleep: float = float(os.environ.get("ISSUESUITE_RETRY_BASE", "0.5"))
 
 
 def is_transient(output: str) -> bool:
@@ -78,32 +75,25 @@ def is_transient(output: str) -> bool:
     return any(tok in out_lower for tok in TRANSIENT_TOKENS)
 
 
-_RAND = random.SystemRandom()
-
-
 def _compute_sleep(attempt: int, cfg: RetryConfig, out: str) -> float:
     explicit = _extract_explicit_backoff(out)
-    backoff = cfg.base_sleep * (2 ** (attempt - 1)) + _RAND.uniform(0, 0.25)
+    backoff = cfg.base_sleep * (2 ** (attempt - 1)) + random.uniform(0, 0.25)
     sleep_for: float = explicit if explicit is not None else backoff
-    max_cap_env = os.environ.get('ISSUESUITE_RETRY_MAX_SLEEP')
+    max_cap_env = os.environ.get("ISSUESUITE_RETRY_MAX_SLEEP")
     if max_cap_env:
         try:
             cap = float(max_cap_env)
             if cap >= 0:
                 sleep_for = min(sleep_for, cap)
-        except Exception as exc:  # pragma: no cover
-            logger.debug(
-                'Failed to parse ISSUESUITE_RETRY_MAX_SLEEP value %s: %s',
-                max_cap_env,
-                exc,
-            )
+        except Exception:  # pragma: no cover
+            pass
     return sleep_for
 
 
 def _handle_called_process_error(
     exc: subprocess.CalledProcessError, attempt: int, attempts: int, cfg: RetryConfig
 ) -> bool:
-    out = exc.output or ''
+    out = exc.output or ""
     if attempt >= attempts or not is_transient(out):
         return False
     sleep_for = _compute_sleep(attempt, cfg, out)
@@ -121,7 +111,7 @@ def run_with_retries(fn: Callable[[], T], *, cfg: RetryConfig | None = None) -> 
         except subprocess.CalledProcessError as exc:  # pragma: no cover
             if not _handle_called_process_error(exc, attempt, attempts, cfg):
                 raise
-    raise RuntimeError('retry logic exited unexpectedly')  # pragma: no cover
+    raise RuntimeError("retry logic exited unexpectedly")  # pragma: no cover
 
 
-__all__ = ['RetryConfig', 'run_with_retries', 'is_transient']
+__all__ = ["RetryConfig", "run_with_retries", "is_transient"]

@@ -1,0 +1,21 @@
+# IssueSuite bootstrap configuration
+version: 1
+source:
+  file: ISSUES.md
+  id_pattern: ^[a-z0-9][a-z0-9-_]*$
+behavior:
+  truncate_body_diff: 80
+  dry_run_default: true
+defaults:
+  inject_labels:
+    - meta\:roadmap
+    - managed\:declarative
+  ensure_labels_enabled: false
+  ensure_milestones_enabled: false
+output:
+  summary_json: issues_summary.json
+  export_json: issues_export.json
+  mapping_file: .issuesuite_mapping.json
+  hash_state_file: .issuesuite_hashes.json
+ai:
+  schema_version: 1

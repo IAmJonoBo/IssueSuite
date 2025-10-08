@@ -6,32 +6,36 @@ on:
   workflow_dispatch:
     inputs:
       test_pypi:
-        description: 'Publish to Test PyPI instead of PyPI'
+        description: Publish to Test PyPI instead of PyPI
         required: false
         default: false
         type: boolean
+
+permissions: read-all
 
 jobs:
   pypi-publish:
     name: Upload release to PyPI
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       # IMPORTANT: this permission is mandatory for Trusted Publishing
       id-token: write
-      contents: read
       attestations: write
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d  # v5.1.0
         with:
-          python-version: '3.13'
+          python-version: "3.13"
 
       - name: Install build dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install build twine pip-audit cyclonedx-bom
+          python -m pip install --upgrade pip==24.2
+          python -m pip install --no-deps build==1.2.2.post1 twine==6.2.0
+          python -m pip install pip-audit cyclonedx-bom
 
       - name: Install project with dev dependencies
         run: pip install -e .[dev,all]
@@ -55,19 +59,19 @@ jobs:
         run: pip-audit --strict --progress-spinner off
 
       - name: Generate build provenance attestation
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v1
         with:
-          subject-path: "dist/*"
+          subject-path: dist/*
 
       - name: Publish package distributions to Test PyPI
         if: github.event.inputs.test_pypi == 'true'
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@e53eb8b103ffcb59469888563dc324e3c8ba6f06  # v1.8.12
         with:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
 
       - name: Publish package distributions to PyPI
         if: github.event.inputs.test_pypi != 'true'
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@e53eb8b103ffcb59469888563dc324e3c8ba6f06  # v1.8.12
         with:
           skip-existing: true

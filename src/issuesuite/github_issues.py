@@ -235,8 +235,8 @@ class IssuesClient:
             out = self._run(cmd)
         except RuntimeError as exc:  # pragma: no cover - environment dependent
             # In some ephemeral temp directories (tests) gh may fail if not a git repo
-            if 'not a git repository' in str(exc).lower():
-                print('[list_existing] non-git directory; returning empty list')
+            if "not a git repository" in str(exc).lower():
+                print("[list_existing] non-git directory; returning empty list")
                 return []
             raise
         if not out.strip():

@@ -59,13 +59,13 @@ def test_async_github_client_mock() -> None:
 def test_async_github_client_disabled_concurrency() -> None:
     async def _run() -> None:
         config = ConcurrencyConfig(enabled=False)
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             mock_result = MagicMock()
-            mock_result.stdout = 'success'
+            mock_result.stdout = "success"
             mock_run.return_value = mock_result
             with create_async_github_client(config, mock=False) as client:
                 success, msg = await client.create_issue_async("Test", "Body")
-                assert success and msg == 'success'
+                assert success and msg == "success"
                 mock_run.assert_called_once()
 
     asyncio.run(_run())
@@ -124,7 +124,7 @@ def test_concurrent_processor_error_handling() -> None:
         results = await processor.process_specs_concurrent(items, error_processor)
         assert len(results) == 3
         assert results[0] == "processed_item1"
-        assert isinstance(results[1], dict) and 'error' in results[1]
+        assert isinstance(results[1], dict) and "error" in results[1]
         assert results[2] == "processed_item3"
 
     asyncio.run(_run())

@@ -18,8 +18,8 @@ from typing import Any, TypeVar
 
 from .logging import get_logger
 
-T = TypeVar('T')
-R = TypeVar('R')
+T = TypeVar("T")
+R = TypeVar("R")
 
 
 class ConcurrencyConfig:
@@ -103,14 +103,18 @@ class AsyncGitHubClient:
             return False, f"Error: {e}"
 
     async def create_issue_async(
-        self, title: str, body: str, labels: list[str] | None = None, milestone: str | None = None
+        self,
+        title: str,
+        body: str,
+        labels: list[str] | None = None,
+        milestone: str | None = None,
     ) -> tuple[bool, str]:
         """Create an issue asynchronously."""
-        cmd = ['gh', 'issue', 'create', '--title', title, '--body', body]
+        cmd = ["gh", "issue", "create", "--title", title, "--body", body]
         if labels:
-            cmd += ['--label', ','.join(labels)]
+            cmd += ["--label", ",".join(labels)]
         if milestone:
-            cmd += ['--milestone', milestone]
+            cmd += ["--milestone", milestone]
 
         self.logger.debug("Creating issue async", title=title[:50])
         return await self._run_command_async(cmd)
@@ -127,50 +131,57 @@ class AsyncGitHubClient:
         messages = []
 
         if labels:
-            cmd = ['gh', 'issue', 'edit', str(issue_number), '--add-label', ','.join(labels)]
+            cmd = [
+                "gh",
+                "issue",
+                "edit",
+                str(issue_number),
+                "--add-label",
+                ",".join(labels),
+            ]
             result, msg = await self._run_command_async(cmd)
             success = success and result
             messages.append(msg)
 
         if milestone:
-            cmd = ['gh', 'issue', 'edit', str(issue_number), '--milestone', milestone]
+            cmd = ["gh", "issue", "edit", str(issue_number), "--milestone", milestone]
             result, msg = await self._run_command_async(cmd)
             success = success and result
             messages.append(msg)
 
         if body:
             cmd = [
-                'gh',
-                'api',
-                f'repos/:owner/:repo/issues/{issue_number}',
-                '--method',
-                'PATCH',
-                '-f',
-                f'body={body}',
+                "gh",
+                "api",
+                f"repos/:owner/:repo/issues/{issue_number}",
+                "--method",
+                "PATCH",
+                "-f",
+                f"body={body}",
             ]
             result, msg = await self._run_command_async(cmd)
             success = success and result
             messages.append(msg)
 
-        return success, '\n'.join(messages)
+        return success, "\n".join(messages)
 
     async def close_issue_async(self, issue_number: int) -> tuple[bool, str]:
         """Close an issue asynchronously."""
-        cmd = ['gh', 'issue', 'close', str(issue_number)]
+        cmd = ["gh", "issue", "close", str(issue_number)]
         return await self._run_command_async(cmd)
 
     async def get_issues_async(self) -> tuple[bool, list[dict[str, Any]]]:
         """Get all issues asynchronously."""
         cmd = [
-            'gh',
-            'issue',
-            'list',
-            '--state',
-            'all',
-            '--limit',
-            '1000',
-            '--json',
-            'number,title,body,labels,milestone,state',
+            "gh",
+            "issue",
+            "list",
+            "--state",
+            "all",
+            "--limit",
+            "1000",
+            "--json",
+            "number,title,body,labels,milestone,state",
         ]
 
         success, output = await self._run_command_async(cmd)
@@ -231,7 +242,10 @@ class ConcurrentProcessor:
 
         duration_ms = (time.perf_counter() - start_time) * 1000
         self.logger.log_performance(
-            "concurrent_processing", duration_ms, spec_count=len(specs), results_count=len(results)
+            "concurrent_processing",
+            duration_ms,
+            spec_count=len(specs),
+            results_count=len(results),
         )
 
         return results
@@ -264,7 +278,7 @@ class ConcurrentProcessor:
             if isinstance(result, Exception):
                 self.logger.log_error(f"Error processing spec {batch[i]}", error=str(result))
                 # Return a default failure result
-                processed_results.append({'error': str(result), 'spec': batch[i]})
+                processed_results.append({"error": str(result), "spec": batch[i]})
             else:
                 processed_results.append(result)
 

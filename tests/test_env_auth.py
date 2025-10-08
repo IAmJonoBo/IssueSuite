@@ -1,5 +1,8 @@
 import os
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+from pytest import MonkeyPatch
 
 from issuesuite.env_auth import (
     EnvAuthConfig,
@@ -9,7 +12,7 @@ from issuesuite.env_auth import (
 )
 
 
-def test_env_auth_config():
+def test_env_auth_config() -> None:
     """Test EnvAuthConfig initialization."""
     config = EnvAuthConfig(
         load_dotenv=True,
@@ -22,7 +25,7 @@ def test_env_auth_config():
     assert config.github_token_var == "CUSTOM_GITHUB_TOKEN"
 
 
-def test_env_auth_config_defaults():
+def test_env_auth_config_defaults() -> None:
     """Test EnvAuthConfig with defaults."""
     config = EnvAuthConfig()
 
@@ -32,7 +35,7 @@ def test_env_auth_config_defaults():
     assert config.vscode_secrets_enabled is True
 
 
-def test_environment_auth_manager_no_token(monkeypatch):
+def test_environment_auth_manager_no_token(monkeypatch: MonkeyPatch) -> None:
     """Test EnvironmentAuthManager when no token is available."""
     # Clear any existing tokens
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
@@ -45,7 +48,7 @@ def test_environment_auth_manager_no_token(monkeypatch):
     assert not manager.configure_github_cli()
 
 
-def test_environment_auth_manager_with_token(monkeypatch):
+def test_environment_auth_manager_with_token(monkeypatch: MonkeyPatch) -> None:
     """Test EnvironmentAuthManager with GitHub token."""
     monkeypatch.setenv("GITHUB_TOKEN", "test_token_123")
 
@@ -57,7 +60,7 @@ def test_environment_auth_manager_with_token(monkeypatch):
     assert os.environ["GITHUB_TOKEN"] == "test_token_123"
 
 
-def test_environment_auth_manager_alternative_tokens(monkeypatch):
+def test_environment_auth_manager_alternative_tokens(monkeypatch: MonkeyPatch) -> None:
     """Test EnvironmentAuthManager with alternative token names."""
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.setenv("GH_TOKEN", "alt_token_456")
@@ -68,7 +71,7 @@ def test_environment_auth_manager_alternative_tokens(monkeypatch):
     assert manager.get_github_token() == "alt_token_456"
 
 
-def test_github_app_config_retrieval(monkeypatch):
+def test_github_app_config_retrieval(monkeypatch: MonkeyPatch) -> None:
     """Test GitHub App configuration retrieval."""
     monkeypatch.setenv("GITHUB_APP_ID", "12345")
     monkeypatch.setenv("GITHUB_APP_PRIVATE_KEY", "/path/to/key.pem")
@@ -83,7 +86,7 @@ def test_github_app_config_retrieval(monkeypatch):
     assert app_config["installation_id"] == "67890"
 
 
-def test_online_environment_detection(monkeypatch):
+def test_online_environment_detection(monkeypatch: MonkeyPatch) -> None:
     """Test detection of online environments."""
     config = EnvAuthConfig(load_dotenv=False)
     manager = EnvironmentAuthManager(config)
@@ -101,7 +104,7 @@ def test_online_environment_detection(monkeypatch):
     assert manager.is_online_environment()
 
 
-def test_vscode_secrets_detection(monkeypatch):
+def test_vscode_secrets_detection(monkeypatch: MonkeyPatch) -> None:
     """Test VS Code secrets detection."""
     config = EnvAuthConfig(load_dotenv=False)
     manager = EnvironmentAuthManager(config)
@@ -119,7 +122,7 @@ def test_vscode_secrets_detection(monkeypatch):
     assert "github_token" in secrets
 
 
-def test_vscode_secrets_snapshot_ignored_until_changed(monkeypatch):
+def test_vscode_secrets_snapshot_ignored_until_changed(monkeypatch: MonkeyPatch) -> None:
     """Initial VS Code env vars present at construction should not appear until changed."""
     # Set variables BEFORE manager construction (baseline)
     monkeypatch.setenv("VSCODE_GIT_ASKPASS_MAIN", "/original/askpass")
@@ -137,7 +140,7 @@ def test_vscode_secrets_snapshot_ignored_until_changed(monkeypatch):
     assert "vscode_git_ipc_handle" in secrets
 
 
-def test_authentication_recommendations_no_token():
+def test_authentication_recommendations_no_token() -> None:
     """Test authentication recommendations when no token is found."""
     config = EnvAuthConfig(load_dotenv=False)
     manager = EnvironmentAuthManager(config)
@@ -146,7 +149,7 @@ def test_authentication_recommendations_no_token():
     assert any("GITHUB_TOKEN" in rec for rec in recommendations)
 
 
-def test_authentication_recommendations_incomplete_app(monkeypatch):
+def test_authentication_recommendations_incomplete_app(monkeypatch: MonkeyPatch) -> None:
     """Test recommendations with incomplete GitHub App config."""
     monkeypatch.setenv("GITHUB_APP_ID", "12345")
     # Missing other app config
@@ -158,7 +161,7 @@ def test_authentication_recommendations_incomplete_app(monkeypatch):
     assert any("Incomplete GitHub App" in rec for rec in recommendations)
 
 
-def test_create_sample_env_file(tmp_path):
+def test_create_sample_env_file(tmp_path: Path) -> None:
     """Test creation of sample .env file."""
     config = EnvAuthConfig(load_dotenv=False)
     manager = EnvironmentAuthManager(config)
@@ -173,7 +176,7 @@ def test_create_sample_env_file(tmp_path):
     assert "IssueSuite Environment Configuration" in content
 
 
-def test_create_sample_env_file_existing(tmp_path):
+def test_create_sample_env_file_existing(tmp_path: Path) -> None:
     """Test that existing .env file is not overwritten."""
     config = EnvAuthConfig(load_dotenv=False)
     manager = EnvironmentAuthManager(config)
@@ -189,7 +192,7 @@ def test_create_sample_env_file_existing(tmp_path):
 
 
 @patch("issuesuite.env_auth.load_dotenv")
-def test_dotenv_loading_with_file(mock_load_dotenv, tmp_path):
+def test_dotenv_loading_with_file(mock_load_dotenv: MagicMock, tmp_path: Path) -> None:
     """Test .env file loading when file exists."""
     env_file = tmp_path / ".env"
     env_file.write_text("GITHUB_TOKEN=test_token")
@@ -206,7 +209,7 @@ def test_dotenv_loading_with_file(mock_load_dotenv, tmp_path):
         os.chdir(original_cwd)
 
 
-def test_dotenv_loading_without_package():
+def test_dotenv_loading_without_package() -> None:
     """Test graceful handling when python-dotenv is not available."""
     config = EnvAuthConfig(load_dotenv=True)
 
@@ -215,7 +218,7 @@ def test_dotenv_loading_without_package():
         assert not manager._dotenv_loaded
 
 
-def test_factory_function():
+def test_factory_function() -> None:
     """Test factory function for creating EnvironmentAuthManager."""
     manager = create_env_auth_manager()
     assert isinstance(manager, EnvironmentAuthManager)
@@ -225,7 +228,7 @@ def test_factory_function():
     assert manager.config == config
 
 
-def test_setup_authentication_from_env(monkeypatch):
+def test_setup_authentication_from_env(monkeypatch: MonkeyPatch) -> None:
     """Test convenience function for authentication setup."""
     monkeypatch.setenv("GITHUB_TOKEN", "test_token")
     monkeypatch.setenv("VSCODE_PID", "12345")
@@ -239,7 +242,7 @@ def test_setup_authentication_from_env(monkeypatch):
     assert isinstance(result["recommendations"], list)
 
 
-def test_vscode_secrets_disabled():
+def test_vscode_secrets_disabled() -> None:
     """Test VS Code secrets when disabled."""
     config = EnvAuthConfig(vscode_secrets_enabled=False)
     manager = EnvironmentAuthManager(config)
@@ -248,7 +251,7 @@ def test_vscode_secrets_disabled():
     assert len(secrets) == 0
 
 
-def test_custom_token_variable(monkeypatch):
+def test_custom_token_variable(monkeypatch: MonkeyPatch) -> None:
     """Test using custom GitHub token environment variable."""
     monkeypatch.setenv("CUSTOM_TOKEN", "custom_value")
 
@@ -258,7 +261,7 @@ def test_custom_token_variable(monkeypatch):
     assert manager.get_github_token() == "custom_value"
 
 
-def test_custom_app_variables(monkeypatch):
+def test_custom_app_variables(monkeypatch: MonkeyPatch) -> None:
     """Test using custom GitHub App environment variables."""
     monkeypatch.setenv("CUSTOM_APP_ID", "999")
     monkeypatch.setenv("CUSTOM_APP_KEY_PATH", "/custom/key")

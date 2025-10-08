@@ -6,14 +6,14 @@ from pathlib import Path
 from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CLI_MODULE = 'issuesuite.cli'
+CLI_MODULE = "issuesuite.cli"
 
 MAX_PREVIEW_CHARS = 2000  # keep previews lightweight for AI ingestion
 
 
 def run_cli(env: dict[str, str] | None = None, *args: str) -> subprocess.CompletedProcess[str]:
     # Invoke via module so that relative imports resolve under package
-    cmd: list[str] = [sys.executable, '-m', CLI_MODULE, *args]
+    cmd: list[str] = [sys.executable, "-m", CLI_MODULE, *args]
     proc_env = os.environ.copy()
     if env:
         proc_env.update(env)
@@ -66,11 +66,11 @@ def test_ai_context_command_structure(tmp_path: Path, monkeypatch: Any) -> None:
     # Find first line that begins JSON and reconstruct from there
     json_start_index = None
     for idx, ln in enumerate(output_lines):
-        if ln.lstrip().startswith('{'):
+        if ln.lstrip().startswith("{"):
             json_start_index = idx
             break
     assert json_start_index is not None, f"No JSON object found in output: {res.stdout}"
-    json_text = '\n'.join(output_lines[json_start_index:])
+    json_text = "\n".join(output_lines[json_start_index:])
     data = json.loads(json_text)
     # Core expected keys
     for key in [
@@ -87,7 +87,14 @@ def test_ai_context_command_structure(tmp_path: Path, monkeypatch: Any) -> None:
     assert data["schemaVersion"].startswith("ai-context/1"), data["schemaVersion"]
     # Each preview item should have limited keys
     for item in data["preview"]:
-        assert set(item.keys()) <= {"external_id", "title", "hash", "labels", "milestone", "status"}
+        assert set(item.keys()) <= {
+            "external_id",
+            "title",
+            "hash",
+            "labels",
+            "milestone",
+            "status",
+        }
 
     # recommended section sanity checks
     assert "usage" in data["recommended"]

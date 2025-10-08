@@ -14,10 +14,23 @@ name = "issuesuite"
 version = "0.1.13" # Keep in sync with issuesuite.__version__
 description = "Declarative GitHub Issues automation: validate, sync, export, and report from a single ISSUES.md file"
 readme = { file = "README.md", content-type = "text/markdown" }
-keywords = [ "automation", "cli", "declarative", "devops", "github", "issues", "project-management", "roadmap" ]
+keywords = [
+  "automation",
+  "cli",
+  "declarative",
+  "devops",
+  "github",
+  "issues",
+  "project-management",
+  "roadmap",
+]
 license = "MIT"
-maintainers = [ { name = "IssueSuite Maintainers", email = "maintainers@issuesuite.dev" } ]
-authors = [ { name = "IssueSuite Maintainers", email = "maintainers@issuesuite.dev" } ]
+maintainers = [
+  { name = "IssueSuite Maintainers", email = "maintainers@issuesuite.dev" },
+]
+authors = [
+  { name = "IssueSuite Maintainers", email = "maintainers@issuesuite.dev" },
+]
 requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -46,11 +59,17 @@ dependencies = [
 
 optional-dependencies.all = [
   "jsonschema>=4,<5",
+  "keyring>=25,<26",
   "psutil>=7.1",
+  "pyjwt>=2.9,<3",
   "python-dotenv>=1",
   "opentelemetry-api>=1.25",
   "opentelemetry-sdk>=1.25",
   "opentelemetry-exporter-otlp>=1.25",
+]
+optional-dependencies.auth = [
+  "keyring>=25,<26",
+  "pyjwt>=2.9,<3",
 ]
 optional-dependencies.dev = [
   "build>=1",
@@ -114,11 +133,24 @@ format.line-ending = "auto"
 format.skip-magic-trailing-comma = false
 lint.select = [ "B", "C4", "E", "F", "I", "N", "PL", "UP" ]
 lint.ignore = [ "E501", "PLR0911", "PLR0913" ]
+lint.per-file-ignores."src/issuesuite/bootstrap.py" = [
+  "PLR0912",
+] # JSON merge helper keeps explicit branching for clarity
 lint.per-file-ignores."src/issuesuite/cli.py" = [
   "PLR0915",
 ] # allow higher function complexity for CLI command dispatcher
-lint.per-file-ignores."src/issuesuite/core.py" = [ "PLR0912", "PLR0915" ] # parser + aggregation intentionally verbose
-lint.per-file-ignores."src/issuesuite/orchestrator.py" = [ "PLR0915" ] # enrichment logic intentionally linear/complex
+lint.per-file-ignores."src/issuesuite/config.py" = [
+  "C901",
+] # config loader aggregates many sections from YAML
+lint.per-file-ignores."src/issuesuite/core.py" = [
+  "PLR0912",
+  "PLR0915",
+] # parser + aggregation intentionally verbose
+lint.per-file-ignores."src/issuesuite/orchestrator.py" = [
+  "C901",
+  "PLR0912",
+  "PLR0915",
+] # enrichment logic intentionally linear/complex
 lint.per-file-ignores."src/issuesuite/parser.py" = [
   "C901",
 ] # parser functions are intentionally explicit with inline noqas

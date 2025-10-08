@@ -16,6 +16,7 @@ from __future__ import annotations
 from .ai_context import get_ai_context  # new public helper
 from .config import SuiteConfig, load_config
 from .core import IssueSpec, IssueSuite
+from .scaffold import scaffold_project
 
 # Version constant (sync manually with pyproject when extracted as standalone project)
 __version__ = "0.1.13"
@@ -40,5 +41,6 @@ __all__ = [
     "IssueSuite",
     "IssueSpec",
     "get_ai_context",
+    "scaffold_project",
     "__version__",
 ]

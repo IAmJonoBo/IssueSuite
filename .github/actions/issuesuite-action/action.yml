@@ -8,7 +8,7 @@ inputs:
   dry-run:
     description: Whether to perform a dry-run before update
     required: false
-    default: 'true'
+    default: "true"
 runs:
   using: composite
   steps:

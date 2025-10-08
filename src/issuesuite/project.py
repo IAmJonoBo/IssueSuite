@@ -15,8 +15,7 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
-import subprocess  # nosec B404 - GitHub CLI interactions require subprocess
+import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -45,21 +44,20 @@ class GitHubProjectAssigner:
     def __init__(self, config: ProjectConfig):
         self.config = config
         self.logger = get_logger()
-        self._mock = os.environ.get('ISSUES_SUITE_MOCK') == '1'
+        self._mock = os.environ.get("ISSUES_SUITE_MOCK") == "1"
         self._project_id: str | None = None
         self._field_cache: dict[str, dict[str, Any]] = {}
-        self._cache_dir = Path('.issuesuite_cache')
+        self._cache_dir = Path(".issuesuite_cache")
         self._cache_dir.mkdir(exist_ok=True)
-        self._cache_ttl = int(os.environ.get('ISSUESUITE_PROJECT_CACHE_TTL', '3600'))
-        self._no_persist = os.environ.get('ISSUESUITE_PROJECT_CACHE_DISABLE') == '1'
-        self._gh_cli_path: Path | None = None if self._mock else self._resolve_gh_cli()
+        self._cache_ttl = int(os.environ.get("ISSUESUITE_PROJECT_CACHE_TTL", "3600"))
+        self._no_persist = os.environ.get("ISSUESUITE_PROJECT_CACHE_DISABLE") == "1"
 
     # ---------------- internal helpers ----------------
     def _cache_path(self) -> Path:
         return self._cache_dir / f"project_{self.config.number}_cache.json"
 
     def _is_cache_stale(self, payload: dict[str, Any]) -> bool:
-        ts = payload.get('ts')
+        ts = payload.get("ts")
         if not isinstance(ts, int | float):
             return True
         return (time.time() - ts) > self._cache_ttl
@@ -83,23 +81,23 @@ class GitHubProjectAssigner:
             return
         try:
             payload = {
-                'project_id': self._project_id,
-                'fields': self._field_cache,
-                'ts': time.time(),
+                "project_id": self._project_id,
+                "fields": self._field_cache,
+                "ts": time.time(),
             }
             self._cache_path().write_text(json.dumps(payload, indent=2))
-        except Exception as exc:  # pragma: no cover - best effort
-            self.logger.debug('Failed to persist project cache', error=str(exc))
+        except Exception:  # pragma: no cover - best effort
+            pass
 
     def _get_project_id(self) -> str | None:
         if self._project_id:
             return self._project_id
         cached = self._load_cache()
-        if cached and cached.get('project_id') and not self._is_cache_stale(cached):
-            self._project_id = str(cached['project_id'])
-            if cached.get('fields') and not self._field_cache:
+        if cached and cached.get("project_id") and not self._is_cache_stale(cached):
+            self._project_id = str(cached["project_id"])
+            if cached.get("fields") and not self._field_cache:
                 # hydrate field cache from persisted payload
-                self._field_cache = cached['fields']
+                self._field_cache = cached["fields"]
             return self._project_id
         if self._mock:
             self._project_id = f"mock_project_{self.config.number}"
@@ -112,7 +110,8 @@ class GitHubProjectAssigner:
             return self._project_id
         except Exception as e:  # pragma: no cover - defensive
             self.logger.log_error(
-                f"Failed to get project ID for project {self.config.number}", error=str(e)
+                f"Failed to get project ID for project {self.config.number}",
+                error=str(e),
             )
             return None
 
@@ -120,31 +119,31 @@ class GitHubProjectAssigner:
         if self._field_cache:
             return self._field_cache
         cached = self._load_cache()
-        if cached and cached.get('fields') and not self._is_cache_stale(cached):
+        if cached and cached.get("fields") and not self._is_cache_stale(cached):
             # hydrate from cache
-            self._field_cache = cached['fields']
+            self._field_cache = cached["fields"]
             return self._field_cache
         if self._mock:
             self._field_cache = {
-                'Status': {
-                    'id': 'field_status',
-                    'type': 'single_select',
-                    'options': {
-                        'Todo': 'opt_status_todo',
-                        'In Progress': 'opt_status_in_progress',
-                        'Done': 'opt_status_done',
+                "Status": {
+                    "id": "field_status",
+                    "type": "single_select",
+                    "options": {
+                        "Todo": "opt_status_todo",
+                        "In Progress": "opt_status_in_progress",
+                        "Done": "opt_status_done",
                     },
                 },
-                'Priority': {
-                    'id': 'field_priority',
-                    'type': 'single_select',
-                    'options': {
-                        'P0': 'opt_priority_p0',
-                        'P1': 'opt_priority_p1',
-                        'P2': 'opt_priority_p2',
+                "Priority": {
+                    "id": "field_priority",
+                    "type": "single_select",
+                    "options": {
+                        "P0": "opt_priority_p0",
+                        "P1": "opt_priority_p1",
+                        "P2": "opt_priority_p2",
                     },
                 },
-                'Assignee': {'id': 'field_assignee', 'type': 'assignees'},
+                "Assignee": {"id": "field_assignee", "type": "assignees"},
             }
             self._save_cache()
             return self._field_cache
@@ -154,22 +153,22 @@ class GitHubProjectAssigner:
             self.logger.debug("Fetching project fields", project_id=self._project_id)
             # Simulated subset; real call would populate dynamically
             self._field_cache = {
-                'Status': {
-                    'id': 'field_status',
-                    'type': 'single_select',
-                    'options': {
-                        'Todo': 'opt_status_todo',
-                        'In Progress': 'opt_status_in_progress',
-                        'Done': 'opt_status_done',
+                "Status": {
+                    "id": "field_status",
+                    "type": "single_select",
+                    "options": {
+                        "Todo": "opt_status_todo",
+                        "In Progress": "opt_status_in_progress",
+                        "Done": "opt_status_done",
                     },
                 },
-                'Priority': {
-                    'id': 'field_priority',
-                    'type': 'single_select',
-                    'options': {
-                        'P0': 'opt_priority_p0',
-                        'P1': 'opt_priority_p1',
-                        'P2': 'opt_priority_p2',
+                "Priority": {
+                    "id": "field_priority",
+                    "type": "single_select",
+                    "options": {
+                        "P0": "opt_priority_p0",
+                        "P1": "opt_priority_p1",
+                        "P2": "opt_priority_p2",
                     },
                 },
             }
@@ -188,7 +187,9 @@ class GitHubProjectAssigner:
             return f"mock_item_{issue_number}"
         try:  # pragma: no cover - placeholder
             self.logger.debug(
-                "Adding issue to project", issue_number=issue_number, project_id=project_id
+                "Adding issue to project",
+                issue_number=issue_number,
+                project_id=project_id,
             )
             item_id = f"project_item_{issue_number}"
             self.logger.info(f"Added issue #{issue_number} to project", item_id=item_id)
@@ -206,20 +207,14 @@ class GitHubProjectAssigner:
         """
         if self._mock:
             return f"mock_issue_{issue_number}"
-        gh_path = self._gh_cli_path or self._resolve_gh_cli()
-        if gh_path is None:
-            gh_cmd = 'gh'
-            self.logger.debug('GitHub CLI not resolved; attempting default "gh" lookup')
-        else:
-            gh_cmd = str(gh_path)
         try:  # pragma: no cover - placeholder shell call
-            result = subprocess.run(  # nosec B603 B607 - GitHub CLI invocation with controlled arguments
+            result = subprocess.run(
                 [
-                    gh_cmd,
-                    'api',
-                    f'repos/:owner/:repo/issues/{issue_number}',
-                    '--jq',
-                    '.node_id',
+                    "gh",
+                    "api",
+                    f"repos/:owner/:repo/issues/{issue_number}",
+                    "--jq",
+                    ".node_id",
                 ],
                 capture_output=True,
                 text=True,
@@ -233,17 +228,6 @@ class GitHubProjectAssigner:
             self.logger.log_error(f"Failed to get issue ID for #{issue_number}", error=str(e))
             return None
 
-    def _resolve_gh_cli(self) -> Path | None:
-        if self._mock:
-            return None
-        gh_path = shutil.which('gh')
-        if gh_path:
-            self._gh_cli_path = Path(gh_path)
-            return self._gh_cli_path
-        self.logger.debug('GitHub CLI executable not found; project assigner limited to mock mode')
-        self._gh_cli_path = None
-        return None
-
     def _update_project_field(
         self, item_id: str, field_name: str, field_value: str | list[str]
     ) -> bool:
@@ -253,8 +237,8 @@ class GitHubProjectAssigner:
             self.logger.warning(f"Field '{field_name}' not found in project")
             return False
         value_repr: str | list[str] = field_value
-        if isinstance(field_value, str) and info.get('type') == 'single_select':
-            options: dict[str, str] = info.get('options', {})
+        if isinstance(field_value, str) and info.get("type") == "single_select":
+            options: dict[str, str] = info.get("options", {})
             if options:
                 match_id = next(
                     (oid for name, oid in options.items() if name.lower() == field_value.lower()),
@@ -286,7 +270,8 @@ class GitHubProjectAssigner:
             return True
         except Exception as e:  # pragma: no cover
             self.logger.log_error(
-                f"Failed to update field '{field_name}' for item {item_id}", error=str(e)
+                f"Failed to update field '{field_name}' for item {item_id}",
+                error=str(e),
             )
             return False
 
@@ -309,7 +294,9 @@ class GitHubProjectAssigner:
         if not self.config.enabled or not self.config.number:
             return
         self.logger.log_operation(
-            "project_assign_start", issue_number=issue_number, project_number=self.config.number
+            "project_assign_start",
+            issue_number=issue_number,
+            project_number=self.config.number,
         )
         try:
             item_id = self._add_issue_to_project(issue_number)

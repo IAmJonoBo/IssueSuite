@@ -130,7 +130,9 @@ issues_mapping.json
 .issues_sync.lock
 issue_export.schema.json
 issue_change_summary.schema.json
+.issuesuite/
 .issuesuite_cache/
+issues_plan.json
 performance_report.json
 issues_*_report.json
 quality_gate_report.json

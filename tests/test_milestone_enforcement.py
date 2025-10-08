@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -22,7 +23,7 @@ def run_cli(tmp_path: Path, *args: str) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["ISSUESUITE_AI_MODE"] = "1"
     return subprocess.run(
-        ["python", "-m", "issuesuite", *args],
+        [sys.executable, "-m", "issuesuite", *args],
         cwd=tmp_path,
         capture_output=True,
         text=True,

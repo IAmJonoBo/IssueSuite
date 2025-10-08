@@ -69,12 +69,12 @@ class AIContextDoc(TypedDict):
 
 
 __all__ = [
-    'AIContextMapping',
-    'AIContextConfig',
-    'AIContextEnv',
-    'AIContextProject',
-    'AIContextRecommended',
-    'AIContextErrorsRetry',
-    'AIContextErrors',
-    'AIContextDoc',
+    "AIContextMapping",
+    "AIContextConfig",
+    "AIContextEnv",
+    "AIContextProject",
+    "AIContextRecommended",
+    "AIContextErrorsRetry",
+    "AIContextErrors",
+    "AIContextDoc",
 ]

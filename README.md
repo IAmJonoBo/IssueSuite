@@ -6,7 +6,6 @@
 [![Python Versions](https://img.shields.io/pypi/pyversions/issuesuite.svg)](https://pypi.org/project/issuesuite/)
 [![CI](https://github.com/IAmJonoBo/IssueSuite/actions/workflows/ci.yml/badge.svg)](https://github.com/IAmJonoBo/IssueSuite/actions/workflows/ci.yml)
 
-
 Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.md` file (using **slug headings + fenced YAML blocks**) and keep real GitHub issues perfectly in sync (create / update / close) with deterministic hashes, readable diffs, JSON artifacts, and optional preflight resource creation.
 
 ## Features
@@ -31,7 +30,6 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
 - Human & machine-readable diffs (labels, milestone, body snippet)
 - JSON export (`issues_export.json`) + change summary (`issues_summary.json`)
 - JSON Schemas for export/summary and AI context
-- Schema registry with explicit version metadata (`issuesuite.schema_registry`) to keep downstream consumers synchronized as artifacts evolve.
 - Configurable patterns (ID regex, milestone naming, global injected labels)
 - Optional preflight auto-create of labels & milestones (feature flags)
 - AI tooling: generated JSON Schemas for export, change summary, and AI context (+ `issuesuite.schemas.get_schemas()`)
@@ -39,66 +37,71 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
 - AI context export: `issuesuite ai-context` emits structured JSON (preview of spec, config hints, env suggestions) for assistant ingestion
 - Agent updates: `issuesuite agent-apply` ingests AI/agent completion summaries and updates `ISSUES.md` (and optional docs) before syncing
 - Quiet mode: `--quiet` or `ISSUESUITE_QUIET=1` suppresses informational logging (helpful when piping JSON to other tools)
-- Offline-ready dependency governance via `issuesuite.dependency_audit` with pip-audit integration and curated advisories for air-gapped runners
-- Resilient `pip-audit` wrapper and `issuesuite security` command merging curated offline advisories with live vulnerability feeds when available
-- Automated offline advisory refresh via `python -m issuesuite.advisory_refresh --refresh --check` and the CLI flag `issuesuite security --refresh-offline`
-- Telemetry breadcrumbs when resilient pip-audit falls back to offline advisories so operators can observe degraded remote feeds
-- Deterministic changelog updates with `scripts/update_changelog.py` (non-blocking lock) and `nox` developer sessions mirroring CI gates
 - Debug logging via `ISSUESUITE_DEBUG=1`
 - Mock mode (`ISSUES_SUITE_MOCK=1`) for offline tests w/out GitHub API
   - In mock mode all GitHub CLI calls are suppressed (even without `--dry-run`) and operations are printed as `MOCK <action>`.
   - Mock create operations fabricate deterministic incremental issue numbers so mapping persistence and tests remain stable.
   - Dry-run planning: `issuesuite sync --dry-run` now returns a `plan` array in the summary showing proposed actions (`create|update|close|skip`) with label/milestone/body change counts.
-  - Optional `--plan-json <file>` flag (with `sync --dry-run`) writes only the plan to a standalone JSON artifact.
+  - Plan artifacts: the CLI honours `--plan-json <file>` (or the config `output.plan_json`, default `issues_plan.json`) to write just the plan to disk for CI review.
+- Pluggable extensions and telemetry: configure `extensions` and `telemetry` blocks (or use `ISSUESUITE_PLUGINS` / `ISSUESUITE_TELEMETRY`) to emit structured events and trigger entry-point hooks after every CLI command. See [Extensions, Plugins, and Telemetry](docs/explanations/extensions.md) for setup details.
 
 ## Quick Start
 
-```bash
-# Install from PyPI
-pip install issuesuite
+1. **Install the CLI (pipx recommended)**
 
-# Or install with pipx (recommended for CLI usage)
-pipx install issuesuite
+  ```bash
+  pipx install issuesuite
+  # or: pip install issuesuite
+  ```
 
-# Or install directly from GitHub
-pip install git+https://github.com/IAmJonoBo/IssueSuite.git
+1. **Scaffold a ready-to-run workspace**
 
-# Validate structure & ID pattern
-issuesuite validate --config issue_suite.config.yaml
+  ```bash
+  issuesuite init --all-extras
+  ```
 
-# Dry-run sync (no mutations) with summary JSON output
-issuesuite sync --dry-run --update --config issue_suite.config.yaml --summary-json issues_summary.json
+  This creates `issue_suite.config.yaml`, a starter `ISSUES.md`, `.vscode` tasks, a CI workflow, and a `.gitignore` snippet. Re-run with `--force` to regenerate.
 
-# Export current parsed specs
-issuesuite export --pretty --config issue_suite.config.yaml --output issues_export.json
+1. **Run the preflight bundle**
 
-# Human-readable summary
-issuesuite summary --config issue_suite.config.yaml
+  ```bash
+  ./scripts/issuesuite-preflight.sh
+  ```
 
-# Emit schemas to default files
-issuesuite schema --config issue_suite.config.yaml
+  The script validates specs and performs a dry-run sync, publishing `issues_summary.json` and `issues_plan.json` for inspection. Prefer the VS Code task **IssueSuite: Preflight** for one-click runs.
 
-# Offline dependency audit with resilient pip-audit fallback
-issuesuite security --offline-only
-issuesuite security --pip-audit --pip-audit-arg --format --pip-audit-arg json
-```
+1. **Promote to full sync when ready**
 
-### Developer Tooling
+  ```bash
+  issuesuite sync --update --config issue_suite.config.yaml --summary-json issues_summary.json
+  ```
 
-Run the consolidated quality gates locally with the bundled `nox` sessions:
+  Add the `--preflight` flag (or set `behavior.dry_run_default: true`) to auto-create labels/milestones before closing the dry-run loop.
 
-```bash
-nox -s tests lint typecheck security secrets build
-```
+See the [Getting Started tutorial](docs/tutorials/getting-started.md) for a narrated walkthrough, including troubleshooting tips and screenshots.
 
-When preparing release notes, use `scripts/update_changelog.py` to append a
-new entry without risking editor hangs caused by blocking file locks:
+### Learn more
 
-```bash
-python scripts/update_changelog.py 0.1.12 \
-  --highlight "Document schema registry and changelog guard" \
-  --highlight "Ship developer nox sessions"
-```
+- Tutorials: [Getting started](docs/tutorials/getting-started.md)
+- How-to guides: [CI/CD](docs/how-to/ci-cd.md), [Homebrew automation](docs/how-to/homebrew.md), [VS Code tasks](docs/how-to/vs-code.md)
+- Reference: [CLI commands](docs/reference/cli.md), [Configuration schema](docs/reference/configuration.md)
+- Explanations: [Architecture overview](docs/explanations/architecture.md), [Plugins & telemetry](docs/explanations/extensions.md)
+- Observability quick start: run `issuesuite upgrade --json` to see recommended configuration defaults and add a `telemetry` block, e.g.
+
+  ```yaml
+  telemetry:
+    enabled: true
+    store_path: .issuesuite/telemetry.jsonl
+  extensions:
+    enabled: true
+    disabled: []
+  ```
+
+  With telemetry enabled you can tail `telemetry.jsonl` to monitor command usage, while entry-point or environment-defined plugins receive the same payload for custom workflows.
+
+### Authentication quick check
+
+Run `issuesuite setup --check-auth` to ensure your GitHub token or GitHub App credentials are detected before attempting a full sync. Need a starter `.env`? Generate one with `issuesuite setup --create-env`, then paste your `GITHUB_TOKEN` (and optional GitHub App values) before running the tasks above.
 
 ### Agent Apply (update ISSUES.md from agent output)
 
@@ -124,21 +127,33 @@ Accepted JSON shapes for updates.json (a starter example lives at `agent_updates
 
   ```jsonc
   [
-    {"slug": "api-timeouts", "completed": true, "summary": "Fixed retry jitter; added metrics."}
+    {
+      "slug": "api-timeouts",
+      "completed": true,
+      "summary": "Fixed retry jitter; added metrics.",
+    },
   ]
   ```
 
 - Object with `updates` array:
 
   ```jsonc
-  {"updates": [{"external_id": "api-timeouts", "status": "closed", "comment": "Released v1.2."}]}
+  {
+    "updates": [
+      {
+        "external_id": "api-timeouts",
+        "status": "closed",
+        "comment": "Released v1.2.",
+      },
+    ],
+  }
   ```
 
 - Mapping of slug → update object:
 
   ```jsonc
   {
-    "perf-tuning": {"completed": true, "summary": "Profiling + batch writes"}
+    "perf-tuning": { "completed": true, "summary": "Profiling + batch writes" },
   }
   ```
 
@@ -172,11 +187,11 @@ issuesuite reconcile --config issue_suite.config.yaml
 
 Exit codes:
 
-| Code | Meaning |
-|------|---------|
-| `0`  | In sync (no drift) |
-| `2`  | Drift detected (one or more spec_only / live_only / diff entries) |
-| `>0` (other) | Operational error (parse failure, config error, etc.) |
+| Code         | Meaning                                                           |
+| ------------ | ----------------------------------------------------------------- |
+| `0`          | In sync (no drift)                                                |
+| `2`          | Drift detected (one or more spec_only / live_only / diff entries) |
+| `>0` (other) | Operational error (parse failure, config error, etc.)             |
 
 Sample JSON (abbreviated):
 
@@ -191,10 +206,14 @@ Sample JSON (abbreviated):
     "diff": [
       {
         "slug": "api-timeouts",
-        "changes": {"labels": {"added": ["priority:high"], "removed": []}, "milestone_changed": false, "body_changed": true}
-      }
-    ]
-  }
+        "changes": {
+          "labels": { "added": ["priority:high"], "removed": [] },
+          "milestone_changed": false,
+          "body_changed": true,
+        },
+      },
+    ],
+  },
 }
 ```
 
@@ -224,6 +243,10 @@ defaults:
   ensure_milestones_enabled: false
 behavior:
   truncate_body_diff: 80
+output:
+  summary_json: issues_summary.json
+  plan_json: issues_plan.json
+  export_json: issues_export.json
 ai:
   schema_export_file: issue_export.schema.json
   schema_summary_file: issue_change_summary.schema.json
@@ -364,11 +387,11 @@ after a successful sync with structure similar to:
 ```json
 {
   "operations": {
-    "parse_specs": {"ms": 12.4},
-    "fetch_existing_issues": {"ms": 98.7},
-    "process_specs": {"ms": 210.3},
-    "save_hash_state": {"ms": 3.2},
-    "sync_total": {"ms": 332.1}
+    "parse_specs": { "ms": 12.4 },
+    "fetch_existing_issues": { "ms": 98.7 },
+    "process_specs": { "ms": 210.3 },
+    "save_hash_state": { "ms": 3.2 },
+    "sync_total": { "ms": 332.1 }
   },
   "system": {
     "cpu_percent_avg": 14.2,
@@ -452,17 +475,17 @@ issuesuite ai-context --quiet --config issue_suite.config.yaml > ai_context.json
 
 ## Environment Variables
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `ISSUES_SUITE_MOCK` | Enable mock/offline mode (no GitHub calls; deterministic IDs) | unset |
-| `ISSUESUITE_DEBUG` | Verbose debug logging | unset |
-| `ISSUESUITE_AI_MODE` | Force all sync operations into dry-run (safety) | unset |
-| `ISSUESUITE_PROJECT_CACHE_TTL` | Seconds before project field cache considered stale | `3600` |
-| `ISSUESUITE_PROJECT_CACHE_DISABLE` | Disable on-disk project cache persistence when set to `1` | unset |
-| `ISSUESUITE_QUIET` | Suppress non-error log lines for clean JSON piping | unset |
-| `ISSUESUITE_RETRY_ATTEMPTS` | Override retry attempts for transient GitHub CLI errors | 3 |
-| `ISSUESUITE_RETRY_BASE` | Base seconds for exponential backoff | 0.5 |
-| `ISSUESUITE_RETRY_MAX_SLEEP` | Max seconds to sleep per retry (test/CI clamp) | unset |
+| Variable                           | Purpose                                                       | Default |
+| ---------------------------------- | ------------------------------------------------------------- | ------- |
+| `ISSUES_SUITE_MOCK`                | Enable mock/offline mode (no GitHub calls; deterministic IDs) | unset   |
+| `ISSUESUITE_DEBUG`                 | Verbose debug logging                                         | unset   |
+| `ISSUESUITE_AI_MODE`               | Force all sync operations into dry-run (safety)               | unset   |
+| `ISSUESUITE_PROJECT_CACHE_TTL`     | Seconds before project field cache considered stale           | `3600`  |
+| `ISSUESUITE_PROJECT_CACHE_DISABLE` | Disable on-disk project cache persistence when set to `1`     | unset   |
+| `ISSUESUITE_QUIET`                 | Suppress non-error log lines for clean JSON piping            | unset   |
+| `ISSUESUITE_RETRY_ATTEMPTS`        | Override retry attempts for transient GitHub CLI errors       | 3       |
+| `ISSUESUITE_RETRY_BASE`            | Base seconds for exponential backoff                          | 0.5     |
+| `ISSUESUITE_RETRY_MAX_SLEEP`       | Max seconds to sleep per retry (test/CI clamp)                | unset   |
 
 ## Reliability & Error Handling
 
@@ -573,27 +596,6 @@ The parser will auto-insert the hidden marker `<!-- issuesuite:slug=<slug> -->` 
 ## Versioning
 
 Semantic versioning once extracted; `__version__` exported for tooling.
-
-## Quality gates
-
-Run the bundled helper to execute the release gate suite (tests, lint, type checks, security scan, secrets scan, build) with a minimum coverage threshold of 65%:
-
-```bash
-python scripts/quality_gates.py
-```
-
-The script prints a concise summary and writes `quality_gate_report.json` for CI dashboards.
-
-The dependency gate first attempts to run `pip-audit` in the active environment and automatically falls back to IssueSuite's curated offline advisory dataset when network access is unavailable. The dataset lives at `src/issuesuite/data/security_advisories.json`; update it in tandem with upstream disclosures to keep offline scans trustworthy. You can also run the audit directly via `python -m issuesuite.dependency_audit` (pass `--offline-only` to skip the online probe).
-
-For performance budgets, the gate suite now generates a deterministic `performance_report.json` before asserting benchmarks. You can refresh the artifact independently with:
-
-```bash
-python scripts/generate_performance_report.py --output performance_report.json
-python -m issuesuite.benchmarking --check --report performance_report.json
-```
-
-The helper runs IssueSuite in mock mode against a synthetic roadmap, exercises sync and preflight flows, and produces metrics that are stable across environments—ideal for CI enforcement.
 
 ## License
 

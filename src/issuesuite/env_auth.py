@@ -53,7 +53,11 @@ class EnvironmentAuthManager:
         # Snapshot VS Code vars present at construction so we can ignore pre-existing editor plumbing
         self._initial_vscode_vars = {
             k: os.getenv(k)
-            for k in ('VSCODE_GIT_ASKPASS_MAIN', 'VSCODE_GIT_IPC_HANDLE', 'GITHUB_TOKEN')
+            for k in (
+                "VSCODE_GIT_ASKPASS_MAIN",
+                "VSCODE_GIT_IPC_HANDLE",
+                "GITHUB_TOKEN",
+            )
             if os.getenv(k)
         }
 
@@ -63,14 +67,14 @@ class EnvironmentAuthManager:
     def _load_dotenv(self) -> None:
         """Load .env file if available."""
         try:
-            dotenv_path = self.config.dotenv_path or '.env'
+            dotenv_path = self.config.dotenv_path or ".env"
             env_file = Path(dotenv_path)
             if env_file.exists():
                 load_dotenv(str(env_file))
                 self._dotenv_loaded = True
                 self.logger.debug(f"Loaded environment variables from {env_file}")
             else:
-                for location in ['.env', '.env.local', '.venv/.env']:
+                for location in [".env", ".env.local", ".venv/.env"]:
                     env_path = Path(location)
                     if env_path.exists():
                         load_dotenv(str(env_path))
@@ -88,7 +92,12 @@ class EnvironmentAuthManager:
             return token
 
         # Try alternative environment variable names
-        alternatives = ["GH_TOKEN", "GITHUB_ACCESS_TOKEN", "GH_ACCESS_TOKEN", "GITHUB_PAT"]
+        alternatives = [
+            "GH_TOKEN",
+            "GITHUB_ACCESS_TOKEN",
+            "GH_ACCESS_TOKEN",
+            "GITHUB_PAT",
+        ]
 
         for alt_var in alternatives:
             token = os.getenv(alt_var)
@@ -101,16 +110,16 @@ class EnvironmentAuthManager:
     def get_github_app_config(self) -> dict[str, str | None]:
         """Get GitHub App configuration from environment variables."""
         return {
-            'app_id': os.getenv(self.config.github_app_id_var),
-            'private_key': os.getenv(self.config.github_app_private_key_var),
-            'installation_id': os.getenv(self.config.github_app_installation_id_var),
+            "app_id": os.getenv(self.config.github_app_id_var),
+            "private_key": os.getenv(self.config.github_app_private_key_var),
+            "installation_id": os.getenv(self.config.github_app_installation_id_var),
         }
 
     def configure_github_cli(self) -> bool:
         """Configure GitHub CLI with available authentication."""
         token = self.get_github_token()
         if token:
-            os.environ['GITHUB_TOKEN'] = token
+            os.environ["GITHUB_TOKEN"] = token
             self.logger.log_operation("github_cli_configured_from_env")
             return True
 
@@ -127,9 +136,9 @@ class EnvironmentAuthManager:
             return {}
         vscode_secrets: dict[str, Any] = {}
         vscode_env_vars = [
-            'VSCODE_GIT_ASKPASS_MAIN',
-            'VSCODE_GIT_IPC_HANDLE',
-            'GITHUB_TOKEN',
+            "VSCODE_GIT_ASKPASS_MAIN",
+            "VSCODE_GIT_IPC_HANDLE",
+            "GITHUB_TOKEN",
         ]
         for var in vscode_env_vars:
             value = os.getenv(var)
@@ -147,10 +156,10 @@ class EnvironmentAuthManager:
         # Avoid generic CI indicators (e.g., CI/GITHUB_ACTIONS) so tests and local
         # automation don’t get misclassified as online workspaces.
         online_indicators = [
-            'CODESPACES',  # GitHub Codespaces
-            'VSCODE_IPC_HOOK',  # VS Code desktop/web
-            'VSCODE_PID',  # VS Code desktop/web
-            'GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN',  # Codespaces
+            "CODESPACES",  # GitHub Codespaces
+            "VSCODE_IPC_HOOK",  # VS Code desktop/web
+            "VSCODE_PID",  # VS Code desktop/web
+            "GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN",  # Codespaces
         ]
 
         for indicator in online_indicators:
@@ -192,7 +201,7 @@ class EnvironmentAuthManager:
 
         return recommendations
 
-    def create_sample_env_file(self, path: str = '.env') -> None:
+    def create_sample_env_file(self, path: str = ".env") -> None:
         """Create a sample .env file with authentication variables."""
         sample_content = """# IssueSuite Environment Configuration
 
@@ -219,7 +228,9 @@ GITHUB_TOKEN=your_github_token_here
             self.logger.debug(f"Environment file already exists: {env_path}")
 
 
-def create_env_auth_manager(config: EnvAuthConfig | None = None) -> EnvironmentAuthManager:
+def create_env_auth_manager(
+    config: EnvAuthConfig | None = None,
+) -> EnvironmentAuthManager:
     """Factory function to create environment authentication manager."""
     if config is None:
         config = EnvAuthConfig()
@@ -231,15 +242,15 @@ def setup_authentication_from_env() -> dict[str, Any]:
     auth_manager = create_env_auth_manager()
 
     result: dict[str, Any] = {
-        'github_token': auth_manager.get_github_token(),
-        'github_app': auth_manager.get_github_app_config(),
-        'vscode_secrets': auth_manager.get_vscode_secrets(),
-        'is_online': auth_manager.is_online_environment(),
-        'recommendations': auth_manager.get_authentication_recommendations(),
+        "github_token": auth_manager.get_github_token(),
+        "github_app": auth_manager.get_github_app_config(),
+        "vscode_secrets": auth_manager.get_vscode_secrets(),
+        "is_online": auth_manager.is_online_environment(),
+        "recommendations": auth_manager.get_authentication_recommendations(),
     }
 
     # Configure GitHub CLI if token is available
-    if result['github_token']:
+    if result["github_token"]:
         auth_manager.configure_github_cli()
 
     return result

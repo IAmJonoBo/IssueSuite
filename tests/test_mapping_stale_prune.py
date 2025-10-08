@@ -67,40 +67,40 @@ def test_stale_mapping_pruned(tmp_path: Path) -> None:
     rc1, out1 = _run(
         [
             sys.executable,
-            '-m',
-            'issuesuite.cli',
-            'sync',
-            '--config',
-            'issue_suite.config.yaml',
-            '--update',
-            '--summary-json',
-            'issues_summary.json',
+            "-m",
+            "issuesuite.cli",
+            "sync",
+            "--config",
+            "issue_suite.config.yaml",
+            "--update",
+            "--summary-json",
+            "issues_summary.json",
         ],
         tmp_path,
         env,
     )
     assert rc1 == 0, out1
 
-    idx = tmp_path / '.issuesuite' / 'index.json'
-    assert idx.exists(), 'index.json missing after first sync'
+    idx = tmp_path / ".issuesuite" / "index.json"
+    assert idx.exists(), "index.json missing after first sync"
     data_any: Any = json.loads(idx.read_text())
-    entries = data_any.get('entries') if isinstance(data_any, dict) else {}
-    entries_dict = cast(dict[Any, Any], entries if isinstance(entries, dict) else {})
-    assert 'keep-one' in entries_dict and 'stale-two' in entries_dict
+    mapping_val = data_any.get("mapping") if isinstance(data_any, dict) else {}
+    mapping_any = cast(dict[Any, Any], mapping_val if isinstance(mapping_val, dict) else {})
+    assert "keep-one" in mapping_any and "stale-two" in mapping_any
 
     # Modify ISSUES.md to remove stale-two
     (tmp_path / "ISSUES.md").write_text(SAMPLE_ISSUES_AFTER)
     rc2, out2 = _run(
         [
             sys.executable,
-            '-m',
-            'issuesuite.cli',
-            'sync',
-            '--config',
-            'issue_suite.config.yaml',
-            '--update',
-            '--summary-json',
-            'issues_summary.json',
+            "-m",
+            "issuesuite.cli",
+            "sync",
+            "--config",
+            "issue_suite.config.yaml",
+            "--update",
+            "--summary-json",
+            "issues_summary.json",
         ],
         tmp_path,
         env,
@@ -108,8 +108,8 @@ def test_stale_mapping_pruned(tmp_path: Path) -> None:
     assert rc2 == 0, out2
 
     data_any2: Any = json.loads(idx.read_text())
-    entries2 = data_any2.get('entries') if isinstance(data_any2, dict) else {}
-    entries_dict2 = cast(dict[Any, Any], entries2 if isinstance(entries2, dict) else {})
-    assert 'keep-one' in entries_dict2 and 'stale-two' not in entries_dict2, (
-        'stale slug should be pruned'
+    mapping_val2 = data_any2.get("mapping") if isinstance(data_any2, dict) else {}
+    mapping_any2 = cast(dict[Any, Any], mapping_val2 if isinstance(mapping_val2, dict) else {})
+    assert "keep-one" in mapping_any2 and "stale-two" not in mapping_any2, (
+        "stale slug should be pruned"
     )

@@ -2,6 +2,7 @@ include README.md
 include LICENSE
 include CHANGELOG.md
 include pyproject.toml
+include src/issuesuite/py.typed
 recursive-include src/issuesuite *.py
 recursive-include src/issuesuite *.json
 recursive-exclude * __pycache__

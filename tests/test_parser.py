@@ -38,30 +38,30 @@ Something
 
 
 def test_parse_happy_path(tmp_path: Path) -> None:
-    md = tmp_path / 'ISSUES.md'
+    md = tmp_path / "ISSUES.md"
     md.write_text(SIMPLE_MD)
     specs = parse_issues(md.read_text().splitlines())
     expected_count = 2
     assert len(specs) == expected_count
     first = specs[0]
-    assert first.external_id == 'first-feature'
-    assert first.title == 'First Feature'
-    assert 'enhancement' in first.labels
-    assert first.body.startswith('<!-- issuesuite:slug=first-feature -->')
+    assert first.external_id == "first-feature"
+    assert first.title == "First Feature"
+    assert "enhancement" in first.labels
+    assert first.body.startswith("<!-- issuesuite:slug=first-feature -->")
     # hash should be 16 hex chars
     hash_length = 16
     assert first.hash and len(first.hash) == hash_length
 
 
 def test_parse_missing_fence_raises(tmp_path: Path) -> None:
-    md = tmp_path / 'ISSUES.md'
+    md = tmp_path / "ISSUES.md"
     md.write_text(MISSING_FENCE_MD)
     with pytest.raises(ParseError):
         parse_issues(md.read_text().splitlines())
 
 
 def test_parse_legacy_numeric_detected(tmp_path: Path) -> None:
-    md = tmp_path / 'ISSUES.md'
+    md = tmp_path / "ISSUES.md"
     md.write_text(LEGACY_NUMERIC_MD)
     with pytest.raises(ParseError):
         parse_issues(md.read_text().splitlines())

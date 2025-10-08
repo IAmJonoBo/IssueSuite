@@ -1,0 +1,5 @@
+[bandit]
+exclude = tests,scripts,build,.venv,.trunk
+skips = B101,B404,B603,B607,B105,B311,B110,B112
+targets = src/issuesuite
+recursive = true

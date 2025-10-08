@@ -1,0 +1,40 @@
+name: IssueSuite Automation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ISSUES.md
+      - issue_suite.config.yaml
+      - agent_updates.json
+      - .github/workflows/issuesuite.yml
+  workflow_dispatch:
+
+jobs:
+  validate-and-dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install IssueSuite
+        run: |
+          python -m pip install --upgrade pip
+          pip install issuesuite
+
+      - name: Validate specs
+        run: issuesuite validate --config issue_suite.config.yaml
+
+      - name: Dry-run sync
+        run: issuesuite sync --dry-run --update --config issue_suite.config.yaml --summary-json issues_summary.json
+
+      - name: Upload summary JSON
+        uses: actions/upload-artifact@v4
+        with:
+          name: issues-summary
+          path: issues_summary.json

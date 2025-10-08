@@ -41,7 +41,7 @@ from typing import Any
 from .diffing import compute_diff
 from .models import IssueSpec
 
-_MARKER_PREFIX = '<!-- issuesuite:slug='
+_MARKER_PREFIX = "<!-- issuesuite:slug="
 
 
 @dataclass
@@ -62,7 +62,7 @@ def _extract_slug_from_body(body: str | None) -> str | None:
     if idx == -1:
         return None
     tail = body[idx + len(_MARKER_PREFIX) :]
-    end = tail.find('-->')
+    end = tail.find("-->")
     if end == -1:
         return None
     slug = tail[:end].strip()
@@ -72,13 +72,13 @@ def _extract_slug_from_body(body: str | None) -> str | None:
 def _match_live_issue(
     issue: dict[str, Any], specs_by_slug: dict[str, IssueSpec]
 ) -> IssueSpec | None:
-    title = (issue.get('title') or '').strip()
+    title = (issue.get("title") or "").strip()
     # Exact title match first (fast path)
     for spec in specs_by_slug.values():
         if spec.title == title:
             return spec
     # Fallback: slug marker in body
-    slug = _extract_slug_from_body(issue.get('body'))
+    slug = _extract_slug_from_body(issue.get("body"))
     if slug and slug in specs_by_slug:
         return specs_by_slug[slug]
     return None
@@ -94,10 +94,12 @@ def _build_live_drift(
         if not spec:
             drift.append(
                 {
-                    'kind': 'live_only',
-                    'number': issue.get('number') if isinstance(issue.get('number'), int) else None,
-                    'title': issue.get('title'),
-                    'slug': _extract_slug_from_body(issue.get('body')),
+                    "kind": "live_only",
+                    "number": (
+                        issue.get("number") if isinstance(issue.get("number"), int) else None
+                    ),
+                    "title": issue.get("title"),
+                    "slug": _extract_slug_from_body(issue.get("body")),
                 }
             )
             continue
@@ -106,22 +108,26 @@ def _build_live_drift(
         if changes:
             drift.append(
                 {
-                    'kind': 'diff',
-                    'slug': spec.external_id,
-                    'number': issue.get('number') if isinstance(issue.get('number'), int) else None,
-                    'title': spec.title,
-                    'changes': changes,
+                    "kind": "diff",
+                    "slug": spec.external_id,
+                    "number": (
+                        issue.get("number") if isinstance(issue.get("number"), int) else None
+                    ),
+                    "title": spec.title,
+                    "changes": changes,
                 }
             )
     return drift, seen_slugs
 
 
 def _append_spec_only(
-    drift: list[dict[str, Any]], specs_by_slug: dict[str, IssueSpec], seen_slugs: set[str]
+    drift: list[dict[str, Any]],
+    specs_by_slug: dict[str, IssueSpec],
+    seen_slugs: set[str],
 ) -> None:
     for slug, spec in specs_by_slug.items():
         if slug not in seen_slugs:
-            drift.append({'kind': 'spec_only', 'slug': slug, 'title': spec.title})
+            drift.append({"kind": "spec_only", "slug": slug, "title": spec.title})
 
 
 def reconcile(
@@ -139,21 +145,21 @@ def reconcile(
     _append_spec_only(drift, specs_by_slug, seen_slugs)
 
     report = {
-        'summary': {
-            'spec_count': len(specs_list),
-            'live_count': len(live_list),
-            'drift_count': len(drift),
+        "summary": {
+            "spec_count": len(specs_list),
+            "live_count": len(live_list),
+            "drift_count": len(drift),
         },
-        'drift': drift,
-        'in_sync': len(drift) == 0,
+        "drift": drift,
+        "in_sync": len(drift) == 0,
     }
     return report
 
 
 def format_report(report: dict[str, Any]) -> list[str]:  # return list of human lines
-    summary = report.get('summary', {})
+    summary = report.get("summary", {})
     lines: list[str] = []
-    if report.get('in_sync'):
+    if report.get("in_sync"):
         lines.append(
             f"[reconcile] No drift detected (specs={summary.get('spec_count', 0)}, "
             f"live={summary.get('live_count', 0)})"
@@ -163,28 +169,28 @@ def format_report(report: dict[str, Any]) -> list[str]:  # return list of human 
         f"[reconcile] Drift items: {summary.get('drift_count')} (specs={summary.get('spec_count')}, "
         f"live={summary.get('live_count')})"
     )
-    for entry in report.get('drift', []):
-        kind = entry.get('kind')
-        if kind == 'spec_only':
+    for entry in report.get("drift", []):
+        kind = entry.get("kind")
+        if kind == "spec_only":
             lines.append(f"  spec_only: {entry.get('slug')} :: {entry.get('title')}")
-        elif kind == 'live_only':
+        elif kind == "live_only":
             lines.append(
                 f"  live_only: #{entry.get('number')} :: {entry.get('title')} (slug={entry.get('slug')})"
             )
-        elif kind == 'diff':
-            changes = entry.get('changes', {})
-            change_keys = ','.join(
+        elif kind == "diff":
+            changes = entry.get("changes", {})
+            change_keys = ",".join(
                 sorted(
                     k
                     for k in changes.keys()
-                    if k.endswith('_added')
-                    or k.endswith('_removed')
-                    or k.endswith('_changed')
-                    or k in {'milestone_from', 'milestone_to'}
+                    if k.endswith("_added")
+                    or k.endswith("_removed")
+                    or k.endswith("_changed")
+                    or k in {"milestone_from", "milestone_to"}
                 )
             )
             lines.append(f"  diff: {entry.get('slug')} fields_changed=[{change_keys}]")
     return lines
 
 
-__all__ = ['reconcile', 'format_report', 'DriftRecord']
+__all__ = ["reconcile", "format_report", "DriftRecord"]

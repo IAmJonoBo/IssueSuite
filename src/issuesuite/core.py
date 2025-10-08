@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 import json
 import os
 import re
-import shutil
-import subprocess  # nosec B404 - subprocess is required for GitHub CLI invocation
+import subprocess
 from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any, Protocol, TypedDict, cast
@@ -28,7 +28,7 @@ from .parser import ParseError, parse_issues
 from .project import ProjectConfig, build_project_assigner
 
 # Hidden marker template for idempotent issue recognition
-_MARKER_PREFIX = '<!-- issuesuite:slug='
+_MARKER_PREFIX = "<!-- issuesuite:slug="
 
 
 def _ensure_marker(body: str, slug: str) -> str:
@@ -39,7 +39,7 @@ def _ensure_marker(body: str, slug: str) -> str:
     marker = f"{_MARKER_PREFIX}{slug} -->"
     if marker in body:
         return body
-    if body.startswith('#') or body.startswith('<!--'):
+    if body.startswith("#") or body.startswith("<!--"):
         # Still prepend marker with blank line after for readability
         return marker + "\n\n" + body
     return marker + "\n\n" + body
@@ -58,12 +58,12 @@ class PlanEntry(TypedDict, total=False):
 
 def _plan_match_issue(spec: IssueSpec, existing: list[dict[str, Any]]) -> dict[str, Any] | None:
     for issue in existing:
-        title = issue.get('title')
+        title = issue.get("title")
         if title == spec.title:
             return issue
-        if spec.external_id in (title or '') and re.sub(
-            r'\s+', ' ', (title or '').lower()
-        ) == re.sub(r'\s+', ' ', spec.title.lower()):
+        if spec.external_id in (title or "") and re.sub(
+            r"\s+", " ", (title or "").lower()
+        ) == re.sub(r"\s+", " ", spec.title.lower()):
             return issue
     return None
 
@@ -71,10 +71,10 @@ def _plan_match_issue(spec: IssueSpec, existing: list[dict[str, Any]]) -> dict[s
 def _plan_changes(spec: IssueSpec, issue: dict[str, Any]) -> dict[str, int]:
     diff = compute_diff(spec, issue)
     return {
-        'labels_added': len(diff.get('labels_added', [])),
-        'labels_removed': len(diff.get('labels_removed', [])),
-        'body_changed': 1 if diff.get('body_changed') else 0,
-        'milestone_changed': 1 if diff.get('milestone_changed') else 0,
+        "labels_added": len(diff.get("labels_added", [])),
+        "labels_removed": len(diff.get("labels_removed", [])),
+        "body_changed": 1 if diff.get("body_changed") else 0,
+        "milestone_changed": 1 if diff.get("milestone_changed") else 0,
     }
 
 
@@ -91,19 +91,19 @@ def _plan_entry_for_spec(
         return PlanEntry(
             external_id=spec.external_id,
             title=spec.title,
-            action='create',
+            action="create",
             number=None,
             labels=spec.labels,
             milestone=spec.milestone,
-            reason='no existing match',
+            reason="no existing match",
             changes=None,
         )
-    number = issue.get('number') if isinstance(issue.get('number'), int) else None
-    if respect_status and spec.status == 'closed' and issue.get('state') != 'CLOSED':
+    number = issue.get("number") if isinstance(issue.get("number"), int) else None
+    if respect_status and spec.status == "closed" and issue.get("state") != "CLOSED":
         return PlanEntry(
             external_id=spec.external_id,
             title=spec.title,
-            action='close',
+            action="close",
             number=number,
             labels=spec.labels,
             milestone=spec.milestone,
@@ -114,7 +114,7 @@ def _plan_entry_for_spec(
         return PlanEntry(
             external_id=spec.external_id,
             title=spec.title,
-            action='update',
+            action="update",
             number=number,
             labels=spec.labels,
             milestone=spec.milestone,
@@ -124,7 +124,7 @@ def _plan_entry_for_spec(
     return PlanEntry(
         external_id=spec.external_id,
         title=spec.title,
-        action='skip',
+        action="skip",
         number=number,
         labels=spec.labels,
         milestone=spec.milestone,
@@ -147,9 +147,9 @@ def _build_plan(
 
 # Canonical label normalization map (mirrors legacy script)
 _LABEL_CANON_MAP = {
-    'p0-critical': 'P0-critical',
-    'p1-important': 'P1-important',
-    'p2-enhancement': 'P2-enhancement',
+    "p0-critical": "P0-critical",
+    "p1-important": "P1-important",
+    "p2-enhancement": "P2-enhancement",
 }
 
 # Concurrency threshold for switching to worker pool
@@ -178,8 +178,9 @@ class _ConcurrentProcessorProtocol(Protocol):  # narrow structural type for conc
     ) -> list[dict[str, Any]]: ...
 
 
+_yaml: Any
 try:  # YAML is mandatory for new parser; if missing we raise at runtime when parse called
-    import yaml as _yaml
+    _yaml = cast(Any, importlib.import_module("yaml"))
 except Exception:  # pragma: no cover
     _yaml = cast(Any, None)
 
@@ -194,9 +195,9 @@ class IssueSuite:
 
     def __init__(self, cfg: SuiteConfig):
         self.cfg = cfg
-        self._debug = os.environ.get('ISSUESUITE_DEBUG') == '1'
+        self._debug = os.environ.get("ISSUESUITE_DEBUG") == "1"
         # Mock mode: skip all GitHub CLI invocations even in non-dry-run paths
-        self._mock = os.environ.get('ISSUES_SUITE_MOCK') == '1'
+        self._mock = os.environ.get("ISSUES_SUITE_MOCK") == "1"
         # Last error classification (populated on failure for orchestrator embedding)
         self._last_error: dict[str, Any] | None = None
 
@@ -204,13 +205,13 @@ class IssueSuite:
         self._logger = configure_logging(
             json_logging=cfg.logging_json_enabled, level=cfg.logging_level
         )
-        self._gh_cli_path: Path | None = None
 
         # Configure environment authentication
         if cfg.env_auth_enabled:
             self._env_auth_manager = create_env_auth_manager(
                 EnvAuthConfig(
-                    load_dotenv=cfg.env_auth_load_dotenv, dotenv_path=cfg.env_auth_dotenv_path
+                    load_dotenv=cfg.env_auth_load_dotenv,
+                    dotenv_path=cfg.env_auth_dotenv_path,
                 )
             )
             # Setup authentication from environment
@@ -237,7 +238,7 @@ class IssueSuite:
         # Configure performance benchmarking
         self._benchmark_config = BenchmarkConfig(
             enabled=cfg.performance_benchmarking,
-            output_file='performance_report.json',
+            output_file="performance_report.json",
             collect_system_metrics=True,
             track_memory=True,
             track_cpu=True,
@@ -261,7 +262,7 @@ class IssueSuite:
             # Log authentication recommendations if needed
             recommendations = self._env_auth_manager.get_authentication_recommendations()
             # Suppress recommendation noise when quiet mode requested
-            if recommendations and os.environ.get('ISSUESUITE_QUIET') != '1':
+            if recommendations and os.environ.get("ISSUESUITE_QUIET") != "1":
                 self._logger.info("Authentication recommendations: " + "; ".join(recommendations))
 
             # Detect online environment
@@ -282,7 +283,8 @@ class IssueSuite:
                 success = self._github_app_manager.configure_github_cli()
                 if success:
                     self._logger.log_operation(
-                        "github_app_auth_configured", app_id=self._github_app_config.app_id
+                        "github_app_auth_configured",
+                        app_id=self._github_app_config.app_id,
                     )
                 else:
                     self._logger.log_error("Failed to configure GitHub App authentication")
@@ -291,35 +293,23 @@ class IssueSuite:
 
     def _log(self, *parts: Any) -> None:  # lightweight internal debug logger
         if self._debug:
-            print('[issuesuite]', *parts)
+            print("[issuesuite]", *parts)
         # Also log via structured logger
-        self._logger.debug(' '.join(str(p) for p in parts))
-
-    def _resolve_gh_cli(self) -> Path | None:
-        """Resolve the GitHub CLI executable path once per process."""
-        if self._mock:
-            return None
-        if self._gh_cli_path is not None:
-            return self._gh_cli_path
-        gh_path = shutil.which('gh')
-        if gh_path:
-            self._gh_cli_path = Path(gh_path)
-            return self._gh_cli_path
-        self._logger.debug('GitHub CLI executable not found; skipping CLI-dependent features')
-        self._gh_cli_path = None
-        return None
+        self._logger.debug(" ".join(str(p) for p in parts))
 
     @classmethod
     def from_config_path(cls, path: str | Path) -> IssueSuite:
-        from .config import load_config  # local import to avoid circular  # noqa: PLC0415
+        from .config import (  # local import to avoid circular  # noqa: PLC0415
+            load_config,
+        )
 
         return cls(load_config(path))
 
     def parse(self) -> list[IssueSpec]:  # thin wrapper over parser module
         path = self.cfg.source_file
         if not path.exists():
-            raise FileNotFoundError(f'Source file not found: {path}')
-        lines = path.read_text(encoding='utf-8').splitlines()
+            raise FileNotFoundError(f"Source file not found: {path}")
+        lines = path.read_text(encoding="utf-8").splitlines()
         try:
             specs = parse_issues(lines)
         except ParseError as exc:
@@ -342,14 +332,14 @@ class IssueSuite:
         try:
             with (
                 self._benchmark.measure(
-                    'sync_total',
+                    "sync_total",
                     dry_run=dry_run,
                     update=update,
                     respect_status=respect_status,
                     preflight=preflight,
                 ),
                 self._logger.timed_operation(
-                    'sync',
+                    "sync",
                     dry_run=dry_run,
                     update=update,
                     respect_status=respect_status,
@@ -357,11 +347,11 @@ class IssueSuite:
                 ),
             ):
                 self._log(
-                    'sync:start',
-                    f'dry_run={dry_run}',
-                    f'update={update}',
-                    f'respect_status={respect_status}',
-                    f'preflight={preflight}',
+                    "sync:start",
+                    f"dry_run={dry_run}",
+                    f"update={update}",
+                    f"respect_status={respect_status}",
+                    f"preflight={preflight}",
                 )
 
                 specs = self._sync_parse_and_preflight(preflight)
@@ -372,26 +362,32 @@ class IssueSuite:
                 if dry_run:
                     plan = _build_plan(specs, existing, prev_hashes, update, respect_status)
                 results = self._sync_process_specs(
-                    specs, existing, prev_hashes, dry_run, update, respect_status, project_assigner
+                    specs,
+                    existing,
+                    prev_hashes,
+                    dry_run,
+                    update,
+                    respect_status,
+                    project_assigner,
                 )
                 if prune and not dry_run:
                     self._prune_unmatched(existing, results, dry_run)
                 summary = self._sync_build_summary(specs, results)
                 if plan is not None:
-                    summary['plan'] = plan
+                    summary["plan"] = plan
 
                 if not dry_run:
-                    with self._benchmark.measure('save_hash_state'):
+                    with self._benchmark.measure("save_hash_state"):
                         self._save_hash_state(specs)
 
-                self._log('sync:done', summary['totals'])
+                self._log("sync:done", summary["totals"])
                 self._logger.log_operation(
-                    'sync_complete',
-                    issues_created=summary['totals']['created'],
-                    issues_updated=summary['totals']['updated'],
-                    issues_closed=summary['totals']['closed'],
-                    specs=summary['totals']['specs'],
-                    skipped=summary['totals']['skipped'],
+                    "sync_complete",
+                    issues_created=summary["totals"]["created"],
+                    issues_updated=summary["totals"]["updated"],
+                    issues_closed=summary["totals"]["closed"],
+                    specs=summary["totals"]["specs"],
+                    skipped=summary["totals"]["skipped"],
                 )
 
                 if self._benchmark_config.enabled:
@@ -401,7 +397,7 @@ class IssueSuite:
             info = classify_error(exc)
             # Log structured error classification for observability
             self._logger.log_error(
-                'sync_failed',
+                "sync_failed",
                 category=info.category,
                 transient=info.transient,
                 original_type=info.original_type,
@@ -409,43 +405,43 @@ class IssueSuite:
             )
             # Store for orchestrator embedding (best-effort)
             self._last_error = {
-                'category': info.category,
-                'transient': info.transient,
-                'original_type': info.original_type,
-                'message': info.message,
+                "category": info.category,
+                "transient": info.transient,
+                "original_type": info.original_type,
+                "message": info.message,
             }
             raise
 
     # --- sync refactor helpers ---
     def _sync_parse_and_preflight(self, preflight: bool) -> list[IssueSpec]:
-        with self._benchmark.measure('parse_specs', spec_count='pending'):
+        with self._benchmark.measure("parse_specs", spec_count="pending"):
             specs = self.parse()
-        self._log('sync:parsed', len(specs), 'specs')
-        self._logger.log_operation('parse_complete', spec_count=len(specs))
+        self._log("sync:parsed", len(specs), "specs")
+        self._logger.log_operation("parse_complete", spec_count=len(specs))
         # Milestone enforcement: when configured, ensure every spec has a milestone
         if self.cfg.milestone_required:
             missing = [s.external_id for s in specs if not s.milestone]
             if missing:
                 preview_limit = 5  # limit number of ids shown in exception
                 self._logger.log_error(
-                    'milestone_required_missing', count=len(missing), ids=missing[:10]
+                    "milestone_required_missing", count=len(missing), ids=missing[:10]
                 )
-                preview = ', '.join(missing[:preview_limit])
-                suffix = '...' if len(missing) > preview_limit else ''
+                preview = ", ".join(missing[:preview_limit])
+                suffix = "..." if len(missing) > preview_limit else ""
                 raise ValueError(
                     f"Milestone required but missing for {len(missing)} spec(s): {preview}{suffix}"
                 )
         if preflight:
-            with self._benchmark.measure('preflight_setup'):
+            with self._benchmark.measure("preflight_setup"):
                 self._preflight(specs)
         return specs
 
     def _build_project_assigner(self) -> ProjectAssignerProtocol:
         assigner = build_project_assigner(
             ProjectConfig(
-                enabled=bool(getattr(self.cfg, 'project_enable', False)),
-                number=getattr(self.cfg, 'project_number', None),
-                field_mappings=getattr(self.cfg, 'project_field_mappings', {}) or {},
+                enabled=bool(getattr(self.cfg, "project_enable", False)),
+                number=getattr(self.cfg, "project_number", None),
+                field_mappings=getattr(self.cfg, "project_field_mappings", {}) or {},
             )
         )
         return assigner  # conforms to ProjectAssignerProtocol
@@ -461,15 +457,15 @@ class IssueSuite:
         )
 
     def _sync_fetch_existing(self, preflight: bool) -> list[dict[str, Any]]:
-        with self._benchmark.measure('fetch_existing_issues'):
+        with self._benchmark.measure("fetch_existing_issues"):
             if preflight and not (
                 self.cfg.ensure_labels_enabled or self.cfg.ensure_milestones_enabled
             ):
                 existing: list[dict[str, Any]] = []
             else:
                 existing = self._existing_issues() if self._gh_auth() else []
-        self._log('sync:existing_issues', len(existing))
-        self._logger.log_operation('fetch_existing_issues', issue_count=len(existing))
+        self._log("sync:existing_issues", len(existing))
+        self._logger.log_operation("fetch_existing_issues", issue_count=len(existing))
         return existing
 
     def _sync_process_specs(
@@ -485,7 +481,7 @@ class IssueSuite:
         # Sequential fast path (default) unless concurrency explicitly enabled in config.
         if not self._concurrency_config.enabled or len(specs) < _concurrency_threshold_default:
             results: list[dict[str, Any]] = []
-            with self._benchmark.measure('process_specs', spec_count=len(specs), mode='sequential'):
+            with self._benchmark.measure("process_specs", spec_count=len(specs), mode="sequential"):
                 for spec in specs:
                     result = self._process_spec(
                         spec=spec,
@@ -496,7 +492,7 @@ class IssueSuite:
                         respect_status=respect_status,
                         project_assigner=project_assigner,
                     )
-                    results.append({'spec': spec, 'result': result})
+                    results.append({"spec": spec, "result": result})
             return results
 
         # Concurrency path: leverage concurrent processor to parallelize _process_spec.
@@ -515,9 +511,12 @@ class IssueSuite:
                 )
 
             processed = await processor.process_specs_concurrent(specs, _wrapper)
-            return [{'spec': spec, 'result': result} for spec, result in zip(specs, processed)]  # noqa: B905
+            return [
+                {"spec": spec, "result": result}
+                for spec, result in zip(specs, processed, strict=False)
+            ]
 
-        with self._benchmark.measure('process_specs', spec_count=len(specs), mode='concurrent'):
+        with self._benchmark.measure("process_specs", spec_count=len(specs), mode="concurrent"):
             try:
                 # If already in an event loop (e.g., when called from async tests),
                 # fall back to explicit sequential processing to avoid recursion.
@@ -525,7 +524,7 @@ class IssueSuite:
                 if loop.is_running():  # pragma: no cover - defensive
                     seq_sequential: list[dict[str, Any]] = []
                     with self._benchmark.measure(
-                        'process_specs', spec_count=len(specs), mode='sequential'
+                        "process_specs", spec_count=len(specs), mode="sequential"
                     ):
                         for spec in specs:
                             result = self._process_spec(
@@ -537,13 +536,13 @@ class IssueSuite:
                                 respect_status=respect_status,
                                 project_assigner=project_assigner,
                             )
-                            seq_sequential.append({'spec': spec, 'result': result})
+                            seq_sequential.append({"spec": spec, "result": result})
                     return seq_sequential
                 return asyncio.run(_run())
             except Exception:  # pragma: no cover - defensive fallback
                 seq_fallback: list[dict[str, Any]] = []
                 with self._benchmark.measure(
-                    'process_specs', spec_count=len(specs), mode='sequential'
+                    "process_specs", spec_count=len(specs), mode="sequential"
                 ):
                     for spec in specs:
                         result = self._process_spec(
@@ -555,7 +554,7 @@ class IssueSuite:
                             respect_status=respect_status,
                             project_assigner=project_assigner,
                         )
-                        seq_fallback.append({'spec': spec, 'result': result})
+                        seq_fallback.append({"spec": spec, "result": result})
                 return seq_fallback
 
     def _sync_build_summary(
@@ -567,30 +566,34 @@ class IssueSuite:
         mapping: dict[str, int] = {}
         skipped = 0
         for entry in processed:
-            spec: IssueSpec = entry['spec']
-            result: dict[str, Any] = entry['result']
-            if result.get('created'):
+            spec: IssueSpec = entry["spec"]
+            result: dict[str, Any] = entry["result"]
+            if result.get("created"):
                 created.append(
-                    {'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash}
+                    {
+                        "external_id": spec.external_id,
+                        "title": spec.title,
+                        "hash": spec.hash,
+                    }
                 )
-            if mapped := result.get('mapped'):
+            if mapped := result.get("mapped"):
                 mapping[spec.external_id] = mapped
-            if closed_entry := result.get('closed'):
+            if closed_entry := result.get("closed"):
                 closed.append(closed_entry)
-            if updated_entry := result.get('updated'):
+            if updated_entry := result.get("updated"):
                 updated.append(updated_entry)
-            if result.get('skipped'):
+            if result.get("skipped"):
                 skipped += 1
         return {
-            'totals': {
-                'specs': len(specs),
-                'created': len(created),
-                'updated': len(updated),
-                'closed': len(closed),
-                'skipped': skipped,
+            "totals": {
+                "specs": len(specs),
+                "created": len(created),
+                "updated": len(updated),
+                "closed": len(closed),
+                "skipped": skipped,
             },
-            'changes': {'created': created, 'updated': updated, 'closed': closed},
-            'mapping': mapping,
+            "changes": {"created": created, "updated": updated, "closed": closed},
+            "mapping": mapping,
         }
 
     def _process_spec(
@@ -613,58 +616,46 @@ class IssueSuite:
         prev_hash = prev_hashes.get(spec.external_id)
         if not match:
             created_number = self._create(spec, dry_run)
-            result['created'] = True
+            result["created"] = True
             if isinstance(created_number, int):
-                result['mapped'] = created_number
+                result["mapped"] = created_number
             # Attempt project assignment (mock + non-dry-run only; real issue number unknown until GH returns it)
             self._maybe_assign_project_on_create(spec, project_assigner, result, dry_run)
             return result
-        number = match.get('number') if match else None
+        number = match.get("number") if match else None
         if isinstance(number, int):
-            result['mapped'] = number
+            result["mapped"] = number
             try:  # project assignment (noop currently)
                 project_assigner.assign(number, spec)
-            except Exception as exc:  # pragma: no cover - defensive
-                self._logger.debug(
-                    'Project assignment failed for existing issue',
-                    external_id=spec.external_id,
-                    number=number,
-                    error=str(exc),
-                )
-        if respect_status and spec.status == 'closed' and match.get('state') != 'CLOSED':
+            except Exception:  # pragma: no cover - defensive
+                pass
+        if respect_status and spec.status == "closed" and match.get("state") != "CLOSED":
             self._close(match, dry_run)
-            result['closed'] = {'external_id': spec.external_id, 'number': match['number']}
+            result["closed"] = {
+                "external_id": spec.external_id,
+                "number": match["number"],
+            }
             return result
         if update and needs_update(spec, match, prev_hash):
             diff = compute_diff(spec, match)
             self._update(spec, match, dry_run)
-            result['updated'] = {
-                'external_id': spec.external_id,
-                'number': match['number'],
-                'diff': diff,
+            result["updated"] = {
+                "external_id": spec.external_id,
+                "number": match["number"],
+                "diff": diff,
             }
             return result
-        result['skipped'] = True
+        result["skipped"] = True
         return result
 
     # --- internal helpers ---
     def _gh_auth(self) -> bool:
         if self._mock:
             return False
-        gh_path = self._resolve_gh_cli()
-        if gh_path is None:
-            return False
         try:
-            subprocess.check_output(  # nosec B603 - GitHub CLI arguments are static
-                [str(gh_path), 'auth', 'status'],
-                stderr=subprocess.STDOUT,
-            )
+            subprocess.check_output(["gh", "auth", "status"], stderr=subprocess.STDOUT)
             return True
-        except subprocess.CalledProcessError as exc:
-            self._logger.debug('GitHub CLI auth status check failed', error=str(exc))
-            return False
-        except OSError as exc:
-            self._logger.debug('Failed to invoke GitHub CLI', error=str(exc))
+        except Exception:
             return False
 
     def _existing_issues(self) -> list[dict[str, Any]]:
@@ -678,52 +669,61 @@ class IssueSuite:
 
     def _match(self, spec: IssueSpec, existing: list[dict[str, Any]]) -> dict[str, Any] | None:
         def _norm(text: str) -> str:
-            return re.sub(r'\s+', ' ', text.lower())
+            return re.sub(r"\s+", " ", text.lower())
 
         marker = f"{_MARKER_PREFIX}{spec.external_id} -->"
         for issue in existing:
-            body = issue.get('body') or ''
+            body = issue.get("body") or ""
             if isinstance(body, str) and marker in body:
                 return issue
-            title = issue.get('title')
+            title = issue.get("title")
             if title == spec.title:
                 return issue
-            if spec.external_id in (title or '') and _norm(title or '') == _norm(spec.title):
+            if spec.external_id in (title or "") and _norm(title or "") == _norm(spec.title):
                 return issue
         return None
 
     # diff / update helpers now provided by diffing module
 
     def _create(self, spec: IssueSpec, dry_run: bool) -> int | None:
-        self._log('create', spec.external_id, 'dry_run' if dry_run else '')
-        self._logger.log_issue_action('create', spec.external_id, dry_run=dry_run)
+        self._log("create", spec.external_id, "dry_run" if dry_run else "")
+        self._logger.log_issue_action("create", spec.external_id, dry_run=dry_run)
         client = self._build_issues_client(dry_run=dry_run)
         body_with_marker = _ensure_marker(spec.body, spec.external_id)
         return client.create_issue(
-            title=spec.title, body=body_with_marker, labels=spec.labels, milestone=spec.milestone
+            title=spec.title,
+            body=body_with_marker,
+            labels=spec.labels,
+            milestone=spec.milestone,
         )
 
     def _update(self, spec: IssueSpec, issue: dict[str, Any], dry_run: bool) -> None:
-        number = int(issue['number'])
-        self._log('update', spec.external_id, f'#{number}', 'dry_run' if dry_run else '')
-        self._logger.log_issue_action('update', spec.external_id, number, dry_run=dry_run)
+        number = int(issue["number"])
+        self._log("update", spec.external_id, f"#{number}", "dry_run" if dry_run else "")
+        self._logger.log_issue_action("update", spec.external_id, number, dry_run=dry_run)
         client = self._build_issues_client(dry_run=dry_run)
         body_with_marker = _ensure_marker(spec.body, spec.external_id)
         client.update_issue(
-            number=number, body=body_with_marker, labels=spec.labels, milestone=spec.milestone
+            number=number,
+            body=body_with_marker,
+            labels=spec.labels,
+            milestone=spec.milestone,
         )
 
     def _close(self, issue: dict[str, Any], dry_run: bool) -> None:
-        number = int(issue['number'])
-        self._log('close', f'#{number}', 'dry_run' if dry_run else '')
+        number = int(issue["number"])
+        self._log("close", f"#{number}", "dry_run" if dry_run else "")
         self._logger.log_issue_action(
-            'close', issue.get('title', 'unknown'), number, dry_run=dry_run
+            "close", issue.get("title", "unknown"), number, dry_run=dry_run
         )
         client = self._build_issues_client(dry_run=dry_run)
         client.close_issue(number=number)
 
     def _prune_unmatched(
-        self, existing: list[dict[str, Any]], processed: list[dict[str, Any]], dry_run: bool
+        self,
+        existing: list[dict[str, Any]],
+        processed: list[dict[str, Any]],
+        dry_run: bool,
     ) -> None:
         """Close any existing issues that did not match a spec (removed from ISSUES.md).
 
@@ -731,21 +731,16 @@ class IssueSuite:
         """
         matched_numbers: set[int] = set()
         for entry in processed:
-            res = entry.get('result')
-            if isinstance(res, dict) and 'mapped' in res and isinstance(res['mapped'], int):
-                matched_numbers.add(res['mapped'])
+            res = entry.get("result")
+            if isinstance(res, dict) and "mapped" in res and isinstance(res["mapped"], int):
+                matched_numbers.add(res["mapped"])
         for issue in existing:
-            num = issue.get('number')
+            num = issue.get("number")
             if isinstance(num, int) and num not in matched_numbers:
                 try:
                     self._close(issue, dry_run)
-                except Exception as exc:
-                    self._logger.debug(
-                        'Failed to close unmatched issue',
-                        number=num,
-                        dry_run=dry_run,
-                        error=str(exc),
-                    )
+                except Exception:
+                    pass
 
     def _hash_state_path(self) -> Path:
         return self.cfg.source_file.parent / self.cfg.hash_state_file
@@ -763,7 +758,7 @@ class IssueSuite:
         Real mode would require capturing returned issue number from creation; left
         for future enhancement (will integrate once create path captures GH response).
         """
-        if dry_run or not getattr(self.cfg, 'project_enable', False):
+        if dry_run or not getattr(self.cfg, "project_enable", False):
             return
         if not self._mock:
             return  # defer until real post-create number capture implemented
@@ -775,14 +770,9 @@ class IssueSuite:
             return
         try:  # pragma: no cover - defensive around external project assigner
             project_assigner.assign(synthetic_number, spec)
-            result['mapped'] = synthetic_number
-        except Exception as exc:
-            self._logger.debug(
-                'Synthetic project assignment failed',
-                external_id=spec.external_id,
-                synthetic_number=synthetic_number,
-                error=str(exc),
-            )
+            result["mapped"] = synthetic_number
+        except Exception:
+            pass
 
     def _load_hash_state(self) -> dict[str, str]:
         p = self._hash_state_path()
@@ -794,7 +784,7 @@ class IssueSuite:
             return {}
         if not isinstance(raw, dict):
             return {}
-        hashes = raw.get('hashes')
+        hashes = raw.get("hashes")
         if not isinstance(hashes, dict):
             return {}
         out: dict[str, str] = {}
@@ -806,7 +796,7 @@ class IssueSuite:
     def _save_hash_state(self, specs: list[IssueSpec]) -> None:
         p = self._hash_state_path()
         p.write_text(
-            json.dumps({'hashes': {s.external_id: s.hash for s in specs}}, indent=2) + '\n'
+            json.dumps({"hashes": {s.external_id: s.hash for s in specs}}, indent=2) + "\n"
         )
 
     # --- preflight helpers (label & milestone ensure) ---
@@ -826,104 +816,82 @@ class IssueSuite:
         desired = sorted(
             {label for spec in specs for label in spec.labels} | set(self.cfg.inject_labels)
         )
-        gh_path = self._resolve_gh_cli()
-        if gh_path is None:
-            self._logger.debug('Skipping label ensure; GitHub CLI not available')
-            return
         try:
-            out = subprocess.check_output(  # nosec B603 - static GitHub CLI arguments
+            out = subprocess.check_output(
                 [
-                    str(gh_path),
-                    'label',
-                    'list',
-                    '--limit',
-                    '300',
-                    '--json',
-                    'name',
-                    '--jq',
-                    '.[].name',
+                    "gh",
+                    "label",
+                    "list",
+                    "--limit",
+                    "300",
+                    "--json",
+                    "name",
+                    "--jq",
+                    ".[].name",
                 ],
                 text=True,
             )
             existing: set[str] = set(out.strip().splitlines())
-        except subprocess.CalledProcessError as exc:
-            self._logger.debug('Failed to list labels via GitHub CLI', error=str(exc))
+        except Exception:
             existing = set()
-        except OSError as exc:
-            self._logger.debug('GitHub CLI invocation failed while listing labels', error=str(exc))
-            return
         for lbl in desired:
             if lbl in existing:
                 continue
             try:
-                subprocess.check_call(  # nosec B603 - fixed GitHub CLI arguments
+                subprocess.check_call(
                     [
-                        str(gh_path),
-                        'label',
-                        'create',
+                        "gh",
+                        "label",
+                        "create",
                         lbl,
-                        '--color',
-                        'ededed',
-                        '--description',
-                        'Auto-created (issuesuite)',
+                        "--color",
+                        "ededed",
+                        "--description",
+                        "Auto-created (issuesuite)",
                     ],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-            except subprocess.CalledProcessError as exc:
-                self._logger.debug('Failed to create label via GitHub CLI', label=lbl, error=str(exc))
-            except OSError as exc:
-                self._logger.debug('GitHub CLI invocation failed while creating label', label=lbl, error=str(exc))
-                return
+            except Exception:
+                pass
 
     def _ensure_milestones(self) -> None:  # pragma: no cover - network side-effects
         if self._mock:
             return
-        gh_path = self._resolve_gh_cli()
-        if gh_path is None:
-            self._logger.debug('Skipping milestone ensure; GitHub CLI not available')
-            return
         try:
-            out = subprocess.check_output(  # nosec B603 - static GitHub CLI arguments
+            out = subprocess.check_output(
                 [
-                    str(gh_path),
-                    'api',
-                    'repos/:owner/:repo/milestones',
-                    '--paginate',
-                    '--jq',
-                    '.[].title',
+                    "gh",
+                    "api",
+                    "repos/:owner/:repo/milestones",
+                    "--paginate",
+                    "--jq",
+                    ".[].title",
                 ],
                 text=True,
             )
             existing: set[str] = set(out.strip().splitlines())
-        except subprocess.CalledProcessError as exc:
-            self._logger.debug('Failed to list milestones via GitHub CLI', error=str(exc))
+        except Exception:
             existing = set()
-        except OSError as exc:
-            self._logger.debug('GitHub CLI invocation failed while listing milestones', error=str(exc))
-            return
         for ms in self.cfg.ensure_milestones_list:
             if ms in existing:
                 continue
             try:
-                subprocess.check_call(  # nosec B603 - fixed GitHub CLI arguments
+                subprocess.check_call(
                     [
-                        str(gh_path),
-                        'api',
-                        'repos/:owner/:repo/milestones',
-                        '-f',
-                        f'title={ms}',
-                        '-f',
-                        'description=Auto-created (issuesuite)',
+                        "gh",
+                        "api",
+                        "repos/:owner/:repo/milestones",
+                        "-f",
+                        f"title={ms}",
+                        "-f",
+                        "description=Auto-created (issuesuite)",
                     ],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-            except subprocess.CalledProcessError as exc:
-                self._logger.debug('Failed to create milestone via GitHub CLI', milestone=ms, error=str(exc))
-            except OSError as exc:
-                self._logger.debug('GitHub CLI invocation failed while creating milestone', milestone=ms, error=str(exc))
-                return
+            except Exception:
+                pass
 
     # Concurrency support methods
     async def _get_existing_issues_async(self) -> list[dict[str, Any]]:
@@ -964,34 +932,40 @@ class IssueSuite:
         Refactored to reduce branching complexity by delegating to helpers.
         """
         with self._logger.timed_operation(
-            'sync_async',
+            "sync_async",
             dry_run=dry_run,
             update=update,
             respect_status=respect_status,
             preflight=preflight,
         ):
-            self._log('sync_async:start', f'dry_run={dry_run}')
+            self._log("sync_async:start", f"dry_run={dry_run}")
             specs = self.parse()
-            self._logger.log_operation('parse_complete', spec_count=len(specs))
+            self._logger.log_operation("parse_complete", spec_count=len(specs))
             self._adjust_concurrency_if_needed(len(specs))
             if preflight:
                 self._preflight(specs)
             project_assigner = self._build_project_assigner()
             existing = await self._fetch_existing_async()
-            self._logger.log_operation('fetch_existing_issues', issue_count=len(existing))
+            self._logger.log_operation("fetch_existing_issues", issue_count=len(existing))
             prev_hashes = self._load_hash_state()
             results = await self._process_specs_async(
-                specs, existing, prev_hashes, dry_run, update, respect_status, project_assigner
+                specs,
+                existing,
+                prev_hashes,
+                dry_run,
+                update,
+                respect_status,
+                project_assigner,
             )
             summary = self._aggregate_results(specs, results, dry_run)
             self._logger.log_operation(
-                'sync_async_complete',
+                "sync_async_complete",
                 **{
-                    'issues_created': summary['totals']['created'],
-                    'issues_updated': summary['totals']['updated'],
-                    'issues_closed': summary['totals']['closed'],
-                    'specs': summary['totals']['specs'],
-                    'skipped': summary['totals']['skipped'],
+                    "issues_created": summary["totals"]["created"],
+                    "issues_updated": summary["totals"]["updated"],
+                    "issues_closed": summary["totals"]["closed"],
+                    "specs": summary["totals"]["specs"],
+                    "skipped": summary["totals"]["skipped"],
                 },
             )
             return summary
@@ -1001,7 +975,7 @@ class IssueSuite:
             optimal_workers = get_optimal_worker_count(spec_count, self.cfg.concurrency_max_workers)
             self._concurrency_config.max_workers = optimal_workers
             self._logger.log_operation(
-                'concurrency_adjusted', spec_count=spec_count, workers=optimal_workers
+                "concurrency_adjusted", spec_count=spec_count, workers=optimal_workers
             )
 
     async def _fetch_existing_async(self) -> list[dict[str, Any]]:
@@ -1060,32 +1034,36 @@ class IssueSuite:
         mapping: dict[str, int] = {}
         skipped = 0
         for i, result in enumerate(results):
-            if 'error' in result:
+            if "error" in result:
                 skipped += 1
                 continue
             spec = specs[i]
-            if result.get('created'):
+            if result.get("created"):
                 created.append(
-                    {'external_id': spec.external_id, 'title': spec.title, 'hash': spec.hash}
+                    {
+                        "external_id": spec.external_id,
+                        "title": spec.title,
+                        "hash": spec.hash,
+                    }
                 )
-            if mapped := result.get('mapped'):
+            if mapped := result.get("mapped"):
                 mapping[spec.external_id] = mapped
-            if closed_entry := result.get('closed'):
+            if closed_entry := result.get("closed"):
                 closed.append(closed_entry)
-            if updated_entry := result.get('updated'):
+            if updated_entry := result.get("updated"):
                 updated.append(updated_entry)
-            if result.get('skipped'):
+            if result.get("skipped"):
                 skipped += 1
         if not dry_run:
             self._save_hash_state(specs)
         return {
-            'totals': {
-                'specs': len(specs),
-                'created': len(created),
-                'updated': len(updated),
-                'closed': len(closed),
-                'skipped': skipped,
+            "totals": {
+                "specs": len(specs),
+                "created": len(created),
+                "updated": len(updated),
+                "closed": len(closed),
+                "skipped": skipped,
             },
-            'changes': {'created': created, 'updated': updated, 'closed': closed},
-            'mapping': mapping,
+            "changes": {"created": created, "updated": updated, "closed": closed},
+            "mapping": mapping,
         }

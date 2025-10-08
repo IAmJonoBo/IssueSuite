@@ -1,0 +1,15 @@
+{
+  "updates": [
+    {
+      "slug": "getting-started",
+      "completed": true,
+      "summary": "Initial automation configured via IssueSuite bootstrap.",
+      "docs": [
+        {
+          "path": "docs/CHANGELOG_NOTES.md",
+          "append": "- getting-started: Completed initial IssueSuite setup."
+        }
+      ]
+    }
+  ]
+}

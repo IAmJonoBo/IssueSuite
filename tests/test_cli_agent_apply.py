@@ -1,8 +1,8 @@
 import json
 import os
+import subprocess
 import sys
 import textwrap
-import subprocess
 
 SAMPLE_ISSUES = textwrap.dedent(
     """\
