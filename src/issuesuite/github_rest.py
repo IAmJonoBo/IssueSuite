@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-import requests
+import requests  # type: ignore[import-untyped]
 
 from .retry import run_with_retries
 
@@ -20,7 +20,13 @@ HTTP_ERROR_STATUS = 400
 class GitHubAPIError(RuntimeError):
     """Raised when the GitHub REST/GraphQL API returns an error."""
 
-    def __init__(self, message: str, *, status: int | None = None, response_text: str | None = None):
+    def __init__(
+        self,
+        message: str,
+        *,
+        status: int | None = None,
+        response_text: str | None = None,
+    ):
         super().__init__(message)
         self.status = status
         self.response_text = response_text

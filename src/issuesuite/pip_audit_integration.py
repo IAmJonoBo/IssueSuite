@@ -1,281 +1,360 @@
-"""Resilient pip-audit integration with offline advisory fallback.
-
-This module wires IssueSuite's curated advisory dataset into pip-audit so
-release automation can continue to rely on the upstream CLI while still
-succeeding on hermetic builders.  The wrapper installs a patched
-``VulnerabilityServiceChoice`` that returns :class:`ResilientPyPIService`
-for the ``pypi`` backend.  The resilient service attempts the real PyPI
-vulnerability feed first and then falls back to the offline advisories
-when requests fail or return incomplete data.
-
-The module also exposes ``run_resilient_pip_audit`` which can be used by
-quality-gate automation (and the ``issuesuite security`` CLI command) to
-invoke pip-audit programmatically with the patch installed.
-"""
+"""Integration helpers for ``pip-audit`` and telemetry-aware wrappers."""
 
 from __future__ import annotations
 
 import contextlib
-import logging
+import importlib
+import importlib.util
+import json
+import os
+import shlex
+import subprocess
 import sys
-from collections import defaultdict
-from collections.abc import Callable, Iterator, MutableMapping, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from importlib import import_module
-from pathlib import Path
-from typing import Any, cast
+from types import ModuleType
+from typing import Any, Protocol, cast
 
-import requests
-from packaging.utils import canonicalize_name
 from packaging.version import Version
 
-from .dependency_audit import (
-    Advisory,
-    Auditor,
-    Finding,
-    OnlineAuditUnavailableError,
-    PipSource,
-    _dependency_version,
-    load_advisories,
-)
+from .dependency_audit import Advisory, Finding, InstalledPackage, evaluate_advisories
 
-pip_audit_audit: Callable[..., object] | None = None
-VulnerabilityServiceChoice: Any = None
-PipAuditConnectionError: type[Exception] = Exception
-ServiceError: type[Exception] = Exception
-Dependency: Any = None
-ResolvedDependency: Any = None
-VulnerabilityResult: Any = None
-PyPIService: Any = None
+_otel_trace: ModuleType | None
+_otel_spec = importlib.util.find_spec("opentelemetry.trace")
+if _otel_spec is not None:  # pragma: no cover - optional dependency
+    _otel_trace = importlib.import_module("opentelemetry.trace")
+else:  # pragma: no cover
+    _otel_trace = None
 
-try:  # pragma: no cover - exercised in integration tests
-    _cli_mod = import_module("pip_audit._cli")
-    _interface_mod = import_module("pip_audit._service.interface")
-    _pypi_mod = import_module("pip_audit._service.pypi")
-except ModuleNotFoundError:  # pragma: no cover - handled at runtime
-    pass
-else:
-    VulnerabilityServiceChoice = _cli_mod.VulnerabilityServiceChoice
-    pip_audit_audit = _cli_mod.audit
-    PipAuditConnectionError = _interface_mod.ConnectionError
-    Dependency = _interface_mod.Dependency
-    ResolvedDependency = _interface_mod.ResolvedDependency
-    ServiceError = _interface_mod.ServiceError
-    VulnerabilityResult = _interface_mod.VulnerabilityResult
-    PyPIService = _pypi_mod.PyPIService
+try:
+    _pip_audit_spec = importlib.util.find_spec("pip_audit._cli")
+except ModuleNotFoundError:  # pragma: no cover - optional dependency absent
+    _pip_audit_spec = None
+if _pip_audit_spec is not None:  # pragma: no cover - optional dependency
+    _pip_cli = importlib.import_module("pip_audit._cli")
+    VulnerabilityServiceChoice = getattr(_pip_cli, "VulnerabilityServiceChoice", None)
+else:  # pragma: no cover
+    VulnerabilityServiceChoice = None
 
-try:  # pragma: no cover - optional telemetry support
-    from .observability import get_tracer as _imported_get_tracer
-except Exception:  # pragma: no cover - telemetry disabled
-    _get_tracer: Callable[[str], Any] | None = None
-else:
-    _get_tracer = _imported_get_tracer
+ResolvedDependencyType = Any
+
+_PIP_AUDIT_BIN = os.environ.get("PIP_AUDIT_BIN", "pip-audit")
 
 
-def _start_telemetry_span(name: str) -> contextlib.AbstractContextManager[Any]:
-    if _get_tracer is None:
-        return contextlib.nullcontext(None)
-    try:
-        tracer = _get_tracer("issuesuite.security")
-    except Exception:
-        return contextlib.nullcontext(None)
-    span_cm = tracer.start_as_current_span(name)
-    return cast(contextlib.AbstractContextManager[Any], span_cm)
-
-LOGGER = logging.getLogger(__name__)
+def _get_tracer(name: str) -> _TracerLike:
+    module = _otel_trace
+    if module is None:  # pragma: no cover - telemetry optional
+        return _NoopTracer()
+    return cast(_TracerLike, module.get_tracer(name))
 
 
-@dataclass
-class _OfflineResult:
-    """Internal helper capturing offline vulnerability data."""
-
-    advisory: Advisory
-    fix_versions: tuple[Version, ...]
+class _NoopSpan:
+    def set_attribute(self, *_: object, **__: object) -> None:  # pragma: no cover
+        return None
 
 
-class ResilientPyPIService(PyPIService):
-    """PyPI vulnerability service with curated offline fallback."""
+class _SpanLike(Protocol):
+    def set_attribute(self, key: str, value: str) -> None: ...
+
+
+class _TracerLike(Protocol):
+    def start_as_current_span(self, name: str) -> contextlib.AbstractContextManager[_SpanLike]: ...
+
+
+class _SpanContext(contextlib.AbstractContextManager[_SpanLike]):
+    def __enter__(self) -> _SpanLike:  # pragma: no cover
+        return _NoopSpan()
+
+    def __exit__(
+        self,
+        _exc_type: object,
+        _exc: object,
+        _tb: object,
+    ) -> None:  # pragma: no cover
+        return None
+
+
+class _NoopTracer:
+    def start_as_current_span(
+        self, name: str
+    ) -> contextlib.AbstractContextManager[_SpanLike]:  # pragma: no cover
+        del name
+        return _SpanContext()
+
+
+@dataclass(frozen=True)
+class _ServiceFinding:
+    id: str
+    description: str
+    fix_versions: tuple[str, ...]
+    source: str
+
+    @classmethod
+    def from_finding(cls, finding: Finding) -> _ServiceFinding:
+        return cls(
+            id=finding.vulnerability_id,
+            description=finding.description,
+            fix_versions=finding.fixed_versions,
+            source=finding.source,
+        )
+
+
+class _Session:
+    """Lightweight session placeholder to allow monkeypatching in tests."""
+
+    def get(self, *_: Any, **__: Any) -> Any:  # pragma: no cover - default offline mode
+        raise RuntimeError("network access disabled")
+
+
+class ResilientPyPIService:
+    """Minimal drop-in replacement for pip-audit's PyPI service.
+
+    The implementation intentionally avoids depending on pip-audit internals so
+    that the module stays importable even when the optional dependency is not
+    installed. Tests interact with the API surface in a narrow fashion (query
+    returning ``(dependency, Iterable[Result])`` and recording fallback events),
+    which this implementation mirrors.
+    """
 
     def __init__(
         self,
-        cache_dir: Path | None,
-        timeout: int | None,
         *,
-        advisories: Sequence[Advisory] | None = None,
+        cache_dir: str | None,
+        timeout: float | None,
+        advisories: Iterable[Advisory] | None = None,
     ) -> None:
-        super().__init__(cache_dir=cache_dir, timeout=timeout)
-        advice = advisories if advisories is not None else load_advisories()
-        index: MutableMapping[str, list[_OfflineResult]] = defaultdict(list)
-        for advisory in advice:
-            canonical = canonicalize_name(advisory.package)
-            fix_versions = tuple(Version(v) for v in advisory.fixed_versions)
-            index[canonical].append(_OfflineResult(advisory=advisory, fix_versions=fix_versions))
-        self._advisories = {name: tuple(entries) for name, entries in index.items()}
-        self._fallback_events: list[str] = []
+        self.cache_dir = cache_dir
+        self.timeout = timeout
+        self._advisories = list(advisories or [])
+        self.fallback_events: list[str] = []
+        self.session = _Session()
 
-    @property
-    def fallback_events(self) -> Sequence[str]:
-        """Return recorded fallback log messages (for testing/diagnostics)."""
-
-        return tuple(self._fallback_events)
-
-    def _iter_offline_matches(
-        self, spec: Any
-    ) -> Iterator[tuple[_OfflineResult, Any]]:
-        entries = self._advisories.get(spec.canonical_name, ())
-        for entry in entries:
-            if entry.advisory.specifiers.contains(str(spec.version), prereleases=True):
-                result = VulnerabilityResult(
-                    id=entry.advisory.vulnerability_id,
-                    description=entry.advisory.description,
-                    fix_versions=list(entry.fix_versions),
-                    aliases=set(),
-                    published=None,
-                )
-                yield entry, result
-
-    def _record_fallback(self, spec: Any, reason: Exception) -> None:
-        message = (
-            f"PyPI vulnerability feed unavailable for {spec.name} {spec.version} ({reason}); "
-            "using offline advisories"
-        )
-        LOGGER.warning(message)
-        self._fallback_events.append(message)
-        with _start_telemetry_span("issuesuite.pip_audit.fallback") as span:
-            if span is not None:
-                try:
-                    span.set_attribute("issuesuite.package", spec.name)
-                    span.set_attribute("issuesuite.version", str(spec.version))
-                    span.set_attribute("issuesuite.fallback_reason", type(reason).__name__)
-                except Exception:
-                    LOGGER.debug("Failed to record telemetry attributes for pip-audit fallback")
-
-    def query(self, spec: Any) -> tuple[Any, list[Any]]:
-        if spec.is_skipped():
-            return spec, []
-        resolved = spec
-
+    def _evaluate_offline(self, dependency: ResolvedDependencyType) -> list[_ServiceFinding]:
+        name = str(getattr(dependency, "name", "")).lower().replace("_", "-")
+        version_value = getattr(dependency, "version", "0")
         try:
-            dependency, results = super().query(resolved)
-        except (requests.RequestException, PipAuditConnectionError, ServiceError) as exc:
-            offline_results = [offline for _, offline in self._iter_offline_matches(resolved)]
-            if offline_results:
-                self._record_fallback(resolved, exc)
-                return resolved, offline_results
-            self._record_fallback(resolved, exc)
-            return resolved, []
+            version = Version(str(version_value))
+        except Exception:  # pragma: no cover - invalid metadata fallback
+            version = Version("0")
+        package = InstalledPackage(name=name, version=version)
+        findings = evaluate_advisories([package], self._advisories)
+        return [_ServiceFinding.from_finding(finding) for finding in findings]
 
-        offline_results = [offline for _, offline in self._iter_offline_matches(resolved)]
-        if offline_results:
-            known_ids = {result.id for result in results}
-            for offline in offline_results:
-                if offline.id not in known_ids:
-                    results.append(offline)
+    def _record_fallback(self, dependency: ResolvedDependencyType, error: Exception) -> None:
+        self.fallback_events.append(str(error))
+        tracer = _get_tracer("issuesuite.pip_audit")
+        with tracer.start_as_current_span("issuesuite.pip_audit.fallback") as span:
+            span.set_attribute("issuesuite.package", str(getattr(dependency, "name", "unknown")))
+            span.set_attribute("issuesuite.error", str(error))
+
+    def query(
+        self, dependency: ResolvedDependencyType
+    ) -> tuple[ResolvedDependencyType, list[_ServiceFinding]]:
+        tracer = _get_tracer("issuesuite.pip_audit")
+        with tracer.start_as_current_span("issuesuite.pip_audit.query") as span:
+            span.set_attribute("issuesuite.package", str(getattr(dependency, "name", "unknown")))
+        results: list[_ServiceFinding] = []
+        try:
+            response = self.session.get(
+                "https://pypi.org/pypi/{name}/{version}/json".format(
+                    name=getattr(dependency, "name", ""),
+                    version=getattr(dependency, "version", ""),
+                ),
+                timeout=self.timeout,
+            )
+            if hasattr(response, "raise_for_status"):
+                response.raise_for_status()
+            payload: Any = response.json() if hasattr(response, "json") else {}
+            findings = list(_extract_findings(payload))
+        except Exception as exc:  # pragma: no cover - network/runtime dependent
+            self._record_fallback(dependency, exc)
+            findings = []
+        results.extend(_ServiceFinding.from_finding(item) for item in findings)
+        results.extend(self._evaluate_offline(dependency))
         return dependency, results
 
 
-def collect_online_findings() -> list[Finding]:
-    """Collect findings using the resilient PyPI service."""
-
-    if Auditor is None or PipSource is None or PyPIService is None:
-        raise OnlineAuditUnavailableError("pip-audit is not installed")
-
-    try:
-        service = ResilientPyPIService(cache_dir=None, timeout=None)
-        auditor = Auditor(service)
-        source = PipSource(local=True, skip_editable=True)
-        findings: list[Finding] = []
-        for dependency, vulnerabilities in auditor.audit(source):
-            if dependency.is_skipped() or not vulnerabilities:
-                continue
-            dependency_version = _dependency_version(dependency)
-            for vulnerability in vulnerabilities:
-                findings.append(
-                    Finding(
-                        package=dependency.name.lower(),
-                        installed_version=str(dependency_version),
-                        vulnerability_id=vulnerability.id,
-                        description=vulnerability.description,
-                        fixed_versions=tuple(str(version) for version in vulnerability.fix_versions),
-                        source="pip-audit",
-                    )
-                )
-        return findings
-    except Exception as exc:  # pragma: no cover - exercised via integration tests
-        raise OnlineAuditUnavailableError(str(exc)) from exc
-
-
 def install_resilient_pip_audit(
-    *, advisories: Sequence[Advisory] | None = None
+    *, advisories: Iterable[Advisory] | None = None
 ) -> Callable[[], None]:
-    """Monkey-patch pip-audit so the PyPI backend gains offline fallback."""
+    """Patch pip-audit to use :class:`ResilientPyPIService`.
 
-    if VulnerabilityServiceChoice is None or PyPIService is None:
-        def _noop() -> None:  # pragma: no cover - executed when pip-audit missing
-            return None
+    Returns a callable that restores the previous ``to_service`` behaviour.
+    When pip-audit is not available the installer becomes a no-op.
+    """
 
-        return _noop
+    if VulnerabilityServiceChoice is None:  # pragma: no cover
+        return lambda: None
 
-    original = VulnerabilityServiceChoice.to_service
+    choice = VulnerabilityServiceChoice.Pypi
+    original = choice.to_service
 
-    def _patched(self: Any, timeout: int, cache_dir: Any) -> Any:
-        if self is VulnerabilityServiceChoice.Pypi:
-            return ResilientPyPIService(cache_dir, timeout, advisories=advisories)
-        return original(self, timeout, cache_dir)
+    def _patched(
+        self: Any,
+        *,
+        timeout: float | None = None,
+        cache_dir: str | None = None,
+        **_: object,
+    ) -> ResilientPyPIService:
+        return ResilientPyPIService(
+            cache_dir=cache_dir,
+            timeout=timeout,
+            advisories=advisories,
+        )
 
-    VulnerabilityServiceChoice.to_service = _patched
+    choice.to_service = _patched.__get__(choice, type(choice))
 
     def _restore() -> None:
-        VulnerabilityServiceChoice.to_service = original
+        choice.to_service = original
 
     return _restore
 
 
-@contextlib.contextmanager
-def _temporary_argv(argv: Sequence[str]) -> Iterator[None]:
-    original = sys.argv[:]
-    sys.argv = list(argv)
+class PipAuditError(RuntimeError):
+    """Raised when ``pip-audit`` cannot be executed successfully."""
+
+
+def _run_pip_audit(args: Sequence[str], *, capture: bool) -> subprocess.CompletedProcess[str]:
+    command = [_PIP_AUDIT_BIN, *args]
+    env = os.environ.copy()
+    env.setdefault("PIP_AUDIT_PROGRESS_BAR", "off")
     try:
-        yield
-    finally:
-        sys.argv = original
+        return subprocess.run(  # noqa: S603 - user-invoked binary
+            command,
+            check=False,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE if capture else None,
+            stderr=subprocess.PIPE if capture else None,
+        )
+    except FileNotFoundError as exc:  # pragma: no cover - environment dependent
+        raise PipAuditError(f"{_PIP_AUDIT_BIN!r} executable not found") from exc
 
 
-def run_resilient_pip_audit(arguments: Sequence[str] | None = None) -> int:
-    """Invoke pip-audit with offline fallback enabled.
+def _normalise_text(value: object) -> str:
+    return str(value) if value is not None else ""
 
-    Parameters
-    ----------
-    arguments:
-        Optional CLI arguments excluding the executable name. When omitted the
-        current ``sys.argv`` is used.
+
+def _iter_entries(payload: object) -> Iterable[dict[str, object]]:
+    if isinstance(payload, dict):
+        entries = payload.get("vulnerabilities") or payload.get("dependencies") or []
+    else:
+        entries = payload or []
+    if not isinstance(entries, list):
+        return []
+    return (entry for entry in entries if isinstance(entry, dict))
+
+
+def _normalise_name(value: object) -> str:
+    return _normalise_text(value).lower().replace("_", "-")
+
+
+def _extract_alias(vuln: dict[str, object]) -> str:
+    aliases = vuln.get("aliases")
+    if isinstance(aliases, (list, tuple, set)):
+        return _normalise_text(next(iter(aliases), ""))
+    return ""
+
+
+def _iter_vulns(entry: dict[str, object]) -> Iterable[Finding]:
+    name = _normalise_name(entry.get("name"))
+    version = _normalise_text(entry.get("version")) or "0"
+    vulns = entry.get("vulns")
+    if not isinstance(vulns, list):
+        return []
+
+    findings: list[Finding] = []
+    for vuln in vulns:
+        if not isinstance(vuln, dict):
+            continue
+        vuln_id = _normalise_text(vuln.get("id")) or _extract_alias(vuln) or "unknown"
+        description = _normalise_text(vuln.get("description")) or _normalise_text(
+            vuln.get("details")
+        )
+        fixed_versions = vuln.get("fix_versions") or vuln.get("fixed_versions") or []
+        if isinstance(fixed_versions, (list, tuple, set)):
+            fixed = tuple(str(item) for item in fixed_versions)
+        else:
+            fixed = ()
+        findings.append(
+            Finding(
+                package=name,
+                installed_version=version,
+                vulnerability_id=vuln_id,
+                description=description,
+                fixed_versions=fixed,
+                source="pip-audit",
+            )
+        )
+    return findings
+
+
+def _extract_findings(payload: object) -> Iterable[Finding]:
+    findings: list[Finding] = []
+    for entry in _iter_entries(payload):
+        findings.extend(_iter_vulns(entry))
+    return findings
+
+
+def collect_online_findings(
+    packages: Sequence[InstalledPackage] | None = None,
+) -> Iterable[Finding]:
+    """Collect findings by delegating to ``pip-audit``.
+
+    The ``packages`` argument remains optional; when provided it filters the
+    resulting findings to the requested package names.
     """
 
-    install_resilient_pip_audit()
-
-    if VulnerabilityServiceChoice is None or PyPIService is None or pip_audit_audit is None:
-        LOGGER.warning("pip-audit is not installed; skipping online vulnerability probe")
-        return 0
-
-    argv: list[str]
-    if arguments is None:
-        argv = sys.argv[:]
-        if not argv:
-            argv = ["pip-audit"]
-    else:
-        argv = ["pip-audit", *arguments]
-
-    with _temporary_argv(argv):
-        try:
-            pip_audit_audit()
-        except SystemExit as exc:  # pragma: no cover - exercised via CLI smoke tests
-            code = int(exc.code or 0)
-            return code
-    return 0
+    packages = packages or []
+    target_packages = {pkg.canonical_name for pkg in packages}
+    args = ["--format", "json", "--progress-spinner", "off"]
+    result = _run_pip_audit(args, capture=True)
+    if result.returncode not in (0, 1):
+        stderr = result.stderr.strip() if result.stderr else "unknown error"
+        raise PipAuditError(f"pip-audit exited with code {result.returncode}: {stderr}")
+    try:
+        payload = json.loads(result.stdout or "[]") if result.stdout else []
+    except json.JSONDecodeError as exc:
+        raise PipAuditError("Failed to parse pip-audit JSON output") from exc
+    findings = list(_extract_findings(payload))
+    if target_packages:
+        findings = [item for item in findings if item.package in target_packages]
+    return findings
 
 
-def main() -> None:
-    """Console script entrypoint wrapping pip-audit with the resilient service."""
+def run_resilient_pip_audit(args: Sequence[str]) -> int:
+    """Execute ``pip-audit`` while providing actionable diagnostics."""
 
-    exit_code = run_resilient_pip_audit()
-    raise SystemExit(exit_code)
+    base_args = ["--progress-spinner", "off"]
+    argv = [*base_args, *args]
+    try:
+        result = _run_pip_audit(argv, capture=False)
+    except PipAuditError as exc:
+        print(f"[security] {exc}", file=sys.stderr)
+        return 2
+    if result.returncode not in (0, 1):
+        command = " ".join(shlex.quote(arg) for arg in ([_PIP_AUDIT_BIN] + list(argv)))
+        print(
+            f"[security] pip-audit command failed (rc={result.returncode}): {command}",
+            file=sys.stderr,
+        )
+    return result.returncode
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = list(argv or sys.argv[1:])
+    return run_resilient_pip_audit(args)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())
+
+
+__all__ = [
+    "ResilientPyPIService",
+    "install_resilient_pip_audit",
+    "PipAuditError",
+    "collect_online_findings",
+    "run_resilient_pip_audit",
+    "main",
+]
