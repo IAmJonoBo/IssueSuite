@@ -1,8 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": [
+    "config:recommended"
+  ],
   "postUpgradeTasks": {
-    "commands": ["./scripts/refresh-deps.sh"],
+    "commands": [
+      "./scripts/refresh-deps.sh"
+    ],
     "fileFilters": [
       "pyproject.toml",
       "uv.lock",
@@ -13,25 +17,40 @@
   },
   "packageRules": [
     {
-      "matchManagers": ["github-actions"],
+      "matchManagers": [
+        "github-actions"
+      ],
       "pinDigests": true,
       "description": "Ensure GitHub Actions are always pinned to exact commit SHAs."
     },
     {
       "description": "Refresh lockfiles when Python dependencies change",
-      "matchManagers": ["pip_setup"],
+      "matchManagers": [
+        "pip_setup"
+      ],
       "postUpgradeTasks": {
-        "commands": ["./scripts/refresh-deps.sh"],
-        "fileFilters": ["pyproject.toml", "uv.lock"],
+        "commands": [
+          "./scripts/refresh-deps.sh"
+        ],
+        "fileFilters": [
+          "pyproject.toml",
+          "uv.lock"
+        ],
         "executionMode": "branch"
       }
     },
     {
       "description": "Keep Starlight lockfile aligned with package updates",
-      "matchManagers": ["npm"],
-      "matchPaths": ["docs/starlight/**"],
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "docs/starlight/**"
+      ],
       "postUpgradeTasks": {
-        "commands": ["./scripts/refresh-deps.sh"],
+        "commands": [
+          "./scripts/refresh-deps.sh"
+        ],
         "fileFilters": [
           "docs/starlight/package.json",
           "docs/starlight/package-lock.json"
