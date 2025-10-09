@@ -1,0 +1,180 @@
+---
+title: Renovate dependency automation
+sidebar:
+  label: Renovate integration
+description: Configure Renovate to automatically update dependencies while maintaining lockfile synchronization.
+tags:
+  - dependencies
+  - automation
+  - ci
+template: doc
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+IssueSuite uses [Renovate](https://docs.renovatebot.com/) for automated dependency updates with built-in lockfile synchronization enforcement. This guide explains the integration and best practices.
+
+## Overview
+
+Renovate automatically:
+- Detects dependency updates in `pyproject.toml` and `docs/starlight/package.json`
+- Creates pull requests for updates
+- **Runs `scripts/refresh-deps.sh`** to synchronize lockfiles
+- Ensures `uv.lock` and `package-lock.json` are always current
+
+The CI workflow `.github/workflows/dependencies.yml` validates lockfile synchronization on every PR, blocking merge if drift is detected.
+
+## Configuration
+
+IssueSuite's Renovate configuration lives in `renovate.json`:
+
+```json
+{
+  "extends": ["config:recommended"],
+  "postUpgradeTasks": {
+    "commands": ["./scripts/refresh-deps.sh"],
+    "fileFilters": [
+      "pyproject.toml",
+      "uv.lock",
+      "docs/starlight/package.json",
+      "docs/starlight/package-lock.json"
+    ],
+    "executionMode": "branch"
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "pinDigests": true,
+      "description": "Pin GitHub Actions to exact commit SHAs"
+    }
+  ]
+}
+```
+
+### Key Features
+
+**Post-upgrade tasks**: After updating dependencies, Renovate automatically runs `refresh-deps.sh` to regenerate lockfiles before committing.
+
+**File filters**: Ensures both manifest files and their lockfiles are included in the PR.
+
+**GitHub Actions pinning**: Security best practice — actions are pinned to commit SHAs and updated with digest changes.
+
+## Workflow
+
+### Automatic Updates
+
+1. Renovate detects a new version (e.g., `ruff 0.14.0 → 0.14.1`)
+2. Updates `pyproject.toml` with new version
+3. Runs `./scripts/refresh-deps.sh` to update `uv.lock`
+4. Commits both files to a PR
+5. CI validates lockfile synchronization passes
+6. PR is ready for review
+
+### Manual Override
+
+If you need to update dependencies manually:
+
+```bash
+# Edit pyproject.toml or package.json
+vim pyproject.toml
+
+# Regenerate lockfiles
+./scripts/refresh-deps.sh
+
+# Validate synchronization
+./scripts/refresh-deps.sh --check
+
+# Commit both manifest and lockfiles
+git add pyproject.toml uv.lock
+git commit -m "chore(deps): update ruff to 0.14.1"
+```
+
+<Aside type="caution">
+Always run `refresh-deps.sh` after manually editing dependency manifests. The CI check will fail if lockfiles are out of sync.
+</Aside>
+
+## Security Model
+
+Renovate's `postUpgradeTasks` execute with repository write access in an isolated branch context. IssueSuite's security posture:
+
+✅ **Script is version-controlled** — Changes to `refresh-deps.sh` require code review  
+✅ **No external inputs processed** — Script only reads local manifests  
+✅ **Isolated execution** — Runs in branch before merge  
+✅ **CI validation** — All changes validated by quality gates  
+
+See [ADR-0002](../../adrs/ADR-0002-dependency-sync-enforcement.md) for the full security assessment.
+
+## Troubleshooting
+
+### Renovate PR has stale lockfiles
+
+**Symptom**: Renovate PR fails CI with "Lockfiles out of sync"
+
+**Cause**: `postUpgradeTasks` didn't run or failed silently
+
+**Solution**:
+1. Check Renovate logs for task execution errors
+2. Manually run `./scripts/refresh-deps.sh` in the PR branch
+3. Push updated lockfiles
+
+### Merge conflicts in lockfiles
+
+**Symptom**: Renovate PR conflicts with main branch lockfiles
+
+**Cause**: Multiple dependency PRs merged in different order
+
+**Solution**:
+1. Rebase the Renovate PR: Renovate will automatically rerun `refresh-deps.sh`
+2. Or manually resolve: Pull main, run `refresh-deps.sh`, force-push
+
+### Dependency not updating
+
+**Symptom**: Expected dependency update not appearing
+
+**Possible causes**:
+- Dependency is pinned in manifest (`==` instead of `>=`)
+- Renovate schedule doesn't match your expectations
+- Package rule is excluding the update
+
+**Solution**: Check `renovate.json` configuration and Renovate dashboard logs
+
+## Best Practices
+
+### For Contributors
+
+✅ **Let Renovate handle routine updates** — Don't manually bump versions for minor/patch updates  
+✅ **Review security updates promptly** — Renovate flags these as high priority  
+✅ **Test major updates locally** — Use `nox -s tests` before approving  
+✅ **Keep lockfiles synchronized** — Run `refresh-deps.sh` after manual changes  
+
+### For Maintainers
+
+✅ **Configure automerge carefully** — Consider enabling for patch/minor updates with passing tests  
+✅ **Group related updates** — Use Renovate's `grouping` feature for related packages  
+✅ **Schedule updates appropriately** — Avoid merge conflicts by scheduling outside active development windows  
+✅ **Monitor Renovate dashboard** — Track pending updates and rate limit status  
+
+## Integration with ADRs
+
+This integration implements architectural decisions from:
+
+- **[ADR-0002: Automated Dependency Synchronization Enforcement](../../adrs/ADR-0002-dependency-sync-enforcement.md)**  
+  Renovate's `postUpgradeTasks` + CI validation prevent lockfile drift
+
+- **[ADR-0004: Development Environment Parity](../../adrs/ADR-0004-dev-environment-parity.md)**  
+  Lockfile synchronization ensures consistent tool versions across environments
+
+## Success Metrics
+
+Track these indicators (see [Gap Analysis](../../gap_analysis_2025.md)):
+
+- ✅ Zero lockfile drift incidents in merged PRs
+- ✅ Zero manual lockfile updates needed in Renovate PRs
+- ✅ 100% of dependency updates include lockfile changes
+- ✅ Advisory refresh runs automatically with security updates
+
+## Related Documentation
+
+- [Dependency Synchronization Workflow](./dependency-workflow) — Manual dependency update process
+- [ADR Index](./adr-governance) — Architecture decision records
+- [CI/CD Automation](./automation-ci) — GitHub Actions workflows

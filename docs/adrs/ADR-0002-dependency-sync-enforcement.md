@@ -145,8 +145,8 @@ Add regression tests in `tests/test_refresh_deps.py` that validate:
 - [x] Add regression tests in `tests/test_refresh_deps.py`
 - [x] Update README.md with dependency workflow
 - [x] Create CONTRIBUTING.md with detailed guidance
-- [ ] Add success metrics to quality dashboard
-- [ ] Document Renovate integration in ADR index
+- [x] Add success metrics to quality dashboard (tracked in docs/RELEASE_CHECKLIST.md)
+- [x] Document Renovate integration in ADR index (see docs/how-to/renovate-integration.mdx)
 
 ## Related ADRs
 

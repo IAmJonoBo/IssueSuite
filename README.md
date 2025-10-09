@@ -139,6 +139,47 @@ IssueSuite supports air-gapped and hermetic environments:
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for full offline development workflow.
 
+### Developer Environment Setup
+
+For contributors working on IssueSuite itself, follow these steps to ensure your local environment matches CI:
+
+1. **Clone and install with all development dependencies**:
+   ```bash
+   git clone https://github.com/IAmJonoBo/IssueSuite.git
+   cd IssueSuite
+   pip install -e .[dev,all]
+   ```
+
+2. **Configure development environment** (recommended):
+   ```bash
+   ./scripts/setup-dev-env.sh
+   ```
+   
+   This automated setup script:
+   - Installs Git pre-commit hooks for format/lockfile checks
+   - Validates lockfile synchronization
+   - Checks tool version parity with CI
+   - Provides environment diagnostics
+
+3. **Verify your setup**:
+   ```bash
+   issuesuite doctor  # Check environment health
+   nox -s tests lint typecheck  # Run quality gates locally
+   ```
+
+**Before committing changes**:
+- Pre-commit hooks automatically run format checks and lockfile validation
+- Update lockfiles after dependency changes: `./scripts/refresh-deps.sh`
+- Run full quality gates: `nox -s tests lint typecheck security`
+
+**Tool versions** should match CI (automatically handled by `pip install -e .[dev]`):
+- Python: 3.10+ (CI tests 3.10, 3.11, 3.12, 3.13)
+- ruff: 0.14 (pinned exact version)
+- mypy: 1.8+
+- Node.js: 20+ (for documentation builds)
+
+See [ADR-0004](docs/adrs/ADR-0004-dev-environment-parity.md) for the architectural decision behind environment parity enforcement.
+
 ### Developer Tooling
 
 Run the consolidated quality gates locally with the bundled `nox` sessions:

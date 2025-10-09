@@ -5,6 +5,7 @@
 | High     | In Progress | Lint & Types | Add missing type annotations across scripts/tests | Continue annotating tests flagged by `ruff --select ANN`; unblock `mypy` expansion later. ✅ `tests/test_env_auth.py` fully annotated (2025-10-08). ✅ `tests/test_pip_audit_integration.py`, `tests/test_type_coverage_report.py`, `tests/test_update_changelog.py`, `tests/test_ux_acceptance_script.py` annotated (2025-10-09). |
 | High     | Not Started | Lint         | Tackle remaining lint blockers                    | Address import ordering, redundant casts, markdown lint, and any new Ruff findings.                                                                 |
 | High     | Not Started | Governance   | Blueprint Frontier Apex gates + GitHub Projects automation | Expand coverage target to ≥85, codify UX acceptance scripts, and sync Next Steps with Projects dashboards for executive reporting.                          |
+| High     | Completed   | ADRs         | Complete all ADR follow-up tasks                  | ✅ All ADR-0002, ADR-0003, ADR-0004 follow-up tasks completed (2025-10-09): Release checklist created, environment variable docs added, Renovate integration documented, README updated with dev setup. |
 | High     | Completed   | Supply Chain | Re-pin `.github/workflows/publish.yml` actions    | Restored `pypa/gh-action-pypi-publish` to commit `e53eb8b` and enabled Renovate digest pinning for the GitHub Actions manager.                      |
 | High     | Completed   | Security     | Replace placeholder JWT signing                   | `_generate_jwt` now signs with PyJWT when available and falls back to a logged placeholder only if the dependency is absent.                        |
 | High     | Completed   | Security     | Harden token caching                              | GitHub App tokens persist to the OS keyring (with encoded file backup) and legacy plaintext cache files are still readable for upgrades.            |
@@ -17,6 +18,7 @@
 
 ## Notes
 
+- ✅ **All ADR follow-up tasks completed (2025-10-09)**: Created comprehensive release checklist (`docs/RELEASE_CHECKLIST.md`), documented all environment variables (`docs/starlight/src/content/docs/reference/environment-variables.mdx`), added Renovate integration guide (`docs/starlight/src/content/docs/how-to/renovate-integration.mdx`), and updated README with developer environment setup section. All ADRs (0002, 0003, 0004) now have complete implementation and documentation.
 - Renovate is now configured to pin GitHub Actions digests. Consider adding a CI status check to ensure Renovate PRs for action updates are reviewed promptly.
 - PyJWT and keyring are now optional auth dependencies; ensure production environments install the `all` extra (or a dedicated `auth` extra) so GitHub App sync remains functional.
 - `sitecustomize.py` applies the resilient pip-audit shim automatically so hermetic `python -m pip_audit` invocations reuse the offline dataset and 60s timeout. Prefer `issuesuite security --pip-audit` for new automation.【F:sitecustomize.py†L1-L63】

@@ -277,9 +277,9 @@ These are automatically installed when you run `pip install -e .[dev]`.
 - [x] Enhance `issuesuite doctor` with parity checks
 - [x] Add pre-commit hook to `.githooks/pre-commit`
 - [x] Update CONTRIBUTING.md with setup guide
-- [ ] Add "Dev Environment Setup" to README.md
+- [x] Add "Dev Environment Setup" to README.md
+- [x] Add environment validation to release checklist (see docs/RELEASE_CHECKLIST.md)
 - [ ] Consider Dev Containers as future enhancement
-- [ ] Add environment validation to release checklist
 
 ## Related ADRs
 
