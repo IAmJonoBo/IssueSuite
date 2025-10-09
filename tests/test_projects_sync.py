@@ -134,12 +134,14 @@ def test_sync_projects_apply_requires_token(tmp_path: Path) -> None:
 
 
 @patch("requests.Session")
-def test_apply_project_update_with_mocked_http(mock_session_class: MagicMock, tmp_path: Path) -> None:
+def test_apply_project_update_with_mocked_http(
+    mock_session_class: MagicMock, tmp_path: Path
+) -> None:
     """Test _apply_project_update with mocked HTTP requests."""
     # Setup mock session
     mock_session = MagicMock()
     mock_session_class.return_value = mock_session
-    
+
     # Mock GraphQL responses
     # First call: fetch project metadata
     metadata_response = MagicMock()
@@ -170,38 +172,30 @@ def test_apply_project_update_with_mocked_http(mock_session_class: MagicMock, tm
                             },
                         ]
                     },
-                    "items": {
-                        "nodes": [
-                            {"id": "ITEM_123", "title": "IssueSuite Health"}
-                        ]
-                    },
+                    "items": {"nodes": [{"id": "ITEM_123", "title": "IssueSuite Health"}]},
                 }
             }
         }
     }
-    
+
     # Second call: update project item
     update_response = MagicMock()
     update_response.status_code = 200
     update_response.json.return_value = {
-        "data": {
-            "updateProjectV2ItemFieldValue": {
-                "projectV2Item": {"id": "ITEM_123"}
-            }
-        }
+        "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "ITEM_123"}}}
     }
-    
+
     mock_session.post.side_effect = [metadata_response, update_response, update_response]
-    
+
     next_steps_path = tmp_path / "Next Steps.md"
     next_steps_path.write_text("# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8")
-    
+
     coverage_payload = tmp_path / "coverage_projects_payload.json"
     coverage_payload.write_text(
         json.dumps({"status": "on_track", "overall_coverage": 0.9}),
         encoding="utf-8",
     )
-    
+
     config = build_config(
         owner="acme",
         project_number=7,
@@ -215,42 +209,44 @@ def test_apply_project_update_with_mocked_http(mock_session_class: MagicMock, tm
         comment_issue=None,
         token="ghp_test_token",
     )
-    
+
     result = sync_projects(
         config=config,
         next_steps_paths=[next_steps_path],
         coverage_payload_path=coverage_payload,
         apply=True,
     )
-    
+
     assert result["project"]["enabled"] is True
     assert result["project"]["dry_run"] is False
     assert mock_session.post.call_count >= 2
 
 
 @patch("requests.Session")
-def test_post_status_comment_with_mocked_http(mock_session_class: MagicMock, tmp_path: Path) -> None:
+def test_post_status_comment_with_mocked_http(
+    mock_session_class: MagicMock, tmp_path: Path
+) -> None:
     """Test _post_status_comment with mocked HTTP requests."""
     # Setup mock session
     mock_session = MagicMock()
     mock_session_class.return_value = mock_session
-    
+
     # Mock REST API response for comment posting
     comment_response = MagicMock()
     comment_response.status_code = 201
     comment_response.json.return_value = {"id": 123, "body": "Test comment"}
-    
+
     mock_session.post.side_effect = [comment_response]
-    
+
     next_steps_path = tmp_path / "Next Steps.md"
     next_steps_path.write_text("# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8")
-    
+
     coverage_payload = tmp_path / "coverage_projects_payload.json"
     coverage_payload.write_text(
         json.dumps({"status": "on_track", "message": "All good"}),
         encoding="utf-8",
     )
-    
+
     # Don't enable project sync, only comment posting
     config = build_config(
         owner=None,  # Disable project sync
@@ -265,14 +261,14 @@ def test_post_status_comment_with_mocked_http(mock_session_class: MagicMock, tmp
         comment_issue=42,
         token="ghp_test_token",
     )
-    
+
     result = sync_projects(
         config=config,
         next_steps_paths=[next_steps_path],
         coverage_payload_path=coverage_payload,
         apply=True,
     )
-    
+
     assert result["comment_result"]["enabled"] is True
     assert result["comment_result"]["dry_run"] is False
     assert result["project"]["enabled"] is False  # Project sync should be disabled
@@ -284,20 +280,20 @@ def test_error_handling_http_failure(mock_session_class: MagicMock, tmp_path: Pa
     # Setup mock session
     mock_session = MagicMock()
     mock_session_class.return_value = mock_session
-    
+
     # Mock failed GraphQL response
     error_response = MagicMock()
     error_response.status_code = 500
     error_response.text = "Internal Server Error"
-    
+
     mock_session.post.return_value = error_response
-    
+
     next_steps_path = tmp_path / "Next Steps.md"
     next_steps_path.write_text("# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8")
-    
+
     coverage_payload = tmp_path / "coverage_projects_payload.json"
     coverage_payload.write_text(json.dumps({"status": "on_track"}), encoding="utf-8")
-    
+
     config = build_config(
         owner="acme",
         project_number=7,
@@ -311,7 +307,7 @@ def test_error_handling_http_failure(mock_session_class: MagicMock, tmp_path: Pa
         comment_issue=None,
         token="ghp_test_token",
     )
-    
+
     with pytest.raises(ProjectsSyncError):
         sync_projects(
             config=config,
@@ -327,7 +323,7 @@ def test_error_handling_missing_field(mock_session_class: MagicMock, tmp_path: P
     # Setup mock session
     mock_session = MagicMock()
     mock_session_class.return_value = mock_session
-    
+
     # Mock GraphQL response with missing field
     metadata_response = MagicMock()
     metadata_response.status_code = 200
@@ -340,24 +336,20 @@ def test_error_handling_missing_field(mock_session_class: MagicMock, tmp_path: P
                     "fields": {
                         "nodes": []  # No fields
                     },
-                    "items": {
-                        "nodes": [
-                            {"id": "ITEM_123", "title": "IssueSuite Health"}
-                        ]
-                    },
+                    "items": {"nodes": [{"id": "ITEM_123", "title": "IssueSuite Health"}]},
                 }
             }
         }
     }
-    
+
     mock_session.post.return_value = metadata_response
-    
+
     next_steps_path = tmp_path / "Next Steps.md"
     next_steps_path.write_text("# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8")
-    
+
     coverage_payload = tmp_path / "coverage_projects_payload.json"
     coverage_payload.write_text(json.dumps({"status": "on_track"}), encoding="utf-8")
-    
+
     config = build_config(
         owner="acme",
         project_number=7,
@@ -371,7 +363,7 @@ def test_error_handling_missing_field(mock_session_class: MagicMock, tmp_path: P
         comment_issue=None,
         token="ghp_test_token",
     )
-    
+
     with pytest.raises(ProjectsSyncError, match="not found"):
         sync_projects(
             config=config,
@@ -379,4 +371,3 @@ def test_error_handling_missing_field(mock_session_class: MagicMock, tmp_path: P
             coverage_payload_path=coverage_payload,
             apply=True,
         )
-
