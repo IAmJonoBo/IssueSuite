@@ -141,10 +141,10 @@ Add regression tests in `tests/test_refresh_deps.py` that validate:
 
 ## Follow-up Tasks
 
-- [ ] Implement `.github/workflows/dependencies.yml`
-- [ ] Add regression tests in `tests/test_refresh_deps.py`
-- [ ] Update README.md with dependency workflow
-- [ ] Create CONTRIBUTING.md with detailed guidance
+- [x] Implement `.github/workflows/dependencies.yml`
+- [x] Add regression tests in `tests/test_refresh_deps.py`
+- [x] Update README.md with dependency workflow
+- [x] Create CONTRIBUTING.md with detailed guidance
 - [ ] Add success metrics to quality dashboard
 - [ ] Document Renovate integration in ADR index
 

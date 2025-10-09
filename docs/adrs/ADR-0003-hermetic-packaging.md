@@ -207,8 +207,8 @@ For offline deployment:
 
 ## Follow-up Tasks
 
-- [ ] Add `offline-installation` job to `.github/workflows/test-build.yml`
-- [ ] Create `tests/test_hermetic_installation.py` with regression tests
+- [x] Add `offline-installation` job to `.github/workflows/test-build.yml`
+- [x] Create `tests/test_hermetic_installation.py` with regression tests
 - [ ] Update README.md with offline deployment guide
 - [ ] Document mock mode environment variables in reference docs
 - [ ] Add offline validation to release checklist

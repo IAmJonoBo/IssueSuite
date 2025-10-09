@@ -61,7 +61,7 @@
       "id": "ADR-0004",
       "slug": "dev-environment-parity",
       "title": "Development Environment Parity",
-      "status": "Proposed",
+      "status": "Accepted",
       "decision_date": "2025-10-09",
       "deciders": ["IssueSuite Maintainers"],
       "tags": ["developer-experience", "ci", "quality-gates", "tooling"],

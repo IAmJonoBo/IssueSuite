@@ -8,6 +8,7 @@ export default defineConfig({
     starlight({
       title: "IssueSuite Documentation",
       favicon: "/favicon.svg",
+      customCss: ["./src/styles/theme.css"],
       components: {
         Footer: "./src/components/Footer.astro",
       },
