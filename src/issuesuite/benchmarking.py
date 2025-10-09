@@ -91,9 +91,7 @@ class PerformanceBenchmark:
         self._metrics: list[PerformanceMetric] = []
         self._active_timers: dict[str, float] = {}
         self._system_monitor: Any | None = None
-        self._tracer = (
-            _otel_trace.get_tracer("issuesuite.benchmark") if _otel_trace else None
-        )
+        self._tracer = _otel_trace.get_tracer("issuesuite.benchmark") if _otel_trace else None
 
         if config.enabled and config.collect_system_metrics and not mock:
             self._init_system_monitoring()
@@ -138,22 +136,16 @@ class PerformanceBenchmark:
             start_time = time.perf_counter()
             start_metrics = self._get_system_metrics()
             span_cm = (
-                self._tracer.start_as_current_span(operation)
-                if self._tracer
-                else nullcontext()
+                self._tracer.start_as_current_span(operation) if self._tracer else nullcontext()
             )
 
             try:
                 self.logger.debug(f"Starting benchmark: {operation}")
                 with span_cm as span:
                     yield
-                    if (
-                        span is not None
-                    ):  # pragma: no cover - attribute when tracing enabled
+                    if span is not None:  # pragma: no cover - attribute when tracing enabled
                         for key, value in context.items():
-                            span.set_attribute(
-                                f"issuesuite.benchmark.context.{key}", str(value)
-                            )
+                            span.set_attribute(f"issuesuite.benchmark.context.{key}", str(value))
             finally:
                 end_time = time.perf_counter()
                 duration_ms = (end_time - start_time) * 1000
@@ -185,9 +177,7 @@ class PerformanceBenchmark:
                 if self._tracer and _otel_trace is not None:
                     current_span = _otel_trace.get_current_span()
                     if current_span is not None:
-                        current_span.set_attribute(
-                            "issuesuite.benchmark.duration_ms", duration_ms
-                        )
+                        current_span.set_attribute("issuesuite.benchmark.duration_ms", duration_ms)
 
     def start_timer(self, name: str) -> None:
         """Start a named timer."""
@@ -299,9 +289,7 @@ class PerformanceBenchmark:
         self.logger.log_operation("benchmark_complete", benchmark_name=name, **summary)
         return benchmark_result
 
-    def get_metrics(
-        self, operation_filter: str | None = None
-    ) -> list[PerformanceMetric]:
+    def get_metrics(self, operation_filter: str | None = None) -> list[PerformanceMetric]:
         """Get collected metrics, optionally filtered by operation name."""
         if operation_filter:
             return [m for m in self._metrics if operation_filter in m.name]
@@ -332,9 +320,7 @@ class PerformanceBenchmark:
                 "median_ms": statistics.median(op_durations),
                 "min_ms": min(op_durations),
                 "max_ms": max(op_durations),
-                "stddev_ms": (
-                    statistics.stdev(op_durations) if len(op_durations) > 1 else 0
-                ),
+                "stddev_ms": (statistics.stdev(op_durations) if len(op_durations) > 1 else 0),
             }
 
         return {
@@ -369,9 +355,7 @@ class PerformanceBenchmark:
                     metric_count=len(self._metrics),
                 )
             except Exception as e:
-                self.logger.log_error(
-                    "Failed to write performance report", error=str(e)
-                )
+                self.logger.log_error("Failed to write performance report", error=str(e))
 
         return report
 
@@ -419,18 +403,14 @@ class PerformanceBenchmark:
                 "other_mean_ms": other_mean,
                 "performance_ratio": ratio,
                 "improvement_percent": (
-                    ((other_mean - self_mean) / other_mean * 100)
-                    if other_mean > 0
-                    else 0
+                    ((other_mean - self_mean) / other_mean * 100) if other_mean > 0 else 0
                 ),
             }
 
         return comparison
 
 
-def create_benchmark(
-    config: BenchmarkConfig, mock: bool = False
-) -> PerformanceBenchmark:
+def create_benchmark(config: BenchmarkConfig, mock: bool = False) -> PerformanceBenchmark:
     """Factory function to create a performance benchmark."""
     return PerformanceBenchmark(config, mock)
 
@@ -476,9 +456,7 @@ def analyze_performance_trends(metrics: list[PerformanceMetric]) -> dict[str, An
             second_half_avg = statistics.mean(durations[midpoint:])
 
             trend = "improving" if second_half_avg < first_half_avg else "degrading"
-            trend_magnitude = (
-                abs(second_half_avg - first_half_avg) / first_half_avg * 100
-            )
+            trend_magnitude = abs(second_half_avg - first_half_avg) / first_half_avg * 100
 
             analysis[op_name] = {
                 "trend": trend,
@@ -546,22 +524,16 @@ def check_performance_budget(
         return
 
     violations = [
-        m
-        for m in metrics
-        if isinstance(m, dict) and float(m.get("duration_ms", 0)) > budget_ms
+        m for m in metrics if isinstance(m, dict) and float(m.get("duration_ms", 0)) > budget_ms
     ]
     if violations:
         names = ", ".join(str(m.get("name")) for m in violations)
-        raise RuntimeError(
-            f"Performance budget exceeded ({budget_ms}ms) for operations: {names}"
-        )
+        raise RuntimeError(f"Performance budget exceeded ({budget_ms}ms) for operations: {names}")
 
 
 def _parse_args() -> Any:  # pragma: no cover - CLI convenience
     parser = argparse.ArgumentParser(description="IssueSuite benchmarking utilities")
-    parser.add_argument(
-        "--check", action="store_true", help="Run regression checks against budget"
-    )
+    parser.add_argument("--check", action="store_true", help="Run regression checks against budget")
     parser.add_argument(
         "--report",
         default="performance_report.json",
