@@ -6,8 +6,12 @@ These tests validate that IssueSuite works in restricted environments:
 - Graceful degradation when optional dependencies are missing
 """
 
+# ruff: noqa: PLC0415  # Intentional late imports to test module loading
+
 from __future__ import annotations
 
+import os
+import subprocess
 import sys
 from unittest.mock import MagicMock
 
@@ -72,7 +76,6 @@ def test_benchmarking_module_degrades_gracefully_without_psutil():
 
 def test_cli_validate_works_in_mock_mode_offline(tmp_path):
     """Verify CLI validate command works in offline mock mode."""
-    import os
     import subprocess
 
     # Create minimal config
@@ -88,7 +91,7 @@ def test_cli_validate_works_in_mock_mode_offline(tmp_path):
     # Run validate in mock mode
     result = subprocess.run(
         [sys.executable, "-m", "issuesuite", "validate", "--config", str(config)],
-        cwd=tmp_path,
+        check=False, cwd=tmp_path,
         capture_output=True,
         text=True,
         env={**os.environ, "ISSUES_SUITE_MOCK": "1"},
@@ -100,12 +103,11 @@ def test_cli_validate_works_in_mock_mode_offline(tmp_path):
 
 def test_schema_command_works_offline():
     """Verify schema command works without network access."""
-    import subprocess
 
     # Run schema command (should work completely offline)
     result = subprocess.run(
         [sys.executable, "-m", "issuesuite", "schema"],
-        capture_output=True,
+        check=False, capture_output=True,
         text=True,
     )
 
@@ -157,13 +159,12 @@ def test_config_loads_without_optional_features(tmp_path):
 
 def test_dependency_audit_works_offline():
     """Verify dependency audit works with offline advisories."""
-    import os
     import subprocess
 
     # Run dependency audit in offline mode
     result = subprocess.run(
         [sys.executable, "-m", "issuesuite.dependency_audit", "--offline-only"],
-        capture_output=True,
+        check=False, capture_output=True,
         text=True,
         env={**os.environ},
     )

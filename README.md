@@ -97,6 +97,48 @@ issuesuite security --offline-only
 issuesuite security --pip-audit --pip-audit-disable-online --pip-audit-arg --format --pip-audit-arg json
 ```
 
+### Offline/Hermetic Deployment
+
+IssueSuite supports air-gapped and hermetic environments:
+
+- **Core functionality** works without network access when `ISSUES_SUITE_MOCK=1` is set
+- **Optional dependencies** gracefully degrade if unavailable
+- **Offline testing** is validated in CI via hermetic installation tests
+
+**For offline deployment**:
+
+1. Build the wheel:
+   ```bash
+   python -m build
+   ```
+
+2. Download all dependencies to a local directory:
+   ```bash
+   mkdir -p offline-wheels
+   pip download --dest offline-wheels dist/*.whl
+   ```
+
+3. Transfer the `dist/` directory and `offline-wheels/` to target environment
+
+4. Install without network:
+   ```bash
+   pip install --no-index --find-links ./offline-wheels issuesuite
+   ```
+
+5. Use mock mode for testing/validation:
+   ```bash
+   export ISSUES_SUITE_MOCK=1
+   export ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1
+   issuesuite validate --config issue_suite.config.yaml
+   ```
+
+**Environment variables for offline operation**:
+- `ISSUES_SUITE_MOCK=1` — Mock GitHub API calls (no network)
+- `ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1` — Disable pip-audit network requests
+- `ISSUESUITE_PROJECT_CACHE_DISABLE=1` — Disable GitHub Projects cache
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for full offline development workflow.
+
 ### Developer Tooling
 
 Run the consolidated quality gates locally with the bundled `nox` sessions:
