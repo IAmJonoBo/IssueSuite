@@ -143,13 +143,19 @@ python scripts/update_changelog.py 0.1.12 \
   --highlight "Ship developer nox sessions"
 ```
 
+### Documentation
+
+IssueSuite documentation now lives in an [Astro Starlight workspace](docs/starlight). Run `npm install && npm run build` (or `nox -s docs`) to validate content locally and publish via your preferred static hosting.
+
+- Tutorials: [Getting started](docs/starlight/src/content/docs/tutorials/getting-started.mdx)
+- How-to guides: [CI/CD automation](docs/starlight/src/content/docs/how-to/automation-ci.mdx), [Homebrew tap automation](docs/starlight/src/content/docs/how-to/homebrew.mdx), [Documentation pipeline](docs/starlight/src/content/docs/how-to/docs-automation.mdx)
+- Reference: [CLI commands](docs/starlight/src/content/docs/reference/cli.mdx), [Configuration schema](docs/starlight/src/content/docs/reference/configuration.mdx)
+- Explanations: [Architecture overview](docs/starlight/src/content/docs/explanations/architecture.mdx), [Documentation strategy](docs/starlight/src/content/docs/explanations/documentation-strategy.mdx)
+- Architecture decisions: [ADR-0001 – Adopt Astro Starlight](docs/adrs/ADR-0001-starlight-migration.md)
+
 ### Learn more
 
-- Tutorials: [Getting started](docs/tutorials/getting-started.md)
-- How-to guides: [CI/CD](docs/how-to/ci-cd.md), [Homebrew automation](docs/how-to/homebrew.md), [VS Code tasks](docs/how-to/vs-code.md)
-- Reference: [CLI commands](docs/reference/cli.md), [Configuration schema](docs/reference/configuration.md)
-- Explanations: [Architecture overview](docs/explanations/architecture.md), [Plugins & telemetry](docs/explanations/extensions.md)
-- Observability quick start: run `issuesuite upgrade --json` to see recommended configuration defaults and add a `telemetry` block, e.g.
+Observability quick start: run `issuesuite upgrade --json` to see recommended configuration defaults and add a `telemetry` block, e.g.
 
   ```yaml
   telemetry:

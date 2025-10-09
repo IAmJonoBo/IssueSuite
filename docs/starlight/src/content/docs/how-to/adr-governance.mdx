@@ -1,0 +1,38 @@
+---
+title: Maintain architecture decision records
+sidebar:
+  label: ADR workflow
+description: Capture and track architecture decisions with IssueSuite's ADR index and governance checks.
+tags:
+  - adr
+  - governance
+template: doc
+---
+
+IssueSuite now ships with a tracked ADR registry. Follow this workflow to propose, accept, and supersede decisions.
+
+## Author a new ADR
+
+1. Copy `docs/adrs/ADR-0001-starlight-migration.md` as a template.
+2. Increment the ID (four-digit, zero-padded) and update the slug, title, status, and metadata in `docs/adrs/index.json`.
+3. Document context, decision, consequences, and follow-up tasks.
+
+## Keep the index synchronised
+
+Tests assert that every ADR listed in `index.json` has a corresponding file and vice versa. Always update both to keep CI green.
+
+## Reference ADRs in documentation
+
+Link to ADRs from tutorials, how-to guides, and explanations when they provide architectural rationale. This ensures readers understand why a workflow exists.
+
+:::caution[Planned features]
+We'll expose ADR metadata in the Starlight site once multiple decisions exist, including status badges and supersession history.
+:::
+
+## Review cadence
+
+- Mark `status: Proposed` while gathering consensus.
+- Update to `Accepted` once merged.
+- Use `Superseded` when a later ADR replaces the decision and link via `superseded_by` / `supersedes` arrays in the index.
+
+Keep `Next Steps.md` updated with ADR follow-ups to maintain a single source of truth.

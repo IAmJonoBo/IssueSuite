@@ -1,0 +1,60 @@
+---
+title: Documentation automation pipeline
+sidebar:
+  label: Documentation automation
+description: Automate Astro Starlight builds, quality gates, and deployments for IssueSuite documentation.
+tags:
+  - documentation
+  - automation
+template: doc
+---
+
+With Astro Starlight powering IssueSuite docs, we enforce the same Frontier gates used across the CLI. This guide explains how to run doc builds locally and in CI.
+
+## Local workflow
+
+```bash
+cd docs/starlight
+npm install
+npm run check
+npm run build
+```
+
+The `check` script executes `astro check --flags minimal` to lint Markdown, validate frontmatter, and ensure links stay healthy.
+
+## Nox session
+
+Run `nox -s docs` to install dependencies (cached per session) and perform `npm run check && npm run build`. The session exits non-zero if either step fails, keeping documentation within release readiness criteria.
+
+## CI integration
+
+Add a job to your workflow:
+
+```yaml
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: docs/starlight/package-lock.json
+      - name: Install dependencies
+        run: npm install
+        working-directory: docs/starlight
+      - name: Build documentation
+        run: npm run build
+        working-directory: docs/starlight
+```
+
+:::note[Planned features]
+A future enhancement will publish the built site to GitHub Pages and surface build status in the Projects dashboard alongside IssueSuite's quality gates.
+:::
+
+## Quality expectations
+
+- Every page includes `title`, `description`, and Diátaxis category metadata.
+- Tests in `tests/test_documentation_structure.py` guard against missing frontmatter and unsynchronised ADR entries.
+- `Next Steps.md` tracks documentation milestones so we continuously evolve governance.

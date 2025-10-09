@@ -1,0 +1,30 @@
+{
+  "name": "issuesuite-docs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check --flags minimal",
+    "lint": "astro check --flags minimal",
+    "format": "prettier --check \"src/**/*.{md,mdx,astro}\"",
+    "format:write": "prettier --write \"src/**/*.{md,mdx,astro}\""
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@astrojs/mdx": "^3.0.1",
+    "@astrojs/starlight": "^0.25.3",
+    "astro": "^4.13.3"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "prettier-plugin-astro": "^0.14.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18.17.0",
+    "npm": ">=9.6.0"
+  }
+}

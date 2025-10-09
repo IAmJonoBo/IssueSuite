@@ -1,5 +1,8 @@
 # IssueSuite Documentation
 
+> **Note**
+> The canonical documentation now lives in the [Astro Starlight workspace](starlight). The legacy Markdown below remains for quick browsing inside the repository.
+
 IssueSuite follows the Diátaxis framework. Choose the entry point that matches your goal:
 
 | Category      | Description                             | Start here                                      |

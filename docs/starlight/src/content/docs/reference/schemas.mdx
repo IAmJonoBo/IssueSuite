@@ -1,0 +1,30 @@
+---
+title: Schema registry
+sidebar:
+  label: Schema registry
+description: Learn how IssueSuite publishes JSON Schemas for exports, summaries, and AI context payloads.
+tags:
+  - reference
+  - schemas
+template: doc
+---
+
+IssueSuite publishes versioned JSON Schemas via `issuesuite schema` and `issuesuite ai-context`. Consumers can validate automation payloads without reverse-engineering the CLI.
+
+## Export schema
+
+`issuesuite schema --stdout --export` prints the issue export schema. Use it to validate integrations that consume `issues_export.json`.
+
+## Summary schema
+
+`issuesuite schema --stdout --summary` emits the plan summary schema. CI systems can assert plan shape before applying changes.
+
+## AI context schema
+
+`issuesuite ai-context --schema-json ai_context.schema.json` writes the structure assistants expect when ingesting project state.
+
+:::tip[Planned features]
+Nightly builds will soon update a public schema registry and embed diffs directly into Starlight reference pages.
+:::
+
+Refer to `src/issuesuite/schema_registry.py` for version history and to `scripts/coverage_trends.py` for telemetry payload exports.

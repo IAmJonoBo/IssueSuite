@@ -1,0 +1,33 @@
+---
+title: Homebrew tap automation
+sidebar:
+  label: Homebrew tap automation
+description: Publish IssueSuite releases to Homebrew with reproducible formulas and CI guardrails.
+tags:
+  - packaging
+  - homebrew
+template: doc
+---
+
+Homebrew distribution keeps IssueSuite accessible to operators who prefer package managers. This guide outlines our maintainer workflow.
+
+## Release flow
+
+1. Tag the release with `scripts/release.py` (choose `--patch`, `--minor`, or `--major`).
+2. The `release.yml` workflow builds wheels, runs `twine check`, and generates a Homebrew formula.
+3. Run `scripts/homebrew_formula.py` to sync the formula into your tap repository.
+4. Validate with `brew install --build-from-source issuesuite` before publishing.
+
+## Formula configuration
+
+The generated formula pins dependencies, verifies the SHA256, and exposes CLI entry points. Re-run the helper script whenever packaging metadata changes.
+
+:::note[Planned features]
+We're expanding the release helper to publish a documentation changelog entry and trigger Astro builds automatically when a new version is tagged.
+:::
+
+## Troubleshooting
+
+- **Checksum mismatch**: Regenerate artifacts locally and re-run the release script to capture updated hashes.
+- **Bumped Python version**: Update the formula's `depends_on "python@<version>"` line, regenerate, and validate on macOS runners.
+- **Tap CI failures**: Ensure `brew test-bot` runs as part of your tap's workflow; IssueSuite's formula includes integration tests to catch CLI regressions.

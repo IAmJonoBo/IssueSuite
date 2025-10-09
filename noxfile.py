@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import nox
 
 nox.options.default_venv_backend = "virtualenv"
 nox.options.error_on_missing_interpreters = False
+
+DOCS_DIR = Path("docs/starlight")
 
 
 def _install_tools(session: nox.Session) -> None:
@@ -44,3 +48,11 @@ def secrets(session: nox.Session) -> None:
 def build(session: nox.Session) -> None:
     _install_tools(session)
     session.run("python", "-m", "build")
+
+
+@nox.session
+def docs(session: nox.Session) -> None:
+    session.chdir(str(DOCS_DIR))
+    session.run("npm", "install", external=True)
+    session.run("npm", "run", "check", external=True)
+    session.run("npm", "run", "build", external=True)

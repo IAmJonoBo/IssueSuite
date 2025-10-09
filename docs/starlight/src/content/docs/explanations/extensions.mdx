@@ -1,0 +1,41 @@
+---
+title: Extensions, plugins, and telemetry
+sidebar:
+  label: Extensions & telemetry
+description: Learn how IssueSuite extensions, plugins, and telemetry provide observability without compromising safety.
+tags:
+  - explanations
+  - telemetry
+  - plugins
+template: doc
+---
+
+IssueSuite ships optional hooks so teams can observe CLI usage and run custom logic after each command.
+
+## Plugin entry points
+
+- Entry point group: `issuesuite.plugins`.
+- Plugins receive a `PluginContext` containing the command name, loaded `SuiteConfig`, and a payload dictionary (summaries, upgrade suggestions, etc.).
+- Disable plugins globally via `extensions.enabled: false` or skip specific hooks with `extensions.disabled`.
+- Provide ad-hoc plugins through `ISSUESUITE_PLUGINS="module:path_to_callable"` for experimentation.
+
+## Telemetry (opt-in)
+
+- Controlled through the `telemetry` block or `ISSUESUITE_TELEMETRY` environment variable.
+- Events append to `${HOME}/.issuesuite/telemetry.jsonl` by default; override with `telemetry.store_path`.
+- Each event captures timestamp, command, exit code, duration (ms), and IssueSuite version. Spec content is never recorded.
+- Telemetry is ideal for monitoring adoption and spotting long-running operations.
+
+## Upgrade assistant
+
+`issuesuite upgrade` reviews configuration defaults and surfaces actionable recommendations:
+
+- Suggests migrating legacy mapping files to `.issuesuite/index.json`.
+- Encourages enabling telemetry where appropriate.
+- Flags disabled extensions so teams can revisit overrides.
+
+:::tip[Planned features]
+We plan to emit telemetry dashboards directly in Starlight once GitHub Projects automation lands, enabling daily snapshots without manual exports.
+:::
+
+Integrate the command into CI to keep configurations aligned with new defaults and use telemetry payloads to instrument performance.

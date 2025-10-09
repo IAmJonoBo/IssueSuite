@@ -159,3 +159,5 @@ npm-debug.log*
 
 # VS Code workspace settings
 .vscode/
+docs/starlight/.astro/
+docs/starlight/dist/
