@@ -50,7 +50,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install nox
-      - uses: actions/setup-node@60bc3b9e0f3580d7361a5347b8a0df2037e01bc0 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "20"
       - name: Build documentation (nox -s docs)
