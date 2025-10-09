@@ -49,7 +49,7 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
   - Mock create operations fabricate deterministic incremental issue numbers so mapping persistence and tests remain stable.
   - Dry-run planning: `issuesuite sync --dry-run` now returns a `plan` array in the summary showing proposed actions (`create|update|close|skip`) with label/milestone/body change counts.
   - Plan artifacts: the CLI honours `--plan-json <file>` (or the config `output.plan_json`, default `issues_plan.json`) to write just the plan to disk for CI review.
-- Pluggable extensions and telemetry: configure `extensions` and `telemetry` blocks (or use `ISSUESUITE_PLUGINS` / `ISSUESUITE_TELEMETRY`) to emit structured events and trigger entry-point hooks after every CLI command. See [Extensions, Plugins, and Telemetry](docs/explanations/extensions.md) for setup details.
+- Pluggable extensions and telemetry: configure `extensions` and `telemetry` blocks (or use `ISSUESUITE_PLUGINS` / `ISSUESUITE_TELEMETRY`) to emit structured events and trigger entry-point hooks after every CLI command. See [Extensions, Plugins, and Telemetry](docs/starlight/src/content/docs/explanations/extensions.mdx) for setup details.
 
 ## Quick Start
 
@@ -84,7 +84,7 @@ issuesuite sync --update --config issue_suite.config.yaml --summary-json issues_
 
 Add the `--preflight` flag (or set `behavior.dry_run_default: true`) to auto-create labels/milestones before closing the dry-run loop.
 
-See the [Getting Started tutorial](docs/tutorials/getting-started.md) for a narrated walkthrough, including troubleshooting tips and screenshots.
+See the [Getting Started tutorial](docs/starlight/src/content/docs/tutorials/getting-started.mdx) for a narrated walkthrough, including troubleshooting tips and screenshots.
 
 Handy follow-up commands:
 
@@ -103,6 +103,7 @@ Run the consolidated quality gates locally with the bundled `nox` sessions:
 
 ```bash
 nox -s tests lint typecheck security secrets build
+nox -s lock  # refresh uv.lock and docs/starlight/package-lock.json
 ```
 
 Frontier Apex prototypes introduce two new harnesses you can run ad-hoc while we- Preview nightly GitHub Projects automation dry-runs with `issuesuite projects-sync --comment-output preview.md` (set the relevant environment variables or pass `--project-owner/--project-number` to target your dashboard).
@@ -136,6 +137,11 @@ git config core.hooksPath .githooks
 
 This looks for `.venv` (or `venv` / `.env`) under the repository root before
 falling back to a globally installed `pre-commit`.
+
+When dependency manifests change (for example, after Renovate bumps a package),
+run `scripts/refresh-deps.sh` (or `nox -s lock`) to regenerate `uv.lock` and the
+Starlight `package-lock.json`. Use `./scripts/refresh-deps.sh --check` in CI or
+pre-merge validation to ensure lockfiles remain current.
 
 When preparing release notes, use `scripts/update_changelog.py` to append a new entry without risking editor hangs caused by blocking file locks:
 

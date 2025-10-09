@@ -1,15 +1,14 @@
 # IssueSuite Documentation
 
 > **Note**
-> The canonical documentation now lives in the [Astro Starlight workspace](starlight). The legacy Markdown below remains for quick browsing inside the repository.
+> The canonical documentation lives in the [Astro Starlight workspace](starlight). The legacy Markdown tree has been retired to avoid divergence—browse the Starlight content directly when editing docs or run `nox -s docs` to build the site locally.
 
-IssueSuite follows the Diátaxis framework. Choose the entry point that matches your goal:
+Key entry points inside the workspace (run `scripts/refresh-deps.sh` or `nox -s lock`
+after Renovate/Dependabot updates to keep lockfiles in sync):
 
-| Category      | Description                             | Start here                                      |
-| ------------- | --------------------------------------- | ----------------------------------------------- |
-| Tutorials     | Hands-on introductions for new users    | [Getting started](tutorials/getting-started.md) |
-| How-to guides | Recipes for specific tasks              | [How-to index](how-to/README.md)                |
-| Reference     | Authoritative information               | [Reference index](reference/README.md)          |
-| Explanations  | Background, design docs, and philosophy | [Explanations index](explanations/README.md)    |
+- Tutorials: `docs/starlight/src/content/docs/tutorials/`
+- How-to guides: `docs/starlight/src/content/docs/how-to/`
+- Reference: `docs/starlight/src/content/docs/reference/`
+- Explanations: `docs/starlight/src/content/docs/explanations/`
 
-Looking for docs while building automations? Jump straight to the [CLI reference](reference/cli.md) or [Configuration reference](reference/configuration.md).
+Refer to `docs/adrs/index.json` for tracked decisions and keep `Next_Steps.md` updated with documentation milestones.

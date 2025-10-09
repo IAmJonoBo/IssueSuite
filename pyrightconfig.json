@@ -1,0 +1,16 @@
+{
+  "include": ["src", "tests", "plugins", "tools"],
+  "exclude": [
+    "**/.local/**",
+    "**/.local/share/uv/**",
+    "**/.pyenv/**",
+    "**/.venv/**",
+    "**/venv/**",
+    "**/env/**",
+    "**/site-packages/**",
+    "**/dist-packages/**",
+    "**/__pycache__/**"
+  ],
+  "typeCheckingMode": "standard",
+  "useLibraryCodeForTypes": false
+}
