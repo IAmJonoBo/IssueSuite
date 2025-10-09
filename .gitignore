@@ -161,3 +161,6 @@ npm-debug.log*
 .vscode/
 docs/starlight/.astro/
 docs/starlight/dist/
+coverage_trends.json
+coverage_trends_latest.json
+coverage_projects_payload.json
