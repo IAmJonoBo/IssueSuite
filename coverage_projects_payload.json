@@ -1,0 +1,12 @@
+{
+  "status": "on_track",
+  "emoji": "\u2705",
+  "overall_coverage": 0.76312,
+  "target": 0.85,
+  "delta": 0.0,
+  "failing_modules": [],
+  "regressions": [],
+  "improvements": [],
+  "message": "Overall coverage 76.31% (target 85%)",
+  "recorded_at": "2025-10-09T20:57:38.239777+00:00"
+}

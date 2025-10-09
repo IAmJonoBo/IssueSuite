@@ -24,7 +24,7 @@ keywords = [
   "project-management",
   "roadmap",
 ]
-license = "MIT"
+license = { text = "MIT" }
 maintainers = [
   { name = "IssueSuite Maintainers", email = "maintainers@issuesuite.dev" },
 ]

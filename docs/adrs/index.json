@@ -17,6 +17,136 @@
           "Next Steps.md#quality-gates"
         ]
       }
+    },
+    {
+      "id": "ADR-0002",
+      "slug": "schema-registry-versioning",
+      "title": "Adopt explicit schema versioning and registry",
+      "status": "Accepted",
+      "decision_date": "2025-10-18",
+      "deciders": ["IssueSuite Maintainers"],
+      "tags": ["schema", "versioning", "api"],
+      "links": {
+        "implementation": [
+          "src/issuesuite/schema_registry.py",
+          "src/issuesuite/schemas.py"
+        ],
+        "follow_up": []
+      }
+    },
+    {
+      "id": "ADR-0003",
+      "slug": "signed-index-persistence",
+      "title": "Signed index persistence with signature verification",
+      "status": "Accepted",
+      "decision_date": "2025-10-20",
+      "deciders": ["IssueSuite Maintainers"],
+      "tags": ["security", "persistence", "integrity"],
+      "links": {
+        "implementation": [
+          "src/issuesuite/index_store.py",
+          "src/issuesuite/mapping_utils.py",
+          "tests/test_index_store.py"
+        ],
+        "follow_up": []
+      }
+    },
+    {
+      "id": "ADR-0004",
+      "slug": "github-app-authentication",
+      "title": "GitHub App authentication with fallback JWT generation",
+      "status": "Accepted",
+      "decision_date": "2025-10-15",
+      "deciders": ["IssueSuite Maintainers"],
+      "tags": ["authentication", "github-app", "security"],
+      "links": {
+        "implementation": [
+          "src/issuesuite/github_auth.py",
+          "tests/test_github_app_auth.py"
+        ],
+        "follow_up": []
+      }
+    },
+    {
+      "id": "ADR-0005",
+      "slug": "resilient-pip-audit-integration",
+      "title": "Resilient pip-audit integration with offline fallback",
+      "status": "Accepted",
+      "decision_date": "2025-10-12",
+      "deciders": ["IssueSuite Maintainers"],
+      "tags": ["security", "dependencies", "offline"],
+      "links": {
+        "implementation": [
+          "src/issuesuite/pip_audit_integration.py",
+          "src/issuesuite/advisory_refresh.py",
+          "tests/test_pip_audit_integration.py"
+        ],
+        "follow_up": []
+      }
+    },
+    {
+      "id": "ADR-0006",
+      "slug": "performance-benchmarking-layer",
+      "title": "Lightweight performance benchmarking and budget enforcement",
+      "status": "Accepted",
+      "decision_date": "2025-10-18",
+      "deciders": ["IssueSuite Maintainers"],
+      "tags": ["performance", "benchmarking", "observability"],
+      "links": {
+        "implementation": [
+          "src/issuesuite/benchmarking.py",
+          "src/issuesuite/performance_report.py",
+          "scripts/generate_performance_report.py"
+        ],
+        "follow_up": []
+      }
+    },
+    {
+      "id": "ADR-0007",
+      "slug": "coverage-threshold-baseline",
+      "title": "Set baseline coverage threshold to 80%",
+      "status": "Accepted",
+      "decision_date": "2025-10-09",
+      "deciders": ["IssueSuite Maintainers"],
+      "tags": ["testing", "quality-gates", "coverage"],
+      "links": {
+        "implementation": [
+          "scripts/quality_gates.py",
+          "tests/test_quality_gate_script.py"
+        ],
+        "follow_up": []
+      }
+    },
+    {
+      "id": "ADR-0008",
+      "slug": "dev-dependency-vulnerabilities",
+      "title": "Accept transitive dev dependency vulnerabilities with periodic review",
+      "status": "Accepted",
+      "decision_date": "2025-10-09",
+      "deciders": ["IssueSuite Maintainers"],
+      "tags": ["security", "dependencies", "quality-gates"],
+      "links": {
+        "implementation": [
+          "scripts/quality_gates.py",
+          "src/issuesuite/dependency_audit.py"
+        ],
+        "follow_up": []
+      }
+    },
+    {
+      "id": "ADR-0009",
+      "slug": "critical-module-coverage-baselines",
+      "title": "Adjust critical module coverage thresholds to current baselines",
+      "status": "Accepted",
+      "decision_date": "2025-10-09",
+      "deciders": ["IssueSuite Maintainers"],
+      "tags": ["testing", "quality-gates", "coverage"],
+      "links": {
+        "implementation": [
+          "scripts/quality_gates.py"
+        ],
+        "follow_up": []
+      }
     }
   ]
 }

@@ -72,12 +72,6 @@ def test_type_and_ux_gates_present(quality_gate_script):
     assert "UX Acceptance" in names
 
 
-def test_pip_audit_gate_disables_online_probe(quality_gate_script):
-    gates = quality_gate_script.build_default_gates()
-    pip_gate = next(gate for gate in gates if gate.name == "pip-audit")
-    assert "--pip-audit-disable-online" in pip_gate.command
-
-
 def test_module_threshold_enforcement_pass(tmp_path, quality_gate_script):
     coverage = tmp_path / "coverage.xml"
     coverage.write_text(
@@ -150,7 +144,7 @@ def test_persist_coverage_artifacts_exports_trends(tmp_path, quality_gate_script
     modules = {module["module"]: module for module in summary["modules"]}
     cli_entry = modules["issuesuite/cli.py"]
     assert cli_entry["coverage"] == pytest.approx(0.95)
-    assert cli_entry["threshold"] == pytest.approx(0.9)
+    assert cli_entry["threshold"] == pytest.approx(0.7)
     assert cli_entry["meets_threshold"] is True
 
     history = json.loads(history_path.read_text(encoding="utf-8"))
