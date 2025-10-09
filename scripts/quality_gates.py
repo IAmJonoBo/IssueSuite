@@ -18,6 +18,10 @@ from xml.etree import ElementTree
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+from issuesuite.coverage_trends import (  # noqa: E402
+    CoverageTrendError as CoverageTrendRuntimeError,
+    export_trends,
+)
 from issuesuite.quality_gates import (  # noqa: E402
     Gate,
     GateResult,
@@ -28,6 +32,10 @@ from issuesuite.quality_gates import (  # noqa: E402
 
 SECRETS_BASELINE = PROJECT_ROOT / ".secrets.baseline"
 COVERAGE_REPORT = PROJECT_ROOT / "coverage.xml"
+COVERAGE_SUMMARY = PROJECT_ROOT / "coverage_summary.json"
+COVERAGE_HISTORY = PROJECT_ROOT / "coverage_trends.json"
+COVERAGE_SNAPSHOT = PROJECT_ROOT / "coverage_trends_latest.json"
+COVERAGE_PROJECT_PAYLOAD = PROJECT_ROOT / "coverage_projects_payload.json"
 
 CRITICAL_MODULE_THRESHOLDS: dict[str, float] = {
     "issuesuite/cli.py": 90.0,
@@ -58,6 +66,10 @@ class ModuleCoverageError(RuntimeError):
         if not messages:
             messages.append("Unknown module coverage failure")
         super().__init__("; ".join(messages))
+
+
+class CoverageTrendExportError(RuntimeError):
+    """Raised when coverage trends cannot be exported."""
 
 
 def build_default_gates() -> list[Gate]:
@@ -171,14 +183,20 @@ def main() -> int:
         print(format_summary(results), file=sys.stderr)
         print(str(exc), file=sys.stderr)
         _write_report(results)
-        _write_module_summary(module_coverages)
+        try:
+            _persist_coverage_artifacts(module_coverages)
+        except CoverageTrendExportError as trend_exc:
+            print(str(trend_exc), file=sys.stderr)
         return 1
     except QualityGateError as exc:
         results = [*exc.prior_results, exc.result]
         print(format_summary(results), file=sys.stderr)
         _write_report(results)
         if module_coverages is not None:
-            _write_module_summary(module_coverages)
+            try:
+                _persist_coverage_artifacts(module_coverages)
+            except CoverageTrendExportError as trend_exc:
+                print(str(trend_exc), file=sys.stderr)
         return 1
 
     print(format_summary(results))
@@ -189,9 +207,16 @@ def main() -> int:
     except ModuleCoverageError as exc:
         module_coverages = exc.coverages
         print(str(exc), file=sys.stderr)
-        _write_module_summary(module_coverages)
+        try:
+            _persist_coverage_artifacts(module_coverages)
+        except CoverageTrendExportError as trend_exc:
+            print(str(trend_exc), file=sys.stderr)
         return 1
-    _write_module_summary(module_coverages)
+    try:
+        _persist_coverage_artifacts(module_coverages)
+    except CoverageTrendExportError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
     return 0
 
 
@@ -211,16 +236,22 @@ def _write_report(results: Sequence[GateResult]) -> None:
     out_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
 
-def _write_module_summary(coverages: Mapping[str, float]) -> None:
+def _write_module_summary(
+    coverages: Mapping[str, float],
+    *,
+    summary_path: Path = COVERAGE_SUMMARY,
+) -> None:
     timestamp = datetime.now(tz=timezone.utc).isoformat()
     modules: list[dict[str, Any]] = []
     for module, threshold in sorted(CRITICAL_MODULE_THRESHOLDS.items()):
         coverage = coverages.get(module)
+        normalized_coverage = coverage / 100.0 if coverage is not None else None
+        normalized_threshold = threshold / 100.0
         modules.append(
             {
                 "module": module,
-                "coverage": coverage,
-                "threshold": threshold,
+                "coverage": normalized_coverage,
+                "threshold": normalized_threshold,
                 "meets_threshold": coverage is not None and coverage >= threshold,
             }
         )
@@ -229,10 +260,7 @@ def _write_module_summary(coverages: Mapping[str, float]) -> None:
         "report": str(COVERAGE_REPORT),
         "modules": modules,
     }
-    (PROJECT_ROOT / "coverage_summary.json").write_text(
-        json.dumps(payload, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    summary_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def _enforce_module_thresholds(
@@ -279,6 +307,45 @@ def _normalize_module_path(filename: str) -> str:
         relevant = parts[-2:]
     normalized = "/".join(relevant)
     return normalized
+
+
+def _persist_coverage_artifacts(
+    coverages: Mapping[str, float],
+    *,
+    summary_path: Path = COVERAGE_SUMMARY,
+    history_path: Path = COVERAGE_HISTORY,
+    snapshot_path: Path = COVERAGE_SNAPSHOT,
+    project_payload_path: Path = COVERAGE_PROJECT_PAYLOAD,
+    now: datetime | None = None,
+) -> None:
+    _write_module_summary(coverages, summary_path=summary_path)
+    _export_coverage_trends(
+        summary_path=summary_path,
+        history_path=history_path,
+        snapshot_path=snapshot_path,
+        project_payload_path=project_payload_path,
+        now=now,
+    )
+
+
+def _export_coverage_trends(
+    *,
+    summary_path: Path = COVERAGE_SUMMARY,
+    history_path: Path = COVERAGE_HISTORY,
+    snapshot_path: Path = COVERAGE_SNAPSHOT,
+    project_payload_path: Path = COVERAGE_PROJECT_PAYLOAD,
+    now: datetime | None = None,
+) -> None:
+    try:
+        export_trends(
+            summary_path=summary_path,
+            history_path=history_path,
+            snapshot_path=snapshot_path,
+            project_payload_path=project_payload_path,
+            now=now,
+        )
+    except CoverageTrendRuntimeError as exc:  # pragma: no cover - defensive
+        raise CoverageTrendExportError(str(exc)) from exc
 
 
 if __name__ == "__main__":
