@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
-    "@astrojs/mdx": "^3.0.1",
-    "@astrojs/starlight": "^0.25.3",
-    "astro": "^4.13.3"
+    "@astrojs/mdx": "^4.3.6",
+    "@astrojs/starlight": "^0.36.0",
+    "astro": "^5.14.1"
   },
   "devDependencies": {
     "prettier": "^3.3.3",
