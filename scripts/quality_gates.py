@@ -101,6 +101,7 @@ def build_default_gates() -> list[Gate]:
                 "issuesuite.cli",
                 "security",
                 "--pip-audit",
+                "--pip-audit-disable-online",
                 "--pip-audit-arg=--progress-spinner",
                 "--pip-audit-arg",
                 "off",
