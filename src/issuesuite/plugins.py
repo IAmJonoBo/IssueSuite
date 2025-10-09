@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import logging
 import os
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -13,6 +14,8 @@ from .config import SuiteConfig
 
 PLUGIN_GROUP = "issuesuite.plugins"
 ENV_PLUGIN_SPEC = "ISSUESUITE_PLUGINS"
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -46,6 +49,7 @@ def _load_entry_point_plugins() -> list[PluginHook]:
             if callable(obj):
                 hooks.append(PluginHook(name=ep.name, callback=obj))
         except Exception:  # pragma: no cover - plugin load failures shouldn't crash
+            logger.exception("Failed to load plugin entry point %s", ep.name)
             continue
     return hooks
 
@@ -66,6 +70,7 @@ def _load_env_plugins() -> list[PluginHook]:
             module = importlib.import_module(module_name)
             callback = getattr(module, attr)
         except Exception:  # pragma: no cover - malformed plugin spec
+            logger.exception("Failed to import plugin from environment spec %s", item)
             continue
         if callable(callback):
             hooks.append(PluginHook(name=f"env:{item}", callback=callback))
@@ -90,4 +95,5 @@ def invoke_plugins(cfg: SuiteConfig | None, command: str, payload: dict[str, Any
         try:
             hook.callback(PluginContext(command=command, config=cfg, payload=payload))
         except Exception:  # pragma: no cover - plugins must not break core commands
+            logger.exception("Plugin execution failed for %s during %s", hook.name, command)
             continue

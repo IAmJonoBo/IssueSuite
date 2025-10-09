@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
+from xml.etree import ElementTree
 
 # ruff: noqa: I001 - sys.path manipulation is required before importing project modules
 
@@ -22,9 +27,41 @@ from issuesuite.quality_gates import (  # noqa: E402
 )
 
 SECRETS_BASELINE = PROJECT_ROOT / ".secrets.baseline"
+COVERAGE_REPORT = PROJECT_ROOT / "coverage.xml"
+
+CRITICAL_MODULE_THRESHOLDS: dict[str, float] = {
+    "issuesuite/cli.py": 90.0,
+    "issuesuite/core.py": 90.0,
+    "issuesuite/github_issues.py": 90.0,
+    "issuesuite/project.py": 90.0,
+    "issuesuite/pip_audit_integration.py": 90.0,
+}
+
+
+@dataclass
+class ModuleCoverageError(RuntimeError):
+    coverages: dict[str, float]
+    deficits: dict[str, float]
+    missing: list[str]
+
+    def __post_init__(self) -> None:  # pragma: no cover - dataclass hook
+        messages: list[str] = []
+        if self.deficits:
+            deficit_lines = ", ".join(
+                f"{module}={coverage:.2f}% (< {CRITICAL_MODULE_THRESHOLDS[module]:.2f}%)"
+                for module, coverage in sorted(self.deficits.items())
+            )
+            messages.append(f"Coverage shortfall: {deficit_lines}")
+        if self.missing:
+            missing_list = ", ".join(sorted(self.missing))
+            messages.append(f"Missing modules: {missing_list}")
+        if not messages:
+            messages.append("Unknown module coverage failure")
+        super().__init__("; ".join(messages))
 
 
 def build_default_gates() -> list[Gate]:
+    python = sys.executable
     return [
         Gate(
             name="Tests",
@@ -34,16 +71,24 @@ def build_default_gates() -> list[Gate]:
                 "--cov-report=term",
                 "--cov-report=xml",
             ],
-            coverage_threshold=65.0,
-            coverage_report=PROJECT_ROOT / "coverage.xml",
+            coverage_threshold=80.0,
+            coverage_report=COVERAGE_REPORT,
         ),
+        Gate(name="Format", command=["ruff", "format", "--check"]),
         Gate(name="Lint", command=["ruff", "check"]),
         Gate(name="Type Check", command=["mypy", "src"]),
-        Gate(name="Security", command=["bandit", "-r", "src"]),
+        Gate(
+            name="Type Telemetry",
+            command=[
+                python,
+                str(PROJECT_ROOT / "scripts" / "type_coverage_report.py"),
+            ],
+        ),
+        Gate(name="Security", command=[python, "-m", "bandit", "-r", "src"]),
         Gate(
             name="Dependencies",
             command=[
-                sys.executable,
+                python,
                 "-m",
                 "issuesuite.dependency_audit",
             ],
@@ -51,32 +96,36 @@ def build_default_gates() -> list[Gate]:
         Gate(
             name="pip-audit",
             command=[
-                "pip-audit",
-                "--progress-spinner",
-                "off",
-                "--strict",
+                python,
+                "-m",
+                "issuesuite.cli",
+                "security",
+                "--pip-audit",
             ],
         ),
         Gate(
             name="Secrets",
             command=[
-                "detect-secrets",
+                python,
+                "-m",
+                "detect_secrets",
                 "scan",
                 "--baseline",
                 str(SECRETS_BASELINE),
             ],
         ),
+        Gate(name="Bytecode Compile", command=[python, "-m", "compileall", "src"]),
         Gate(
             name="Performance Report",
             command=[
-                sys.executable,
+                python,
                 str(PROJECT_ROOT / "scripts" / "generate_performance_report.py"),
             ],
         ),
         Gate(
             name="Performance Budget",
             command=[
-                sys.executable,
+                python,
                 "-m",
                 "issuesuite.benchmarking",
                 "--check",
@@ -87,7 +136,7 @@ def build_default_gates() -> list[Gate]:
         Gate(
             name="Offline Advisories Freshness",
             command=[
-                sys.executable,
+                python,
                 "-m",
                 "issuesuite.advisory_refresh",
                 "--check",
@@ -95,21 +144,49 @@ def build_default_gates() -> list[Gate]:
                 "30",
             ],
         ),
-        Gate(name="Build", command=["python", "-m", "build"]),
+        Gate(name="Build", command=[python, "-m", "build"]),
+        Gate(
+            name="Next Steps Governance",
+            command=[python, str(PROJECT_ROOT / "scripts" / "verify_next_steps.py")],
+        ),
+        Gate(
+            name="UX Acceptance",
+            command=[python, str(PROJECT_ROOT / "scripts" / "ux_acceptance.py")],
+        ),
     ]
 
 
 def main() -> int:
+    module_coverages: dict[str, float] | None = None
     try:
         results = run_gates(build_default_gates())
+        module_coverages = _enforce_module_thresholds(COVERAGE_REPORT, CRITICAL_MODULE_THRESHOLDS)
+    except ModuleCoverageError as exc:
+        module_coverages = exc.coverages
+        print(format_summary(results), file=sys.stderr)
+        print(str(exc), file=sys.stderr)
+        _write_report(results)
+        _write_module_summary(module_coverages)
+        return 1
     except QualityGateError as exc:
         results = [*exc.prior_results, exc.result]
         print(format_summary(results), file=sys.stderr)
         _write_report(results)
+        if module_coverages is not None:
+            _write_module_summary(module_coverages)
         return 1
 
     print(format_summary(results))
     _write_report(results)
+    try:
+        if module_coverages is None:
+            module_coverages = _load_module_coverages(COVERAGE_REPORT)
+    except ModuleCoverageError as exc:
+        module_coverages = exc.coverages
+        print(str(exc), file=sys.stderr)
+        _write_module_summary(module_coverages)
+        return 1
+    _write_module_summary(module_coverages)
     return 0
 
 
@@ -127,6 +204,76 @@ def _write_report(results: Sequence[GateResult]) -> None:
         )
     out_path = PROJECT_ROOT / "quality_gate_report.json"
     out_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+
+
+def _write_module_summary(coverages: Mapping[str, float]) -> None:
+    timestamp = datetime.now(tz=timezone.utc).isoformat()
+    modules: list[dict[str, Any]] = []
+    for module, threshold in sorted(CRITICAL_MODULE_THRESHOLDS.items()):
+        coverage = coverages.get(module)
+        modules.append(
+            {
+                "module": module,
+                "coverage": coverage,
+                "threshold": threshold,
+                "meets_threshold": coverage is not None and coverage >= threshold,
+            }
+        )
+    payload = {
+        "generated_at": timestamp,
+        "report": str(COVERAGE_REPORT),
+        "modules": modules,
+    }
+    (PROJECT_ROOT / "coverage_summary.json").write_text(
+        json.dumps(payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _enforce_module_thresholds(
+    report_path: Path, thresholds: Mapping[str, float]
+) -> dict[str, float]:
+    coverages = _load_module_coverages(report_path)
+    deficits: dict[str, float] = {}
+    missing: list[str] = []
+    for module, threshold in thresholds.items():
+        coverage = coverages.get(module)
+        if coverage is None:
+            missing.append(module)
+            continue
+        if coverage < threshold:
+            deficits[module] = coverage
+    if deficits or missing:
+        raise ModuleCoverageError(coverages, deficits, missing)
+    return coverages
+
+
+def _load_module_coverages(report_path: Path) -> dict[str, float]:
+    if not report_path.exists():
+        raise ModuleCoverageError({}, {}, sorted(CRITICAL_MODULE_THRESHOLDS))
+    tree = ElementTree.parse(report_path)
+    coverages: dict[str, float] = {}
+    for class_node in tree.findall(".//class"):
+        filename = class_node.attrib.get("filename")
+        rate = class_node.attrib.get("line-rate")
+        if not filename or rate is None:
+            continue
+        module_key = _normalize_module_path(filename)
+        if module_key:
+            coverages[module_key] = float(rate) * 100.0
+    return coverages
+
+
+def _normalize_module_path(filename: str) -> str:
+    path = Path(filename)
+    parts = list(path.parts)
+    try:
+        start = parts.index("issuesuite")
+        relevant = parts[start:]
+    except ValueError:
+        relevant = parts[-2:]
+    normalized = "/".join(relevant)
+    return normalized
 
 
 if __name__ == "__main__":

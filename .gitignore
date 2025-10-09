@@ -40,6 +40,9 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+coverage_summary.json
+type_coverage.json
+ux_acceptance_report.json
 *.cover
 *.py,cover
 .hypothesis/

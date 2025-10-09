@@ -29,10 +29,13 @@ def persist_index_document(path: Path, document: IndexDocument, mirror: Path | N
     mapping_snapshot: dict[str, int] = {}
     for slug, payload in document.entries.items():
         if isinstance(payload, dict) and "issue" in payload:
-            try:
-                mapping_snapshot[str(slug)] = int(payload["issue"])
-            except Exception:  # pragma: no cover - defensive coercion
+            issue_value = payload.get("issue")
+            if issue_value is None:
                 continue
+            try:
+                mapping_snapshot[str(slug)] = int(issue_value)
+            except (TypeError, ValueError):  # pragma: no cover - defensive coercion
+                logger.debug("skipping non-integer mapping for %s: %r", slug, issue_value)
     payload = {
         "version": document.version,
         "generated_at": document.generated_at,
