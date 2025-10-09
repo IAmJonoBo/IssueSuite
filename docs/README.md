@@ -1,12 +1,12 @@
 # IssueSuite Documentation
 
-IssueSuite follows the Diátaxis framework. Choose the entry point that matches your goal:
+IssueSuite documentation now lives entirely in the [Astro Starlight workspace](starlight). The legacy Markdown tree has been retired to avoid divergence—browse the Starlight content directly when editing docs or run `nox -s docs` to build the site locally.
 
-| Category      | Description                             | Start here                                      |
-| ------------- | --------------------------------------- | ----------------------------------------------- |
-| Tutorials     | Hands-on introductions for new users    | [Getting started](tutorials/getting-started.md) |
-| How-to guides | Recipes for specific tasks              | [How-to index](how-to/README.md)                |
-| Reference     | Authoritative information               | [Reference index](reference/README.md)          |
-| Explanations  | Background, design docs, and philosophy | [Explanations index](explanations/README.md)    |
+Key entry points inside the workspace:
 
-Looking for docs while building automations? Jump straight to the [CLI reference](reference/cli.md) or [Configuration reference](reference/configuration.md).
+- Tutorials: `docs/starlight/src/content/docs/tutorials/`
+- How-to guides: `docs/starlight/src/content/docs/how-to/`
+- Reference: `docs/starlight/src/content/docs/reference/`
+- Explanations: `docs/starlight/src/content/docs/explanations/`
+
+Refer to `docs/adrs/index.json` for tracked decisions and keep `Next Steps.md` updated with documentation milestones.

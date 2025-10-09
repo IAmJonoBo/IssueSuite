@@ -1,0 +1,82 @@
+---
+title: Automate IssueSuite in CI/CD
+sidebar:
+  label: CI/CD automation
+description: Wire IssueSuite into GitHub Actions for drift detection, dry-runs, and controlled apply pipelines.
+tags:
+  - automation
+  - ci
+  - pipelines
+template: doc
+---
+
+This guide outlines pragmatic CI/CD patterns for IssueSuite across dry-run validation, production apply gates, and release automation.
+
+## GitHub Actions: Dry-run quality gate
+
+Start from `.github/workflows/issuesuite-sync.yml`. The workflow below validates specs, runs a dry-run sync, and uploads artifacts for review.
+
+```yaml
+jobs:
+  dry-run-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install issuesuite
+      - run: issuesuite validate --config issue_suite.config.yaml
+      - run: |
+          issuesuite sync --dry-run --update --config issue_suite.config.yaml \
+            --summary-json issues_summary.json --plan-json issues_plan.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issuesuite-plan
+          path: |
+            issues_summary.json
+            issues_plan.json
+```
+
+Tips:
+
+- Export `ISSUESUITE_AI_MODE=1` to enforce dry-run mode in forks and pull requests.
+- Capture plan JSON to review proposed changes without updating local cache files.
+- Forward `ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1` when runners lack outbound internet access.
+
+## GitHub Actions: Apply pipeline
+
+Once the dry-run output is reviewed, trigger a separate job to apply changes:
+
+```yaml
+jobs:
+  apply-sync:
+    needs: dry-run-sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install issuesuite
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: issuesuite sync --update --config issue_suite.config.yaml \
+          --summary-json issues_summary.json
+```
+
+Follow up with `issuesuite reconcile` in a governance workflow — exit code `2` indicates drift and should block promotion.
+
+:::tip[Planned features]
+We're designing a Starlight integration that renders the latest coverage and reconcile status alongside published documentation. Expect GitHub Projects automation hooks once the ADR backlog closes.
+:::
+
+## Release, packaging, and Homebrew taps
+
+1. Tag a release using `scripts/release.py --patch` (or `--minor`/`--major`).
+2. `release.yml` builds wheels, generates the Homebrew formula, performs `twine check`, and publishes via PyPI trusted publishing.
+3. Run `scripts/homebrew_formula.py` to sync the formula into your tap repository.
+
+For detailed maintainer steps see [Homebrew tap automation](./homebrew).
