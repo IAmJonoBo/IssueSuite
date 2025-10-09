@@ -5,7 +5,8 @@ import importlib
 import json
 import os
 import re
-import subprocess
+import shutil
+import subprocess  # nosec B404 - subprocess is required for GitHub CLI integration
 from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any, Protocol, TypedDict, cast
@@ -627,8 +628,10 @@ class IssueSuite:
             result["mapped"] = number
             try:  # project assignment (noop currently)
                 project_assigner.assign(number, spec)
-            except Exception:  # pragma: no cover - defensive
-                pass
+            except Exception as exc:  # pragma: no cover - defensive
+                self._logger.log_error(
+                    "Project assignment failed", error=str(exc), external_id=spec.external_id
+                )
         if respect_status and spec.status == "closed" and match.get("state") != "CLOSED":
             self._close(match, dry_run)
             result["closed"] = {
@@ -652,11 +655,24 @@ class IssueSuite:
     def _gh_auth(self) -> bool:
         if self._mock:
             return False
-        try:
-            subprocess.check_output(["gh", "auth", "status"], stderr=subprocess.STDOUT)
-            return True
-        except Exception:
+        gh_path = shutil.which("gh")
+        if not gh_path:
+            self._logger.debug("GitHub CLI not available for auth status probe")
             return False
+        try:
+            subprocess.check_output(  # nosec B603 B607 - command uses resolved executable & constant args
+                [gh_path, "auth", "status"], stderr=subprocess.STDOUT
+            )
+            return True
+        except subprocess.CalledProcessError as exc:
+            self._logger.log_error(
+                "GitHub CLI auth status failed", error=exc.output or str(exc), executable=gh_path
+            )
+        except OSError as exc:  # pragma: no cover - filesystem / permission edge
+            self._logger.log_error(
+                "GitHub CLI invocation error", error=str(exc), executable=gh_path
+            )
+        return False
 
     def _existing_issues(self) -> list[dict[str, Any]]:
         client = self._build_issues_client(dry_run=False)
@@ -739,8 +755,12 @@ class IssueSuite:
             if isinstance(num, int) and num not in matched_numbers:
                 try:
                     self._close(issue, dry_run)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    self._logger.log_error(
+                        "Failed to prune unmatched issue",
+                        error=str(exc),
+                        issue_number=num,
+                    )
 
     def _hash_state_path(self) -> Path:
         return self.cfg.source_file.parent / self.cfg.hash_state_file
@@ -771,8 +791,12 @@ class IssueSuite:
         try:  # pragma: no cover - defensive around external project assigner
             project_assigner.assign(synthetic_number, spec)
             result["mapped"] = synthetic_number
-        except Exception:
-            pass
+        except Exception as exc:  # pragma: no cover - defensive
+            self._logger.log_error(
+                "Project assignment failed in mock mode",
+                error=str(exc),
+                external_id=spec.external_id,
+            )
 
     def _load_hash_state(self) -> dict[str, str]:
         p = self._hash_state_path()
@@ -813,13 +837,17 @@ class IssueSuite:
     ) -> None:  # pragma: no cover - network side-effects
         if self._mock:
             return
+        gh_path = shutil.which("gh")
+        if not gh_path:
+            self._logger.log_error("GitHub CLI unavailable for label ensure step")
+            return
         desired = sorted(
             {label for spec in specs for label in spec.labels} | set(self.cfg.inject_labels)
         )
         try:
-            out = subprocess.check_output(
+            out = subprocess.check_output(  # nosec B603 - command uses resolved gh path and static args
                 [
-                    "gh",
+                    gh_path,
                     "label",
                     "list",
                     "--limit",
@@ -832,15 +860,16 @@ class IssueSuite:
                 text=True,
             )
             existing: set[str] = set(out.strip().splitlines())
-        except Exception:
+        except Exception as exc:
+            self._logger.log_error("Failed to list labels", error=str(exc), executable=gh_path)
             existing = set()
         for lbl in desired:
             if lbl in existing:
                 continue
             try:
-                subprocess.check_call(
+                subprocess.check_call(  # nosec B603 - command uses resolved gh path and static args
                     [
-                        "gh",
+                        gh_path,
                         "label",
                         "create",
                         lbl,
@@ -852,16 +881,20 @@ class IssueSuite:
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                self._logger.log_error("Failed to ensure label", error=str(exc), label=lbl)
 
     def _ensure_milestones(self) -> None:  # pragma: no cover - network side-effects
         if self._mock:
             return
+        gh_path = shutil.which("gh")
+        if not gh_path:
+            self._logger.log_error("GitHub CLI unavailable for milestone ensure step")
+            return
         try:
-            out = subprocess.check_output(
+            out = subprocess.check_output(  # nosec B603 - command uses resolved gh path and static args
                 [
-                    "gh",
+                    gh_path,
                     "api",
                     "repos/:owner/:repo/milestones",
                     "--paginate",
@@ -871,15 +904,16 @@ class IssueSuite:
                 text=True,
             )
             existing: set[str] = set(out.strip().splitlines())
-        except Exception:
+        except Exception as exc:
+            self._logger.log_error("Failed to list milestones", error=str(exc), executable=gh_path)
             existing = set()
         for ms in self.cfg.ensure_milestones_list:
             if ms in existing:
                 continue
             try:
-                subprocess.check_call(
+                subprocess.check_call(  # nosec B603 - command uses resolved gh path and static args
                     [
-                        "gh",
+                        gh_path,
                         "api",
                         "repos/:owner/:repo/milestones",
                         "-f",
@@ -890,8 +924,8 @@ class IssueSuite:
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                self._logger.log_error("Failed to ensure milestone", error=str(exc), milestone=ms)
 
     # Concurrency support methods
     async def _get_existing_issues_async(self) -> list[dict[str, Any]]:

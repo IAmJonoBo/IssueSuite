@@ -13,6 +13,8 @@ The CLI delegates to this library to allow installing via pip into other reposit
 
 from __future__ import annotations
 
+import importlib
+
 from .ai_context import get_ai_context  # new public helper
 from .config import SuiteConfig, load_config
 from .core import IssueSpec, IssueSuite
@@ -32,6 +34,8 @@ def __getattr__(name: str) -> object:
         return IssueSuite
     elif name == "IssueSpec":
         return IssueSpec
+    elif name == "setup_wizard":
+        return importlib.import_module("issuesuite.setup_wizard")
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
@@ -42,5 +46,6 @@ __all__ = [
     "IssueSpec",
     "get_ai_context",
     "scaffold_project",
+    "setup_wizard",
     "__version__",
 ]

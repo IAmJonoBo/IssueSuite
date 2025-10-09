@@ -46,10 +46,16 @@ from issuesuite.pip_audit_integration import (
     collect_online_findings,
     run_resilient_pip_audit,
 )
+from issuesuite.projects_status import (
+    generate_report,
+    render_comment,
+    serialize_report,
+)
 from issuesuite.reconcile import format_report, reconcile
 from issuesuite.runtime import execute_command, prepare_config
 from issuesuite.scaffold import scaffold_project
 from issuesuite.schemas import get_schemas
+from issuesuite.setup_wizard import run_guided_setup
 
 CONFIG_DEFAULT = "issue_suite.config.yaml"
 REPO_HELP = "Override target repository (owner/repo)"
@@ -147,6 +153,45 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Forward an additional argument to pip-audit (can be supplied multiple times)",
     )
 
+    proj = sub.add_parser(
+        "projects-status",
+        help="Generate GitHub Projects status payloads and Markdown commentary",
+    )
+    proj.add_argument(
+        "--next-steps",
+        dest="next_steps",
+        action="append",
+        type=Path,
+        help="Path to a Next Steps tracker (defaults to repository root files)",
+    )
+    proj.add_argument("--config", default=CONFIG_DEFAULT)
+    proj.add_argument("--repo", help=REPO_HELP)
+    proj.add_argument(
+        "--coverage",
+        dest="coverage",
+        type=Path,
+        help="Path to coverage_projects_payload.json (defaults to telemetry export)",
+    )
+    proj.add_argument(
+        "--output",
+        dest="output",
+        type=Path,
+        default=Path("projects_status_report.json"),
+        help="Where to write the JSON report",
+    )
+    proj.add_argument(
+        "--comment-output",
+        dest="comment_output",
+        type=Path,
+        help="Optional path for a rendered Markdown comment",
+    )
+    proj.add_argument(
+        "--lookahead-days",
+        dest="lookahead_days",
+        type=int,
+        help="Override the due-soon lookahead window (defaults to 7 days)",
+    )
+
     aictx = sub.add_parser("ai-context", help="Emit machine-readable context JSON for AI tooling")
     aictx.add_argument("--config", default=CONFIG_DEFAULT)
     aictx.add_argument("--repo", help=REPO_HELP)
@@ -211,6 +256,11 @@ def _build_parser() -> argparse.ArgumentParser:
     setup.add_argument("--check-auth", action="store_true", help="Check authentication status")
     setup.add_argument("--vscode", action="store_true", help="Setup VS Code integration files")
     setup.add_argument("--config", default=CONFIG_DEFAULT)
+    setup.add_argument(
+        "--guided",
+        action="store_true",
+        help="Render a guided setup checklist with recommended commands",
+    )
 
     init = sub.add_parser("init", help="Scaffold IssueSuite config and specs")
     init.add_argument("--directory", default=".", help="Target directory for generated files")
@@ -307,10 +357,7 @@ def _resolve_plan_path(cfg: SuiteConfig, args: argparse.Namespace) -> str | None
 def _apply_update_alias(args: argparse.Namespace) -> None:
     if not getattr(args, "apply", False) or getattr(args, "update", False):
         return
-    try:
-        args.update = True
-    except Exception:
-        pass
+    args.update = True
 
 
 def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
@@ -412,6 +459,7 @@ def _setup_show_help() -> None:
             "  --create-env    Create sample .env file",
             "  --check-auth    Check authentication status",
             "  --vscode        Setup VS Code integration",
+            "  --guided       Interactive checklist with recommended follow-ups",
         ]
     )
 
@@ -424,7 +472,9 @@ def _cmd_setup(args: argparse.Namespace) -> int:
         _setup_check_auth(auth_manager)
     if args.vscode:
         _setup_vscode()
-    if not any([args.create_env, args.check_auth, args.vscode]):
+    if args.guided:
+        run_guided_setup(auth_manager)
+    if not any([args.create_env, args.check_auth, args.vscode, args.guided]):
         _setup_show_help()
     return 0
 
@@ -784,7 +834,16 @@ def _maybe_run_pip_audit(args: argparse.Namespace, exit_code: int) -> int:
         forwarded = ["--progress-spinner", "off", *forwarded]
     if "--strict" not in forwarded:
         forwarded.append("--strict")
-    rc = run_resilient_pip_audit(forwarded)
+    suppress_env = "ISSUESUITE_PIP_AUDIT_SUPPRESS_TABLE"
+    previous = os.environ.get(suppress_env)
+    os.environ[suppress_env] = "1"
+    try:
+        rc = run_resilient_pip_audit(forwarded)
+    finally:
+        if previous is None:
+            os.environ.pop(suppress_env, None)
+        else:
+            os.environ[suppress_env] = previous
     return exit_code if rc == 0 else rc
 
 
@@ -809,6 +868,46 @@ def _cmd_security(args: argparse.Namespace) -> int:
         "security": {"findings": len(findings), "fallback_reason": fallback_reason}
     }
     return exit_code
+
+
+def _ensure_parent(path: Path | None) -> None:
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _cmd_projects_status(args: argparse.Namespace) -> int:
+    report = generate_report(
+        next_steps_paths=args.next_steps,
+        coverage_payload_path=args.coverage,
+        lookahead_days=args.lookahead_days,
+    )
+    serialized = serialize_report(report)
+
+    output_path = Path(args.output)
+    _ensure_parent(output_path)
+    output_path.write_text(
+        json.dumps(serialized, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+    comment = render_comment(report) + "\n"
+    if args.comment_output:
+        comment_path = Path(args.comment_output)
+        _ensure_parent(comment_path)
+        comment_path.write_text(comment, encoding="utf-8")
+    if not getattr(args, "quiet", False):
+        print(comment, end="")
+
+    tasks_payload = serialized.get("tasks", {}) if isinstance(serialized.get("tasks"), dict) else {}
+    args._plugin_payload = {
+        "projects_status": {
+            "status": serialized.get("status"),
+            "open_count": tasks_payload.get("open_count"),
+            "overdue_count": tasks_payload.get("overdue_count"),
+            "due_soon_count": tasks_payload.get("due_soon_count"),
+        }
+    }
+    return 0
 
 
 def _collect_upgrade_suggestions(cfg: SuiteConfig) -> list[dict[str, Any]]:
@@ -887,6 +986,7 @@ def _build_handlers(args: argparse.Namespace, cfg: SuiteConfig | None) -> dict[s
         "reconcile": lambda: _cmd_reconcile(_require_cfg(cfg), args),
         "doctor": lambda: _cmd_doctor(_require_cfg(cfg), args),
         "security": lambda: _cmd_security(args),
+        "projects-status": lambda: _cmd_projects_status(args),
         "init": lambda: _cmd_init(args),
         "upgrade": lambda: _cmd_upgrade(_require_cfg(cfg), args),
     }

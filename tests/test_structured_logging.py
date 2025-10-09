@@ -133,6 +133,37 @@ def test_timed_operation_context_manager(capsys) -> None:
     assert "duration_ms" in perf_log
 
 
+def test_log_type_check_metrics_emits_snapshot(tmp_path, capsys) -> None:
+    logger = StructuredLogger(name="snapshot", json_logging=True, level="INFO")
+    report = {
+        "modules_total": 4,
+        "modules_strict_clean": 3,
+        "strict_ratio": 0.75,
+    }
+    report_path = tmp_path / "type_coverage.json"
+    report_path.write_text(json.dumps(report), encoding="utf-8")
+
+    logger.log_type_check_metrics(report_path)
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out.strip())
+    assert payload["operation"] == "type_check"
+    assert payload["modules_total"] == 4
+    assert payload["modules_strict_clean"] == 3
+    assert math.isclose(payload["strict_ratio"], 0.75)
+    assert payload["report_path"] == str(report_path)
+
+
+def test_log_type_check_metrics_missing_report_logs_debug(tmp_path, capsys) -> None:
+    logger = StructuredLogger(name="missing", json_logging=True, level="DEBUG")
+    logger.log_type_check_metrics(tmp_path / "absent.json")
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out.strip())
+    assert payload["message"] == "type coverage report not found"
+    assert payload["report"] == "type_coverage.json"
+
+
 def test_issue_suite_with_json_logging_enabled(monkeypatch, tmp_path, capsys) -> None:
     """Test IssueSuite with JSON logging enabled."""
     cfg_path = tmp_path / "issue_suite.config.yaml"

@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Schema registry exposing explicit versions for export, summary, AI context, and agent updates so downstream automation stays in sync.【F:src/issuesuite/schema_registry.py†L1-L64】【F:src/issuesuite/schemas.py†L1-L108】
 - Non-blocking changelog updater (`scripts/update_changelog.py`) and documented nox sessions to streamline developer automation without hanging editors.【F:scripts/update_changelog.py†L1-L68】【F:noxfile.py†L1-L46】【F:README.md†L92-L108】
 - Regression tests covering package metadata, schema locking, dependency audit CLI flows, and changelog locking to raise coverage above 78%.【F:tests/test_package_metadata.py†L1-L40】【F:tests/test_schemas_versions.py†L1-L17】【F:tests/test_dependency_audit.py†L1-L123】【F:tests/test_update_changelog.py†L1-L28】
+- Frontier Apex prototypes enforcing critical module coverage, exporting strict mypy telemetry, and validating CLI UX ergonomics via CI automation.【F:scripts/quality_gates.py†L1-L193】【F:scripts/type_coverage_report.py†L1-L108】【F:scripts/ux_acceptance.py†L1-L117】【F:.github/workflows/ux-acceptance.yml†L1-L24】
+- Coverage telemetry exporter that transforms `coverage_summary.json` into historical, latest, and GitHub Projects payload artifacts for dashboards.【F:src/issuesuite/coverage_trends.py†L1-L191】【F:scripts/coverage_trends.py†L1-L63】【F:tests/test_coverage_trends.py†L1-L120】
+- GitHub Projects status reporter wiring coverage telemetry with `/Next Steps.md` to generate JSON and Markdown artifacts for automation hand-off, now available via `scripts/projects_status_report.py` and the `issuesuite projects-status` CLI subcommand.【F:src/issuesuite/projects_status.py†L1-L239】【F:scripts/projects_status_report.py†L1-L66】【F:src/issuesuite/cli.py†L1-L920】【F:tests/test_projects_status.py†L1-L156】【F:tests/test_cli_extended.py†L190-L330】
+- Guided CLI setup wizard delivering an ANSI checklist with environment/config audits and actionable follow-up commands.【F:src/issuesuite/setup_wizard.py†L1-L211】【F:src/issuesuite/cli.py†L209-L226】【F:tests/test_setup_wizard.py†L1-L94】
 - `issuesuite init` scaffolds starter configs, specs, VS Code tasks, CI workflow, and gitignore entries with optional extras (`--include`, `--all-extras`).
 - `issuesuite upgrade` surfaces configuration recommendations (e.g. telemetry defaults, mapping file migration) with optional JSON output for automation.
 - New runtime helpers (`runtime.py`) instrument every CLI command with plugin callbacks and telemetry events.
@@ -24,7 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed (Unreleased)
 
 - Dependency quality gate now leverages the offline-aware audit module to remain enforceable on restricted runners.
-- Quality gate suite now runs `pip-audit --strict` via the resilient wrapper so CI and packaging stay aligned even without PyPI access.【F:scripts/quality_gates.py†L21-L60】
+- Quality gate suite now invokes `issuesuite security --pip-audit` so CI and packaging stay aligned even without PyPI access.【F:scripts/quality_gates.py†L21-L60】
+- Resilient pip-audit wrapper enforces a configurable timeout and falls back to curated offline advisories when the upstream probe fails, keeping gates deterministic on hermetic runners.【F:src/issuesuite/pip_audit_integration.py†L1-L360】【F:tests/test_pip_audit_integration.py†L1-L220】
 - Quality gate suite now generates the benchmark report automatically and passes it to the performance budget check for reliable enforcement.【F:scripts/quality_gates.py†L20-L77】【F:src/issuesuite/benchmarking.py†L310-L410】
 - Configuration defaults now source schema versions from the central registry, and AI context exports read the same descriptors to prevent doc drift.【F:src/issuesuite/config.py†L1-L120】【F:src/issuesuite/ai_context.py†L1-L60】
 - Documentation (README, gap analysis, baseline report) updated to reflect the schema registry, nox automation, and changelog guard so contributor guidance mirrors reality.【F:README.md†L14-L122】【F:docs/gap_analysis.md†L1-L64】【F:docs/baseline_report.md†L1-L120】

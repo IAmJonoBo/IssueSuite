@@ -8,7 +8,7 @@ import importlib.util
 import json
 import os
 import shlex
-import subprocess
+import subprocess  # nosec B404 - subprocess orchestrates pip-audit execution
 import sys
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
@@ -17,7 +17,16 @@ from typing import Any, Protocol, cast
 
 from packaging.version import Version
 
-from .dependency_audit import Advisory, Finding, InstalledPackage, evaluate_advisories
+from .dependency_audit import (
+    Advisory,
+    Finding,
+    InstalledPackage,
+    collect_installed_packages,
+    evaluate_advisories,
+    load_advisories,
+    perform_audit,
+    render_findings_table,
+)
 
 _otel_trace: ModuleType | None
 _otel_spec = importlib.util.find_spec("opentelemetry.trace")
@@ -39,6 +48,8 @@ else:  # pragma: no cover
 ResolvedDependencyType = Any
 
 _PIP_AUDIT_BIN = os.environ.get("PIP_AUDIT_BIN", "pip-audit")
+_PIP_AUDIT_TIMEOUT_ENV = "ISSUESUITE_PIP_AUDIT_TIMEOUT"
+_PIP_AUDIT_SUPPRESS_TABLE_ENV = "ISSUESUITE_PIP_AUDIT_SUPPRESS_TABLE"
 
 
 def _get_tracer(name: str) -> _TracerLike:
@@ -214,19 +225,39 @@ class PipAuditError(RuntimeError):
     """Raised when ``pip-audit`` cannot be executed successfully."""
 
 
-def _run_pip_audit(args: Sequence[str], *, capture: bool) -> subprocess.CompletedProcess[str]:
+def _resolve_timeout() -> float | None:
+    raw = os.environ.get(_PIP_AUDIT_TIMEOUT_ENV)
+    if raw is None:
+        return 60.0
+    try:
+        value = float(raw)
+    except ValueError:
+        return 60.0
+    return None if value <= 0 else value
+
+
+def _run_pip_audit(
+    args: Sequence[str], *, capture: bool, timeout: float | None
+) -> subprocess.CompletedProcess[str]:
     command = [_PIP_AUDIT_BIN, *args]
     env = os.environ.copy()
     env.setdefault("PIP_AUDIT_PROGRESS_BAR", "off")
     try:
-        return subprocess.run(  # noqa: S603 - user-invoked binary
+        return subprocess.run(  # noqa: S603 - user-invoked binary  # nosec B603 - controlled arguments from trusted config
             command,
             check=False,
             env=env,
             text=True,
             stdout=subprocess.PIPE if capture else None,
             stderr=subprocess.PIPE if capture else None,
+            timeout=timeout,
         )
+    except subprocess.TimeoutExpired as exc:  # pragma: no cover - runtime dependent
+        raise PipAuditError(
+            f"pip-audit timed out after {timeout:.0f}s"
+            if timeout is not None
+            else "pip-audit timed out"
+        ) from exc
     except FileNotFoundError as exc:  # pragma: no cover - environment dependent
         raise PipAuditError(f"{_PIP_AUDIT_BIN!r} executable not found") from exc
 
@@ -308,7 +339,7 @@ def collect_online_findings(
     packages = packages or []
     target_packages = {pkg.canonical_name for pkg in packages}
     args = ["--format", "json", "--progress-spinner", "off"]
-    result = _run_pip_audit(args, capture=True)
+    result = _run_pip_audit(args, capture=True, timeout=_resolve_timeout())
     if result.returncode not in (0, 1):
         stderr = result.stderr.strip() if result.stderr else "unknown error"
         raise PipAuditError(f"pip-audit exited with code {result.returncode}: {stderr}")
@@ -322,22 +353,71 @@ def collect_online_findings(
     return findings
 
 
+_SSL_ERROR_PATTERNS = tuple(
+    pattern.lower()
+    for pattern in (
+        "SSLError",
+        "CERTIFICATE_VERIFY_FAILED",
+        "HTTPSConnectionPool",
+        "MaxRetryError",
+    )
+)
+
+
+def _is_network_failure(stdout: str, stderr: str) -> bool:
+    combined = f"{stdout}\n{stderr}".lower()
+    return any(token in combined for token in _SSL_ERROR_PATTERNS)
+
+
+def _should_emit_offline_table() -> bool:
+    return os.environ.get(_PIP_AUDIT_SUPPRESS_TABLE_ENV) != "1"
+
+
+def _run_offline_advisory_scan(reason: str) -> int:
+    print(
+        f"[security] pip-audit unavailable ({reason}); falling back to offline advisories.",
+        file=sys.stderr,
+    )
+    advisories = load_advisories()
+    packages = collect_installed_packages()
+    findings, _ = perform_audit(
+        advisories=advisories,
+        packages=packages,
+        online_probe=False,
+    )
+    if _should_emit_offline_table():
+        print(render_findings_table(findings))
+    return 0 if not findings else 1
+
+
 def run_resilient_pip_audit(args: Sequence[str]) -> int:
     """Execute ``pip-audit`` while providing actionable diagnostics."""
 
     base_args = ["--progress-spinner", "off"]
     argv = [*base_args, *args]
     try:
-        result = _run_pip_audit(argv, capture=False)
+        result = _run_pip_audit(argv, capture=True, timeout=_resolve_timeout())
     except PipAuditError as exc:
-        print(f"[security] {exc}", file=sys.stderr)
-        return 2
+        return _run_offline_advisory_scan(str(exc))
+    stdout_text = result.stdout or ""
+    stderr_text = result.stderr or ""
+    if result.returncode == 1 and _is_network_failure(stdout_text, stderr_text):
+        return _run_offline_advisory_scan("ssl-error")
     if result.returncode not in (0, 1):
         command = " ".join(shlex.quote(arg) for arg in ([_PIP_AUDIT_BIN] + list(argv)))
         print(
             f"[security] pip-audit command failed (rc={result.returncode}): {command}",
             file=sys.stderr,
         )
+        return _run_offline_advisory_scan(f"rc={result.returncode}")
+    if stdout_text:
+        sys.stdout.write(stdout_text)
+        if not stdout_text.endswith("\n"):
+            sys.stdout.write("\n")
+    if stderr_text:
+        sys.stderr.write(stderr_text)
+        if not stderr_text.endswith("\n"):
+            sys.stderr.write("\n")
     return result.returncode
 
 
