@@ -1,0 +1,58 @@
+name: Projects Status
+
+on:
+  schedule:
+    - cron: '30 05 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+  checks: read
+  pull-requests: read
+  projects: write
+
+jobs:
+  nightly:
+    name: Frontier Apex Nightly Snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[dev]
+
+      - name: Run quality gates (coverage + telemetry)
+        run: python scripts/quality_gates.py
+
+      - name: Generate Projects status report
+        run: python scripts/projects_status_report.py --quiet --comment-output projects_status.md
+
+      - name: Preview Projects sync plan
+        env:
+          ISSUESUITE_PROJECT_OWNER: ${{ github.repository_owner }}
+          ISSUESUITE_PROJECT_STATUS_REPO: ${{ github.repository }}
+        run: |
+          issuesuite projects-sync \
+            --coverage coverage_projects_payload.json \
+            --comment-output projects_status_sync.md
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: projects-status
+          retention-days: 7
+          path: |
+            coverage_projects_payload.json
+            projects_status_report.json
+            projects_status.md
+            projects_status_sync.md

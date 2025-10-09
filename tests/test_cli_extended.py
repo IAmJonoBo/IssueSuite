@@ -1,11 +1,14 @@
 import json
 import os
 import textwrap
+from datetime import date
 from pathlib import Path
 
 import pytest
+from packaging.specifiers import SpecifierSet
 
 from issuesuite.cli import main
+from issuesuite.dependency_audit import AllowlistedAdvisory, Finding, SuppressedFinding
 from issuesuite.github_issues import IssuesClient
 
 SAMPLE_ISSUES = textwrap.dedent(
@@ -266,6 +269,46 @@ def test_cli_security_scopes_disable_flag(
     assert marker["args"][-1] == "--strict"
 
 
+def test_cli_security_reports_allowlisted(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    finding = Finding(
+        package="pip",
+        installed_version="25.2",
+        vulnerability_id="GHSA-4xh5-x5gv-qwph",
+        description="",
+        fixed_versions=(),
+        source="pip-audit",
+    )
+    allow = AllowlistedAdvisory(
+        package="pip",
+        vulnerability_id="GHSA-4xh5-x5gv-qwph",
+        specifiers=SpecifierSet("<=25.2"),
+        reason="Awaiting upstream fix",
+        expires=date.today(),
+        owner="Maintainers",
+        reference="https://github.com/advisories/GHSA-4xh5-x5gv-qwph",
+    )
+    suppressed = SuppressedFinding(finding=finding, allowlisted=allow)
+
+    monkeypatch.setattr(
+        "issuesuite.cli.run_dependency_audit",
+        lambda advisories, packages, online_probe=True, online_collector=None: ([finding], None),
+    )
+    monkeypatch.setattr("issuesuite.cli.load_security_allowlist", lambda: [allow])
+    monkeypatch.setattr(
+        "issuesuite.cli.apply_security_allowlist",
+        lambda findings, allowlist: ([], [suppressed]),
+    )
+
+    rc = main(["security", "--offline-only"])
+    captured = capsys.readouterr()
+
+    assert rc == 0
+    assert "Allowlisted vulnerabilities detected" in captured.err
+    assert "pip GHSA-4xh5-x5gv-qwph" in captured.err
+
+
 def test_cli_projects_status_generates_artifacts(tmp_path: Path) -> None:
     next_steps_path = tmp_path / "Next Steps.md"
     next_steps_path.write_text(
@@ -321,17 +364,79 @@ def test_cli_projects_status_generates_artifacts(tmp_path: Path) -> None:
     assert "Automate dashboards" in comment
 
 
-def test_cli_projects_status_respects_quiet(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_cli_projects_sync_dry_run(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
     next_steps_path = tmp_path / "Next Steps.md"
     next_steps_path.write_text(
         """# Next Steps
 
 ## Tasks
 
-- [ ] **Owner:** Maintainers — Follow up
+- [ ] **Owner:** Maintainers (Due: 2025-10-20) — Enable dashboards
 """,
+        encoding="utf-8",
+    )
+    coverage_path = tmp_path / "coverage_projects_payload.json"
+    coverage_path.write_text(
+        json.dumps(
+            {
+                "status": "on_track",
+                "emoji": "✅",
+                "message": "Coverage 90% (target 85%)",
+                "overall_coverage": 0.9,
+            }
+        ),
+        encoding="utf-8",
+    )
+    comment_output = tmp_path / "projects_sync_comment.md"
+
+    rc = main(
+        [
+            "projects-sync",
+            "--next-steps",
+            str(next_steps_path),
+            "--coverage",
+            str(coverage_path),
+            "--project-owner",
+            "acme",
+            "--project-number",
+            "7",
+            "--status-field",
+            "Status",
+            "--coverage-field",
+            "Coverage %",
+            "--summary-field",
+            "Summary",
+            "--comment-repo",
+            "acme/repo",
+            "--comment-issue",
+            "42",
+            "--comment-output",
+            str(comment_output),
+        ]
+    )
+
+    assert rc == 0
+    captured = capsys.readouterr()
+    assert "Frontier Apex status" in captured.out
+    assert "dry-run preview" in captured.err
+    assert "Frontier Apex status" in comment_output.read_text()
+
+
+def test_cli_projects_status_respects_quiet(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    next_steps_path = tmp_path / "Next Steps.md"
+    next_steps_path.write_text(
+        textwrap.dedent(
+            """
+            # Next Steps
+
+            ## Tasks
+
+            - [ ] **Owner:** Maintainers — Follow up
+            """
+        ).strip()
+        + "\n",
         encoding="utf-8",
     )
 
@@ -349,3 +454,31 @@ def test_cli_projects_status_respects_quiet(
     assert rc == 0
     captured = capsys.readouterr()
     assert captured.out == ""
+
+
+def test_cli_projects_sync_apply_requires_token(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+    next_steps_path = tmp_path / "Next Steps.md"
+    next_steps_path.write_text("# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8")
+    coverage_path = tmp_path / "coverage_projects_payload.json"
+    coverage_path.write_text(json.dumps({"status": "on_track"}), encoding="utf-8")
+
+    rc = main(
+        [
+            "projects-sync",
+            "--next-steps",
+            str(next_steps_path),
+            "--coverage",
+            str(coverage_path),
+            "--project-owner",
+            "acme",
+            "--project-number",
+            "7",
+            "--status-field",
+            "Status",
+            "--apply",
+        ]
+    )
+
+    assert rc == 1
+    captured = capsys.readouterr()
+    assert "token required" in captured.err

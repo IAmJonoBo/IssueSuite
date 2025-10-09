@@ -118,8 +118,11 @@ def test_vscode_secrets_detection(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("GITHUB_TOKEN", "vscode_token")
 
     secrets = manager.get_vscode_secrets()
-    assert "vscode_git_askpass_main" in secrets
-    assert "github_token" in secrets
+    assert secrets["vscode_git_askpass_main"].startswith("<redacted:")
+    assert secrets["github_token"].startswith("<redacted:")
+
+    raw = manager.get_vscode_secrets(redact=False)
+    assert raw["github_token"] == "vscode_token"
 
 
 def test_vscode_secrets_snapshot_ignored_until_changed(
@@ -136,7 +139,7 @@ def test_vscode_secrets_snapshot_ignored_until_changed(
     # Change one variable and add a new one
     monkeypatch.setenv("GITHUB_TOKEN", "rotated_token")
     monkeypatch.setenv("VSCODE_GIT_IPC_HANDLE", "/tmp/ipc.sock")
-    secrets = manager.get_vscode_secrets()
+    secrets = manager.get_vscode_secrets(redact=False)
     # rotated token and newly added ipc handle should appear
     assert "github_token" in secrets and secrets["github_token"] == "rotated_token"
     assert "vscode_git_ipc_handle" in secrets
@@ -243,6 +246,7 @@ def test_setup_authentication_from_env(monkeypatch: MonkeyPatch) -> None:
     assert result["is_online"] is True
     assert isinstance(result["github_app"], dict)
     assert isinstance(result["vscode_secrets"], dict)
+    assert all(str(value).startswith("<redacted:") for value in result["vscode_secrets"].values())
     assert isinstance(result["recommendations"], list)
 
 
@@ -253,6 +257,17 @@ def test_vscode_secrets_disabled() -> None:
 
     secrets = manager.get_vscode_secrets()
     assert len(secrets) == 0
+
+
+def test_vscode_secrets_config_disables_redaction(monkeypatch: MonkeyPatch) -> None:
+    """Configuration can opt-out of redaction for explicit scripting."""
+
+    config = EnvAuthConfig(load_dotenv=False, vscode_secrets_redact=False)
+    manager = EnvironmentAuthManager(config)
+    monkeypatch.setenv("GITHUB_TOKEN", "raw_token")
+
+    secrets = manager.get_vscode_secrets()
+    assert secrets["github_token"] == "raw_token"
 
 
 def test_custom_token_variable(monkeypatch: MonkeyPatch) -> None:

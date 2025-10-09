@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -9,11 +10,15 @@ from packaging.version import Version
 
 from issuesuite.dependency_audit import (
     Advisory,
+    AllowlistedAdvisory,
     Finding,
     InstalledPackage,
     OnlineAuditUnavailableError,
+    SuppressedFinding,
     _render_table,
+    apply_allowlist,
     evaluate_advisories,
+    load_allowlist,
     main,
     perform_audit,
 )
@@ -90,6 +95,58 @@ def test_perform_audit_falls_back_when_online_unavailable() -> None:
     assert fallback_reason == "network down"
     assert len(findings) == 1
     assert findings[0].source == "offline-advisory"
+
+
+def test_apply_allowlist_filters_and_tracks() -> None:
+    findings = [
+        Finding(
+            package="pip",
+            installed_version="25.2",
+            vulnerability_id="GHSA-4xh5-x5gv-qwph",
+            description="",
+            fixed_versions=(),
+            source="pip-audit",
+        )
+    ]
+    allow = AllowlistedAdvisory(
+        package="pip",
+        vulnerability_id="GHSA-4xh5-x5gv-qwph",
+        specifiers=SpecifierSet("<=25.2"),
+        reason="temporary exception",
+        expires=date.today() + timedelta(days=7),
+        owner="Maintainers",
+        reference="https://example.com",
+    )
+
+    remaining, suppressed = apply_allowlist(findings, [allow])
+
+    assert remaining == []
+    assert suppressed == [SuppressedFinding(finding=findings[0], allowlisted=allow)]
+
+
+def test_apply_allowlist_respects_expiration() -> None:
+    finding = Finding(
+        package="pip",
+        installed_version="25.2",
+        vulnerability_id="GHSA-4xh5-x5gv-qwph",
+        description="",
+        fixed_versions=(),
+        source="pip-audit",
+    )
+    expired = AllowlistedAdvisory(
+        package="pip",
+        vulnerability_id="GHSA-4xh5-x5gv-qwph",
+        specifiers=SpecifierSet("<=25.2"),
+        reason="expired",
+        expires=date.today() - timedelta(days=1),
+        owner=None,
+        reference=None,
+    )
+
+    remaining, suppressed = apply_allowlist([finding], [expired])
+
+    assert remaining == [finding]
+    assert suppressed == []
 
 
 def test_render_table_formats_rows() -> None:
@@ -171,3 +228,48 @@ def test_main_handles_offline_only(
     captured = capsys.readouterr()
     assert "demo" in captured.out
     assert exit_code == 1
+
+
+def test_main_applies_allowlist(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    allow = AllowlistedAdvisory(
+        package="demo",
+        vulnerability_id="TEST-ALLOW",
+        specifiers=SpecifierSet(">=1.0"),
+        reason="awaiting upstream fix",
+        expires=date.today() + timedelta(days=5),
+        owner="Security",
+        reference="https://example.com/allow",
+    )
+
+    monkeypatch.setattr(
+        "issuesuite.dependency_audit.collect_installed_packages",
+        lambda: [InstalledPackage(name="demo", version=Version("1.0"))],
+    )
+    monkeypatch.setattr("issuesuite.dependency_audit.load_advisories", lambda path=None: [])
+    monkeypatch.setattr(
+        "issuesuite.dependency_audit.perform_audit",
+        lambda advisories, packages, online_probe=True, online_collector=None: (
+            [
+                Finding(
+                    package="demo",
+                    installed_version="1.0",
+                    vulnerability_id="TEST-ALLOW",
+                    description="",
+                    fixed_versions=(),
+                    source="pip-audit",
+                )
+            ],
+            None,
+        ),
+    )
+    monkeypatch.setattr("issuesuite.dependency_audit.load_allowlist", lambda path=None: [allow])
+
+    exit_code = main([])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "No known vulnerabilities detected" in captured.out
+    assert "Allowlisted vulnerabilities detected" in captured.err
+    assert "demo TEST-ALLOW" in captured.err

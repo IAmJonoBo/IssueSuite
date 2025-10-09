@@ -32,11 +32,22 @@ from issuesuite.config import SuiteConfig
 from issuesuite.core import IssueSuite
 from issuesuite.dependency_audit import (
     Finding,
+    SuppressedFinding,
     collect_installed_packages,
     render_findings_table,
 )
-from issuesuite.dependency_audit import load_advisories as load_security_advisories
-from issuesuite.dependency_audit import perform_audit as run_dependency_audit
+from issuesuite.dependency_audit import (
+    apply_allowlist as apply_security_allowlist,
+)
+from issuesuite.dependency_audit import (
+    load_advisories as load_security_advisories,
+)
+from issuesuite.dependency_audit import (
+    load_allowlist as load_security_allowlist,
+)
+from issuesuite.dependency_audit import (
+    perform_audit as run_dependency_audit,
+)
 from issuesuite.env_auth import create_env_auth_manager
 from issuesuite.github_issues import IssuesClient, IssuesClientConfig
 from issuesuite.observability import configure_telemetry
@@ -816,7 +827,9 @@ def _maybe_refresh_offline_advisories(requested: bool) -> None:
 
 
 def _build_security_payload(
-    findings: Sequence[Finding], fallback_reason: str | None
+    findings: Sequence[Finding],
+    fallback_reason: str | None,
+    suppressed: Sequence[SuppressedFinding],
 ) -> dict[str, object]:
     return {
         "findings": [
@@ -831,6 +844,20 @@ def _build_security_payload(
             for finding in findings
         ],
         "fallback_reason": fallback_reason,
+        "allowlisted": [
+            {
+                "package": item.finding.package,
+                "installed_version": item.finding.installed_version,
+                "vulnerability_id": item.finding.vulnerability_id,
+                "reason": item.allowlisted.reason,
+                "expires": (
+                    item.allowlisted.expires.isoformat() if item.allowlisted.expires else None
+                ),
+                "owner": item.allowlisted.owner,
+                "reference": item.allowlisted.reference,
+            }
+            for item in suppressed
+        ],
     }
 
 
@@ -839,6 +866,25 @@ def _emit_security_table(findings: Sequence[Finding], fallback_reason: str | Non
     if fallback_reason:
         print(
             f"[security] Warning: online audit unavailable ({fallback_reason}).",
+            file=sys.stderr,
+        )
+
+
+def _emit_security_allowlist_summary(suppressed: Sequence[SuppressedFinding]) -> None:
+    if not suppressed:
+        return
+    print("[security] Allowlisted vulnerabilities detected:", file=sys.stderr)
+    for item in suppressed:
+        allow = item.allowlisted
+        parts = [allow.reason]
+        if allow.expires:
+            parts.append(f"expires {allow.expires.isoformat()}")
+        if allow.owner:
+            parts.append(f"owner {allow.owner}")
+        if allow.reference:
+            parts.append(str(allow.reference))
+        print(
+            f"  - {item.finding.package} {item.finding.vulnerability_id} ({'; '.join(parts)})",
             file=sys.stderr,
         )
 
@@ -888,15 +934,22 @@ def _cmd_security(args: argparse.Namespace) -> int:
         online_probe=not args.offline_only,
         online_collector=collect_online_findings,
     )
-    output_payload = _build_security_payload(findings, fallback_reason)
+    allowlist = load_security_allowlist()
+    findings, suppressed = apply_security_allowlist(findings, allowlist)
+    output_payload = _build_security_payload(findings, fallback_reason, suppressed)
     if args.output_json:
         _write_security_json(Path(args.output_json), output_payload)
     else:
         _emit_security_table(findings, fallback_reason)
+        _emit_security_allowlist_summary(suppressed)
     exit_code = 0 if not findings else 1
     exit_code = _maybe_run_pip_audit(args, exit_code)
     args._plugin_payload = {
-        "security": {"findings": len(findings), "fallback_reason": fallback_reason}
+        "security": {
+            "findings": len(findings),
+            "fallback_reason": fallback_reason,
+            "allowlisted": len(suppressed),
+        }
     }
     return exit_code
 

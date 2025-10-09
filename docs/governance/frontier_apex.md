@@ -22,7 +22,8 @@ teams can forecast the rollout, wire automation, and measure success.
 
 - Extend `scripts/quality_gates.py` to parse `coverage.xml` and fail when
   high-priority modules (`core`, `cli`, `github_issues`, `project`,
-  `pip_audit_integration`) drop below 90%.
+  `pip_audit_integration`) drop below 90%. Frontier Apex now enforces an
+  85% overall threshold by default via `scripts/quality_gates.py`.
 - Prototype landed: module thresholds now enforced via
   `scripts/quality_gates.py` with summaries emitted to
   `coverage_summary.json` for telemetry dashboards.
@@ -64,8 +65,12 @@ teams can forecast the rollout, wire automation, and measure success.
   projects-status` now generate `projects_status_report.json` and a Markdown
   summary by merging coverage telemetry with `/Next Steps.md`, paving the way
   for nightly automation.
-- Configure a scheduled workflow (`.github/workflows/projects-daily.yml`) to
-  refresh project dashboards, annotate risks, and backfill timeline milestones.
+- Introduce `issuesuite projects-sync` backed by
+  `src/issuesuite/github_projects_sync.py` to post status comments and update
+  Projects fields once tokens and field mappings are configured.
+- Configure a scheduled workflow (`.github/workflows/projects-status.yml`) to
+  run the Frontier Apex gates nightly, publish status artifacts, and keep
+  dashboards fresh without mutating production projects by default.
 - Document runbooks for incident response when automation detects stale project
   items (alerts routed through GitHub Issues and Slack).
 
@@ -131,3 +136,18 @@ teams can forecast the rollout, wire automation, and measure success.
 3. Draft GitHub Projects automation workflow and metrics reporter.
 4. Plan SBOM + provenance attestation integration with release pipeline.
 5. Update `/Next Steps.md` to track Frontier Apex epics and owners.
+
+## Transition Plan
+
+1. **Shadow Mode (Weeks 1-2):** Run `.github/workflows/projects-status.yml` on the
+   default schedule without tokens to validate artifacts and review the dry-run
+   comment in pull requests.
+2. **Credential Enablement (Weeks 3-4):** Provision a scoped token with
+   `projects: write` + `issues: write`, populate `ISSUESUITE_PROJECT_NUMBER`,
+   and dry-run `issuesuite projects-sync --apply` in staging repositories.
+3. **Production Rollout (Week 5):** Enable the token in the workflow
+   environment, configure field mappings via `--status-map`, and allow the
+   workflow to update the project draft item and nightly status issue.
+4. **Contributor Training (Week 6):** Host a workshop demonstrating the new
+   CLI (`issuesuite projects-sync`) and review dashboards before flipping the
+   "ready for review" gate to require green Frontier Apex metrics.
