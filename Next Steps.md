@@ -28,6 +28,9 @@
 - [ ] **Owner:** Maintainers (Due: 2025-10-20) — Stand up GitHub Projects dashboards + workflow automation linking Next Steps, CI signals, and release gates for full program management traceability.
 - [x] **Owner:** Assistant (Due: 2025-10-18) — Prototype strict module-level coverage thresholds and type telemetry hooks per the Frontier Apex blueprint.【F:scripts/quality_gates.py†L1-L193】【F:scripts/type_coverage_report.py†L1-L108】【F:src/issuesuite/logging.py†L1-L167】【F:tests/test_type_coverage_report.py†L1-L74】
 - [x] **Owner:** Assistant (Due: 2025-10-18) — Scaffold the UX acceptance harness and GitHub Action to validate CLI ergonomics and documentation accessibility.【F:scripts/ux_acceptance.py†L1-L117】【F:tests/test_ux_acceptance_script.py†L1-L63】【F:.github/workflows/ux-acceptance.yml†L1-L24】
+- [x] **Owner:** Assistant (Due: 2025-10-22) — Implement coverage trend exporter feeding GitHub Projects dashboards using `coverage_summary.json` telemetry.【F:docs/governance/frontier_apex.md†L28-L37】【F:src/issuesuite/coverage_trends.py†L1-L191】【F:scripts/coverage_trends.py†L1-L63】【F:tests/test_coverage_trends.py†L1-L120】
+- [x] **Owner:** Assistant (Due: 2025-10-22) — Ship a guided CLI setup wizard that audits workspace readiness and prints prioritized follow-ups for Frontier gates with regression coverage.【F:src/issuesuite/setup_wizard.py†L1-L211】【F:src/issuesuite/cli.py†L209-L226】【F:tests/test_setup_wizard.py†L1-L94】
+- [ ] **Owner:** Maintainers (Due: 2025-10-24) — Wire `coverage_projects_payload.json` into GitHub Projects automation and nightly status comments once dashboards are provisioned.【F:docs/governance/frontier_apex.md†L28-L37】【F:src/issuesuite/coverage_trends.py†L1-L191】
 - [ ] **Owner:** Assistant (Due: 2025-10-22) — Implement coverage trend exporter feeding GitHub Projects dashboards using `coverage_summary.json` telemetry.【F:docs/governance/frontier_apex.md†L30-L37】【F:scripts/quality_gates.py†L166-L193】
 - [ ] **Owner:** Maintainers (Due: 2025-10-25) — Draft GitHub Projects automation workflows and nightly status reporters to operationalize the Apex governance metrics.【F:docs/governance/frontier_apex.md†L76-L95】【F:docs/governance/frontier_apex.md†L109-L118】
 
@@ -37,6 +40,8 @@
 - [x] Harden pip-audit by installing a resilient wrapper and new CLI/quality gates so hermetic baselines pass without bespoke CAs.【F:src/issuesuite/pip_audit_integration.py†L1-L240】【F:scripts/quality_gates.py†L21-L60】
 - [x] Automate the offline advisory refresh workflow and enforce a freshness gate in CI to block stale datasets.【F:src/issuesuite/advisory_refresh.py†L1-L236】【F:scripts/quality_gates.py†L20-L94】【fa836a†L1-L130】
 - [x] Re-run full quality gates locally (pytest+coverage, ruff, mypy, bandit, detect-secrets, build) to establish baseline before analysis.【ce7f96†L1-L45】【e3c1a9†L1-L2】【862000†L1-L2】【df017e†L1-L68】【6e6bf9†L1-L71】【23b224†L1-L128】
+- [x] Export coverage trends to history, latest snapshot, and GitHub Projects payloads via the new telemetry exporter.【F:src/issuesuite/coverage_trends.py†L1-L191】【F:scripts/coverage_trends.py†L1-L63】【F:tests/test_coverage_trends.py†L1-L120】
+- [x] Added guided setup wizard surfaces to the CLI so contributors see environment, config, and telemetry gaps with actionable remediation steps.【F:src/issuesuite/setup_wizard.py†L1-L211】【F:src/issuesuite/cli.py†L209-L226】【F:tests/test_setup_wizard.py†L1-L94】
 - [x] Replace CLI-only GitHub orchestration with a native REST client and regression suite covering milestone resolution and fallback behavior.【F:src/issuesuite/github_rest.py†L1-L200】【F:tests/test_github_rest_client.py†L1-L116】
 - [x] Layer OpenTelemetry tracing and performance budget enforcement into benchmarking plus CI quality gates.【F:src/issuesuite/observability.py†L1-L65】【F:scripts/quality_gates.py†L55-L63】【F:tests/test_benchmarking.py†L1-L165】
 - [x] Harden agent update ingestion with JSON Schema validation and explicit approval switches for governance workflows.【F:src/issuesuite/agent_updates.py†L12-L214】【F:src/issuesuite/cli.py†L370-L474】
@@ -90,6 +95,7 @@
 ## Quality Gates
 
 - [x] Coverage ≥80%: `pytest --cov=issuesuite --cov-report=term --cov-report=xml` with enforcement aggregated through `python scripts/quality_gates.py` for CI and local workflows.【F:scripts/quality_gates.py†L21-L82】
+- [x] Coverage telemetry surfaced in `coverage_trends.json`, `coverage_trends_latest.json`, and `coverage_projects_payload.json` for dashboard automation after each exporter run.【F:src/issuesuite/coverage_trends.py†L1-L191】【F:scripts/coverage_trends.py†L1-L63】
 - [x] Critical module coverage ≥90%: enforced post-test via the Frontier Apex thresholds with JSON summary emission for telemetry dashboards.【F:scripts/quality_gates.py†L1-L193】
 - [x] Static analysis & formatting: `ruff check`, `ruff format --check`, and `mypy src` stay green prior to any merge.【F:scripts/quality_gates.py†L29-L44】
 - [x] Type telemetry export recorded per run to `type_coverage.json` without blocking merges, feeding observability dashboards.【F:scripts/type_coverage_report.py†L1-L108】【F:src/issuesuite/logging.py†L1-L167】
@@ -126,6 +132,7 @@
 - [x] Dependency audit — `python -m issuesuite.dependency_audit --output-json` recorded in chunk `a28292`.
 - [x] Quality gate roll-up — `python scripts/quality_gates.py` output (all gates passing with offline-aware dependency audit).【106476†L1-L8】
 - [x] Gap analysis — `docs/gap_analysis.md`.
+- [x] Coverage trend export harness — `python scripts/coverage_trends.py` + regression tests for history/payload output.【F:scripts/coverage_trends.py†L1-L63】【F:tests/test_coverage_trends.py†L1-L120】
 
 ## Risks / Notes
 
@@ -146,6 +153,8 @@
 - [x] Frontier Elite governance: validator + scripts now enforce UX research notes and GitHub Projects automation within Next Steps before quality gates pass.【F:src/issuesuite/next_steps_validator.py†L1-L109】【F:scripts/verify_next_steps.py†L1-L33】
 - [x] pip-audit fallback now captures SSL failures across stdout/stderr while keeping CI green in offline runs; monitor for upstream output changes that might bypass the detector.【F:src/issuesuite/pip_audit_integration.py†L360-L430】【F:tests/test_pip_audit_integration.py†L150-L235】【9605bb†L1-L14】
 - [x] Transition plan required for Frontier Apex gates so contributors have staged rollouts, sandbox dashboards, and GitHub Projects training before enforcement.【F:docs/governance/frontier_apex.md†L96-L118】
+- [x] Coverage trend exporter now persists history/snapshot/project payloads; ensure `coverage_summary.json` stays fresh (rerun pytest --cov) before invoking dashboards.【F:src/issuesuite/coverage_trends.py†L1-L191】【F:scripts/coverage_trends.py†L1-L63】
+- [x] Guided setup wizard surfaces environment/config gaps; keep recommendations current as new quality gates land so the checklist stays authoritative.【F:src/issuesuite/setup_wizard.py†L1-L211】【F:src/issuesuite/cli.py†L209-L226】
 - [ ] Coverage trend exporter remains outstanding; `coverage_summary.json` will inform dashboards once automation lands.【F:scripts/quality_gates.py†L166-L193】
 - [ ] `pip-audit --strict` currently hangs in offline environments; wire resilient timeouts/offline datasets so dependency gates don't block local QA.【fce977†L1-L120】
 - [ ] Transition plan required for Frontier Apex gates so contributors have staged rollouts, sandbox dashboards, and GitHub Projects training before enforcement.

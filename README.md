@@ -114,6 +114,9 @@ python scripts/type_coverage_report.py
 
 # Validate CLI help ergonomics across critical subcommands
 python scripts/ux_acceptance.py
+
+# Export coverage history for GitHub Projects dashboards
+python scripts/coverage_trends.py
 ```
 
 Enable the repo-managed pre-commit hook so commits automatically use the local
@@ -156,6 +159,10 @@ python scripts/update_changelog.py 0.1.12 \
 ### Authentication quick check
 
 Run `issuesuite setup --check-auth` to ensure your GitHub token or GitHub App credentials are detected before attempting a full sync. Need a starter `.env`? Generate one with `issuesuite setup --create-env`, then paste your `GITHUB_TOKEN` (and optional GitHub App values) before running the tasks above.
+
+### Guided setup tour
+
+Prefer a narrative walkthrough? `issuesuite setup --guided` inspects your workspace, highlights missing assets (config, specs, coverage telemetry), and prints recommended commands (init, quality gates, coverage trend export) in an ANSI-friendly checklist. Run it any time you need to confirm the repository is Frontier-ready.
 
 ### Agent Apply (update ISSUES.md from agent output)
 

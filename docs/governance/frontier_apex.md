@@ -27,7 +27,10 @@ teams can forecast the rollout, wire automation, and measure success.
   `scripts/quality_gates.py` with summaries emitted to
   `coverage_summary.json` for telemetry dashboards.
 - Introduce `scripts/coverage_trends.py` to push historical coverage into the
-  GitHub Projects dashboard and send alerts on 1% regressions.
+  GitHub Projects dashboard and send alerts on 1% regressions. ✅ Implemented;
+  the exporter now produces `coverage_trends.json` history, a
+  `coverage_trends_latest.json` snapshot, and a `coverage_projects_payload.json`
+  summary for automation hooks.
 - Add a strict `mypy` session (`nox -s mypy_strict`) and require green status
   before the "Ready for review" label can be applied.
 - Instrument `issuesuite.logging` to emit `type_check` telemetry after each
