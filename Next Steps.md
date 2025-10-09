@@ -33,6 +33,7 @@
 - [ ] **Owner:** Maintainers (Due: 2025-10-24) — Wire `coverage_projects_payload.json` into GitHub Projects automation and nightly status comments once dashboards are provisioned.【F:docs/governance/frontier_apex.md†L28-L37】【F:src/issuesuite/coverage_trends.py†L1-L191】
 - [ ] **Owner:** Assistant (Due: 2025-10-22) — Implement coverage trend exporter feeding GitHub Projects dashboards using `coverage_summary.json` telemetry.【F:docs/governance/frontier_apex.md†L30-L37】【F:scripts/quality_gates.py†L166-L193】
 - [ ] **Owner:** Maintainers (Due: 2025-10-25) — Draft GitHub Projects automation workflows and nightly status reporters to operationalize the Apex governance metrics.【F:docs/governance/frontier_apex.md†L76-L95】【F:docs/governance/frontier_apex.md†L109-L118】
+- [ ] **Owner:** Maintainers (Due: 2025-10-23) — Resolve `pip` GHSA-4xh5-x5gv-qwph detection so the pip-audit gate succeeds without suppressing genuine vulnerabilities (upgrade packaged toolchain or curate an allowlist exception).【4e63a4†L1-L8】【F:scripts/quality_gates.py†L60-L88】
 
 ## Steps
 
@@ -52,6 +53,7 @@
 - [x] Hardened telemetry importer and console writer to avoid ValueError crashes and surface diagnostics when dependencies are missing.【F:src/issuesuite/observability.py†L1-L97】
 - [x] Ensured benchmarking tracer hooks guard optional dependencies to satisfy static analysis and prevent runtime errors.【F:src/issuesuite/benchmarking.py†L22-L180】
 - [x] Normalized index document loading with explicit type coercion for signed entries.【F:src/issuesuite/index_store.py†L45-L73】
+- [x] Hardened pip-audit integration to treat missing package metadata as a recoverable fallback, ensuring quality gates and contributor checklists run through the CLI wrapper instead of the raw binary.【F:src/issuesuite/pip_audit_integration.py†L352-L427】【F:tests/test_pip_audit_integration.py†L170-L221】【F:scripts/quality_gates.py†L60-L88】【F:.github/pull_request_template.md†L7-L13】
 - [x] Centralized agent-update schema validator state to simplify guards and keep mypy happy.【F:src/issuesuite/agent_updates.py†L13-L199】
 - [x] Draft `docs/gap_analysis.md` summarizing strengths, gaps, and frontier recommendations with citations.【F:docs/gap_analysis.md†L1-L94】
 - [x] Automate quality gate enforcement in CI via `python scripts/quality_gates.py` to consolidate tooling expectations per PR.【F:.github/workflows/ci.yml†L35-L37】
@@ -158,5 +160,6 @@
 - [x] Coverage trend exporter now persists history/snapshot/project payloads; ensure `coverage_summary.json` stays fresh (rerun pytest --cov) before invoking dashboards.【F:src/issuesuite/coverage_trends.py†L1-L191】【F:scripts/coverage_trends.py†L1-L63】
 - [x] Guided setup wizard surfaces environment/config gaps; keep recommendations current as new quality gates land so the checklist stays authoritative.【F:src/issuesuite/setup_wizard.py†L1-L211】【F:src/issuesuite/cli.py†L209-L226】
 - [ ] Coverage trend exporter remains outstanding; `coverage_summary.json` will inform dashboards once automation lands.【F:scripts/quality_gates.py†L166-L193】
+- [ ] pip-audit gate still surfaces a live `pip` advisory (GHSA-4xh5-x5gv-qwph); address via pip upgrade or curated exception so security checks return green alongside the new fallback logic.【4e63a4†L1-L8】【F:src/issuesuite/pip_audit_integration.py†L352-L427】
 - [ ] `pip-audit --strict` currently hangs in offline environments; wire resilient timeouts/offline datasets so dependency gates don't block local QA.【fce977†L1-L120】
 - [ ] Transition plan required for Frontier Apex gates so contributors have staged rollouts, sandbox dashboards, and GitHub Projects training before enforcement.
