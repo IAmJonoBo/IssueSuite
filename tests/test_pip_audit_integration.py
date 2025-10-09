@@ -267,3 +267,34 @@ def test_run_resilient_pip_audit_detects_ssl_in_stdout(
     assert rc == 0
     assert "offline table" in captured.out
     assert "pip-audit unavailable (ssl-error)" in captured.err
+
+
+def test_run_resilient_pip_audit_handles_missing_dependency(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    result = subprocess.CompletedProcess(
+        ("pip-audit",),
+        returncode=1,
+        stdout="",
+        stderr="Dependency not found on PyPI and could not be audited: issuesuite (0.1.13)",
+    )
+    monkeypatch.setattr("issuesuite.pip_audit_integration._run_pip_audit", lambda *_, **__: result)
+    monkeypatch.setattr("issuesuite.pip_audit_integration.load_advisories", lambda: [])
+    monkeypatch.setattr("issuesuite.pip_audit_integration.collect_installed_packages", lambda: [])
+
+    def _mock_perform_audit(**kwargs: object) -> tuple[list[Finding], str | None]:
+        assert kwargs["online_probe"] is False
+        return ([], "offline-only")
+
+    monkeypatch.setattr("issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit)
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.render_findings_table",
+        lambda findings: "offline table",
+    )
+
+    rc = run_resilient_pip_audit(["--strict"])
+    captured = capsys.readouterr()
+
+    assert rc == 0
+    assert "offline table" in captured.out
+    assert "pip-audit unavailable (missing-dependency)" in captured.err

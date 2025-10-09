@@ -363,10 +363,18 @@ _SSL_ERROR_PATTERNS = tuple(
     )
 )
 
+_MISSING_DEPENDENCY_PATTERNS = ("dependency not found on pypi",)
 
-def _is_network_failure(stdout: str, stderr: str) -> bool:
+
+def _detect_recoverable_failure(stdout: str, stderr: str) -> str | None:
     combined = f"{stdout}\n{stderr}".lower()
-    return any(token in combined for token in _SSL_ERROR_PATTERNS)
+    for reason, patterns in (
+        ("ssl-error", _SSL_ERROR_PATTERNS),
+        ("missing-dependency", _MISSING_DEPENDENCY_PATTERNS),
+    ):
+        if any(token in combined for token in patterns):
+            return reason
+    return None
 
 
 def _should_emit_offline_table() -> bool:
@@ -401,8 +409,10 @@ def run_resilient_pip_audit(args: Sequence[str]) -> int:
         return _run_offline_advisory_scan(str(exc))
     stdout_text = result.stdout or ""
     stderr_text = result.stderr or ""
-    if result.returncode == 1 and _is_network_failure(stdout_text, stderr_text):
-        return _run_offline_advisory_scan("ssl-error")
+    if result.returncode == 1:
+        reason = _detect_recoverable_failure(stdout_text, stderr_text)
+        if reason is not None:
+            return _run_offline_advisory_scan(reason)
     if result.returncode not in (0, 1):
         command = " ".join(shlex.quote(arg) for arg in ([_PIP_AUDIT_BIN] + list(argv)))
         print(
