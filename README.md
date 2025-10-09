@@ -117,6 +117,9 @@ python scripts/ux_acceptance.py
 
 # Export coverage history for GitHub Projects dashboards
 python scripts/coverage_trends.py
+
+# Generate a GitHub Projects status payload and Markdown summary
+python scripts/projects_status_report.py
 ```
 
 Enable the repo-managed pre-commit hook so commits automatically use the local
