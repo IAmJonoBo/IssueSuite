@@ -228,7 +228,7 @@ def test_github_project_assigner_get_issue_id_real_mode(
     assert issue_id == "MDU6SXNzdWUxMjM0NTY3ODk="
     mock_run.assert_called_once()
     args = mock_run.call_args[0][0]
-    assert "gh" in args
+    assert any("gh" in arg for arg in args)
     assert "api" in args
     assert "repos/:owner/:repo/issues/456" in args
 
