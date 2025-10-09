@@ -48,7 +48,7 @@ teams can forecast the rollout, wire automation, and measure success.
   and publishes `ux_acceptance_report.json` for future dashboards.
 - Create Markdown lint rules to enforce heading hierarchy, alt-text, and task
   list completeness across `/docs` and `/Next Steps.md`.
-- Capture CLI interaction traces in `docs/reference/cli.md` and embed them in
+- Capture CLI interaction traces in `docs/starlight/src/content/docs/reference/cli.mdx` and embed them in
   regression tests to guard UX regressions.
 - Add VS Code tasks for "UX Acceptance" and wire them into GitHub Actions via a
   reusable workflow.

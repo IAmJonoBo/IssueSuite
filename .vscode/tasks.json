@@ -98,6 +98,22 @@
 			}
 		},
 		{
+			"label": "IssueSuite: Refresh Dependencies",
+			"type": "shell",
+			"command": "${workspaceFolder}/scripts/refresh-deps.sh",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"group": "build",
+			"detail": "Regenerate uv.lock and docs/starlight/package-lock.json",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			}
+		},
+		{
 			"label": "IssueSuite: Validate",
 			"type": "shell",
 			"command": "${workspaceFolder}/.venv/bin/issuesuite",
