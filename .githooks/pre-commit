@@ -16,9 +16,13 @@ HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
 CANDIDATES=(".venv" "venv" ".env")
 VENV_PY=""
 for candidate in "${CANDIDATES[@]}"; do
-	candidate_py="$REPO_ROOT/$candidate/bin/python"
-	if [ -x "$candidate_py" ]; then
-		VENV_PY="$candidate_py"
+	candidate_py="${REPO_ROOT}/${candidate}/bin/python"
+	candidate_py3="${REPO_ROOT}/${candidate}/bin/python3"
+	if [[ -x "${candidate_py3}" ]]; then
+		VENV_PY="${candidate_py3}"
+		break
+	elif [[ -x "${candidate_py}" ]]; then
+		VENV_PY="${candidate_py}"
 		break
 	fi
 done
@@ -27,15 +31,15 @@ ARGS=(
 	hook-impl
 	--config=.pre-commit-config.yaml
 	--hook-type=pre-commit
-	--hook-dir "$HOOK_DIR"
+	--hook-dir "${HOOK_DIR}"
 	--
 	"$@"
 )
 
-if [ -n "$VENV_PY" ]; then
-	VENV_BIN="$(dirname "$VENV_PY")"
-	PATH="$VENV_BIN:$PATH"
-	exec "$VENV_PY" -m pre_commit "${ARGS[@]}"
+if [[ -n "${VENV_PY}" ]]; then
+	VENV_BIN="$(dirname "${VENV_PY}")"
+	PATH="${VENV_BIN}:${PATH}"
+	exec "${VENV_PY}" -m pre_commit "${ARGS[@]}"
 elif command -v pre-commit >/dev/null 2>&1; then
 	exec pre-commit "${ARGS[@]}"
 else
