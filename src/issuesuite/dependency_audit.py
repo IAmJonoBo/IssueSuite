@@ -33,7 +33,7 @@ except Exception:  # pragma: no cover - pip-audit integration optional
     _pip_collect_online = None  # type: ignore[assignment]
 
 from packaging.specifiers import SpecifierSet
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 
 DEFAULT_ADVISORY_PATH = Path(__file__).with_name("security_advisories.json")
 
@@ -152,9 +152,16 @@ def collect_installed_packages(
         canonical = name.lower().replace("_", "-")
         if selected and canonical not in selected:
             continue
+        version_value = dist.version or "0"
         try:
-            version = Version(dist.version or "0")
-        except Exception:  # pragma: no cover - skip invalid metadata entries
+            version = Version(version_value)
+        except (
+            InvalidVersion,
+            TypeError,
+            ValueError,
+        ):  # pragma: no cover - skip invalid metadata entries
+            version = None
+        if version is None:
             continue
         observed[canonical] = InstalledPackage(name=canonical, version=version)
     return sorted(observed.values(), key=lambda pkg: pkg.name)

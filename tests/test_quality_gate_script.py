@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import sys
 
 import pytest
 
@@ -13,6 +14,7 @@ def quality_gate_script():
     if spec is None or spec.loader is None:  # pragma: no cover - defensive
         pytest.skip("Unable to load quality_gates.py")
     module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)  # type: ignore[assignment]
     return module
 
@@ -59,3 +61,55 @@ def test_performance_budget_gate_runs_check(quality_gate_script):
         "issuesuite.benchmarking",
     ]
     assert "--check" in budget_gate.command
+
+
+def test_type_and_ux_gates_present(quality_gate_script):
+    gates = quality_gate_script.build_default_gates()
+    names = {gate.name for gate in gates}
+    assert "Type Telemetry" in names
+    assert "UX Acceptance" in names
+
+
+def test_module_threshold_enforcement_pass(tmp_path, quality_gate_script):
+    coverage = tmp_path / "coverage.xml"
+    coverage.write_text(
+        """
+        <coverage>
+          <packages>
+            <package>
+              <classes>
+                <class filename="src/issuesuite/core.py" line-rate="0.95" />
+                <class filename="src/issuesuite/cli.py" line-rate="0.94" />
+              </classes>
+            </package>
+          </packages>
+        </coverage>
+        """,
+        encoding="utf-8",
+    )
+    thresholds = {"issuesuite/core.py": 90.0, "issuesuite/cli.py": 90.0}
+    coverages = quality_gate_script._enforce_module_thresholds(coverage, thresholds)
+    assert coverages["issuesuite/core.py"] == pytest.approx(95.0)
+    assert coverages["issuesuite/cli.py"] == pytest.approx(94.0)
+
+
+def test_module_threshold_enforcement_failure(tmp_path, quality_gate_script):
+    coverage = tmp_path / "coverage.xml"
+    coverage.write_text(
+        """
+        <coverage>
+          <packages>
+            <package>
+              <classes>
+                <class filename="src/issuesuite/core.py" line-rate="0.80" />
+              </classes>
+            </package>
+          </packages>
+        </coverage>
+        """,
+        encoding="utf-8",
+    )
+    thresholds = {"issuesuite/core.py": 90.0}
+    with pytest.raises(quality_gate_script.ModuleCoverageError) as excinfo:
+        quality_gate_script._enforce_module_thresholds(coverage, thresholds)
+    assert "Coverage shortfall" in str(excinfo.value)

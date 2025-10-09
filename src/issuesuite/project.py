@@ -15,7 +15,8 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
+import shutil
+import subprocess  # nosec B404 - subprocess provides integration with GitHub CLI for fallbacks
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -72,7 +73,8 @@ class GitHubProjectAssigner:
             raw = json.loads(p.read_text())
             if isinstance(raw, dict):
                 return raw
-        except Exception:  # pragma: no cover - best effort
+        except (OSError, json.JSONDecodeError) as exc:  # pragma: no cover - cache corruption
+            self.logger.log_error("Failed to load project cache", error=str(exc), path=str(p))
             return None
         return None
 
@@ -86,8 +88,8 @@ class GitHubProjectAssigner:
                 "ts": time.time(),
             }
             self._cache_path().write_text(json.dumps(payload, indent=2))
-        except Exception:  # pragma: no cover - best effort
-            pass
+        except OSError as exc:  # pragma: no cover - cache directory permissions
+            self.logger.log_error("Failed to persist project cache", error=str(exc))
 
     def _get_project_id(self) -> str | None:
         if self._project_id:
@@ -207,10 +209,14 @@ class GitHubProjectAssigner:
         """
         if self._mock:
             return f"mock_issue_{issue_number}"
+        gh_path = shutil.which("gh")
+        if not gh_path:
+            self.logger.debug("GitHub CLI not found; using default executable name")
+            gh_path = "gh"
         try:  # pragma: no cover - placeholder shell call
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 B607 - command uses resolved executable & constant args
                 [
-                    "gh",
+                    gh_path,
                     "api",
                     f"repos/:owner/:repo/issues/{issue_number}",
                     "--jq",
@@ -224,8 +230,13 @@ class GitHubProjectAssigner:
             if issue_id:
                 self.logger.debug("Got issue ID", issue_number=issue_number, issue_id=issue_id)
             return issue_id or None
-        except Exception as e:  # pragma: no cover - defensive
+        except subprocess.CalledProcessError as e:  # pragma: no cover - defensive
             self.logger.log_error(f"Failed to get issue ID for #{issue_number}", error=str(e))
+            return None
+        except OSError as exc:  # pragma: no cover - filesystem / permission edge
+            self.logger.log_error(
+                f"Failed to execute GitHub CLI for issue #{issue_number}", error=str(exc)
+            )
             return None
 
     def _update_project_field(

@@ -39,7 +39,7 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
 - Agent updates: `issuesuite agent-apply` ingests AI/agent completion summaries and updates `ISSUES.md` (and optional docs) before syncing
 - Quiet mode: `--quiet` or `ISSUESUITE_QUIET=1` suppresses informational logging (helpful when piping JSON to other tools)
 - Offline-ready dependency governance via `issuesuite.dependency_audit` with pip-audit integration and curated advisories for air-gapped runners
-- Resilient `pip-audit` wrapper and `issuesuite security` command merging curated offline advisories with live vulnerability feeds when available
+- Resilient `pip-audit` wrapper and `issuesuite security` command merging curated offline advisories with live vulnerability feeds when available; tune the watchdog via `ISSUESUITE_PIP_AUDIT_TIMEOUT` to cap remote hangs
 - Automated offline advisory refresh via `python -m issuesuite.advisory_refresh --refresh --check` and the CLI flag `issuesuite security --refresh-offline`
 - Telemetry breadcrumbs when resilient pip-audit falls back to offline advisories so operators can observe degraded remote feeds
 - Deterministic changelog updates with `scripts/update_changelog.py` (non-blocking lock) and `nox` developer sessions mirroring CI gates
@@ -105,6 +105,23 @@ Run the consolidated quality gates locally with the bundled `nox` sessions:
 nox -s tests lint typecheck security secrets build
 ```
 
+Frontier Apex prototypes introduce two new harnesses you can run ad-hoc while we
+stabilise the elevated standards:
+
+```bash
+# Emit strict mypy telemetry without failing the workflow
+python scripts/type_coverage_report.py
+
+# Validate CLI help ergonomics across critical subcommands
+python scripts/ux_acceptance.py
+
+# Export coverage history for GitHub Projects dashboards
+python scripts/coverage_trends.py
+
+# Generate a GitHub Projects status payload and Markdown summary
+python scripts/projects_status_report.py
+```
+
 Enable the repo-managed pre-commit hook so commits automatically use the local
 virtualenv without manual activation:
 
@@ -145,6 +162,10 @@ python scripts/update_changelog.py 0.1.12 \
 ### Authentication quick check
 
 Run `issuesuite setup --check-auth` to ensure your GitHub token or GitHub App credentials are detected before attempting a full sync. Need a starter `.env`? Generate one with `issuesuite setup --create-env`, then paste your `GITHUB_TOKEN` (and optional GitHub App values) before running the tasks above.
+
+### Guided setup tour
+
+Prefer a narrative walkthrough? `issuesuite setup --guided` inspects your workspace, highlights missing assets (config, specs, coverage telemetry), and prints recommended commands (init, quality gates, coverage trend export) in an ANSI-friendly checklist. Run it any time you need to confirm the repository is Frontier-ready.
 
 ### Agent Apply (update ISSUES.md from agent output)
 

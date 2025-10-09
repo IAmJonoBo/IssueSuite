@@ -88,6 +88,14 @@ def _iter_updated_entries(
     return out
 
 
+# Helper to coerce integer-like payloads without raising to callers
+def _coerce_int(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):  # pragma: no cover - defensive guard
+        return None
+
+
 def _load_index_mapping(cfg: SuiteConfig) -> dict[str, int]:
     """Load existing index mapping; non-fatal on any error."""
     idx_file = cfg.source_file.parent / ".issuesuite" / "index.json"
@@ -97,10 +105,9 @@ def _load_index_mapping(cfg: SuiteConfig) -> dict[str, int]:
     result: dict[str, int] = {}
     for slug, payload in doc.entries.items():
         issue_value: Any = payload.get("issue") if isinstance(payload, dict) else payload
-        try:
-            result[str(slug)] = int(issue_value)
-        except Exception:
-            continue
+        parsed = _coerce_int(issue_value)
+        if parsed is not None:
+            result[str(slug)] = parsed
     if result:
         return result
     try:
@@ -113,10 +120,9 @@ def _load_index_mapping(cfg: SuiteConfig) -> dict[str, int]:
     if not isinstance(raw_map, dict):
         return {}
     for slug, value in raw_map.items():
-        try:
-            result[str(slug)] = int(value)
-        except Exception:
-            continue
+        parsed = _coerce_int(value)
+        if parsed is not None:
+            result[str(slug)] = parsed
     return result
 
 
@@ -135,11 +141,13 @@ def _normalize_mapping(
         try:
             extracted = value_getter(value)
         except Exception:  # pragma: no cover - defensive guard
+            extracted = None
+        if extracted is None:
             continue
-        try:
-            normalized[slug] = int(extracted)
-        except Exception:  # pragma: no cover - incompatible value shape
+        parsed = _coerce_int(extracted)
+        if parsed is None:
             continue
+        normalized[slug] = parsed
     if len(normalized) != len(raw):
         get_logger().debug(
             "mapping_normalized",
