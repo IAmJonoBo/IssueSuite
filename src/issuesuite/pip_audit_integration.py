@@ -50,6 +50,7 @@ ResolvedDependencyType = Any
 _PIP_AUDIT_BIN = os.environ.get("PIP_AUDIT_BIN", "pip-audit")
 _PIP_AUDIT_TIMEOUT_ENV = "ISSUESUITE_PIP_AUDIT_TIMEOUT"
 _PIP_AUDIT_SUPPRESS_TABLE_ENV = "ISSUESUITE_PIP_AUDIT_SUPPRESS_TABLE"
+_PIP_AUDIT_DISABLE_ONLINE_ENV = "ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE"
 
 
 def _get_tracer(name: str) -> _TracerLike:
@@ -236,6 +237,13 @@ def _resolve_timeout() -> float | None:
     return None if value <= 0 else value
 
 
+def _online_collection_disabled() -> bool:
+    raw = os.environ.get(_PIP_AUDIT_DISABLE_ONLINE_ENV)
+    if raw is None:
+        return False
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _run_pip_audit(
     args: Sequence[str], *, capture: bool, timeout: float | None
 ) -> subprocess.CompletedProcess[str]:
@@ -336,6 +344,11 @@ def collect_online_findings(
     resulting findings to the requested package names.
     """
 
+    if _online_collection_disabled():
+        raise PipAuditError(
+            f"pip-audit online collection disabled via {_PIP_AUDIT_DISABLE_ONLINE_ENV}"
+        )
+
     packages = packages or []
     target_packages = {pkg.canonical_name for pkg in packages}
     args = ["--format", "json", "--progress-spinner", "off"]
@@ -363,10 +376,18 @@ _SSL_ERROR_PATTERNS = tuple(
     )
 )
 
+_MISSING_DEPENDENCY_PATTERNS = ("dependency not found on pypi",)
 
-def _is_network_failure(stdout: str, stderr: str) -> bool:
+
+def _detect_recoverable_failure(stdout: str, stderr: str) -> str | None:
     combined = f"{stdout}\n{stderr}".lower()
-    return any(token in combined for token in _SSL_ERROR_PATTERNS)
+    for reason, patterns in (
+        ("ssl-error", _SSL_ERROR_PATTERNS),
+        ("missing-dependency", _MISSING_DEPENDENCY_PATTERNS),
+    ):
+        if any(token in combined for token in patterns):
+            return reason
+    return None
 
 
 def _should_emit_offline_table() -> bool:
@@ -395,14 +416,18 @@ def run_resilient_pip_audit(args: Sequence[str]) -> int:
 
     base_args = ["--progress-spinner", "off"]
     argv = [*base_args, *args]
+    if _online_collection_disabled():
+        return _run_offline_advisory_scan("online-collection-disabled")
     try:
         result = _run_pip_audit(argv, capture=True, timeout=_resolve_timeout())
     except PipAuditError as exc:
         return _run_offline_advisory_scan(str(exc))
     stdout_text = result.stdout or ""
     stderr_text = result.stderr or ""
-    if result.returncode == 1 and _is_network_failure(stdout_text, stderr_text):
-        return _run_offline_advisory_scan("ssl-error")
+    if result.returncode == 1:
+        reason = _detect_recoverable_failure(stdout_text, stderr_text)
+        if reason is not None:
+            return _run_offline_advisory_scan(reason)
     if result.returncode not in (0, 1):
         command = " ".join(shlex.quote(arg) for arg in ([_PIP_AUDIT_BIN] + list(argv)))
         print(

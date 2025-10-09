@@ -39,7 +39,7 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
 - Agent updates: `issuesuite agent-apply` ingests AI/agent completion summaries and updates `ISSUES.md` (and optional docs) before syncing
 - Quiet mode: `--quiet` or `ISSUESUITE_QUIET=1` suppresses informational logging (helpful when piping JSON to other tools)
 - Offline-ready dependency governance via `issuesuite.dependency_audit` with pip-audit integration and curated advisories for air-gapped runners
-- Resilient `pip-audit` wrapper and `issuesuite security` command merging curated offline advisories with live vulnerability feeds when available; tune the watchdog via `ISSUESUITE_PIP_AUDIT_TIMEOUT` to cap remote hangs
+- Resilient `pip-audit` wrapper and `issuesuite security` command merging curated offline advisories with live vulnerability feeds when available; tune the watchdog via `ISSUESUITE_PIP_AUDIT_TIMEOUT` to cap remote hangs or set `ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1` to rely solely on offline advisories
 - Automated offline advisory refresh via `python -m issuesuite.advisory_refresh --refresh --check` and the CLI flag `issuesuite security --refresh-offline`
 - Telemetry breadcrumbs when resilient pip-audit falls back to offline advisories so operators can observe degraded remote feeds
 - Deterministic changelog updates with `scripts/update_changelog.py` (non-blocking lock) and `nox` developer sessions mirroring CI gates
