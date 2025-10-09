@@ -114,6 +114,16 @@ namespaces = false
 target-version = "py310"
 
 line-length = 100
+extend-exclude = [
+  "*/python*/logging/*",
+  ".local/",
+  ".local/share/uv/",
+  ".venv/",
+  "dist-packages/",
+  "env/",
+  "site-packages/",
+  "venv/",
+]
 format.indent-style = "space"
 format.quote-style = "preserve"
 format.line-ending = "auto"

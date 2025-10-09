@@ -32,5 +32,33 @@
         "python": true
     },
     "issuesuite.config.file": "issue_suite.config.yaml",
-    "issuesuite.debug.enabled": true
+    "issuesuite.debug.enabled": true,
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.include": [
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/tests",
+        "${workspaceFolder}/plugins",
+        "${workspaceFolder}/tools"
+    ],
+    "python.analysis.exclude": [
+        "**/.local/**",
+        "**/.local/share/uv/**",
+        "**/.pyenv/**",
+        "**/.venv/**",
+        "**/venv/**",
+        "**/env/**",
+        "**/site-packages/**",
+        "**/dist-packages/**"
+    ],
+    "python.analysis.useLibraryCodeForTypes": false,
+    "sonarlint.exclude": [
+        "**/.local/**",
+        "**/.local/share/uv/**",
+        "**/.pyenv/**",
+        "**/.venv/**",
+        "**/venv/**",
+        "**/env/**",
+        "**/site-packages/**",
+        "**/dist-packages/**"
+    ]
 }
