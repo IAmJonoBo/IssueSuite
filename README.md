@@ -105,6 +105,16 @@ Run the consolidated quality gates locally with the bundled `nox` sessions:
 nox -s tests lint typecheck security secrets build
 ```
 
+Enable the repo-managed pre-commit hook so commits automatically use the local
+virtualenv without manual activation:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+This looks for `.venv` (or `venv` / `.env`) under the repository root before
+falling back to a globally installed `pre-commit`.
+
 When preparing release notes, use `scripts/update_changelog.py` to append a new entry without risking editor hangs caused by blocking file locks:
 
 ```bash

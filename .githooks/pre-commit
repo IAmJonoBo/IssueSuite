@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Managed pre-commit hook that automatically discovers the local virtualenv.
+# Ensures commits work even when the virtualenv is not explicitly activated.
+
+set -euo pipefail
+
+if ! command -v git >/dev/null 2>&1; then
+	echo "[pre-commit] git executable not found on PATH" >&2
+	exit 1
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Potential virtualenv directories to check (first match wins).
+CANDIDATES=(".venv" "venv" ".env")
+VENV_PY=""
+for candidate in "${CANDIDATES[@]}"; do
+	candidate_py="$REPO_ROOT/$candidate/bin/python"
+	if [ -x "$candidate_py" ]; then
+		VENV_PY="$candidate_py"
+		break
+	fi
+done
+
+ARGS=(
+	hook-impl
+	--config=.pre-commit-config.yaml
+	--hook-type=pre-commit
+	--hook-dir "$HOOK_DIR"
+	--
+	"$@"
+)
+
+if [ -n "$VENV_PY" ]; then
+	VENV_BIN="$(dirname "$VENV_PY")"
+	PATH="$VENV_BIN:$PATH"
+	exec "$VENV_PY" -m pre_commit "${ARGS[@]}"
+elif command -v pre-commit >/dev/null 2>&1; then
+	exec pre-commit "${ARGS[@]}"
+else
+	cat <<'EOF' >&2
+[pre-commit] Unable to locate a virtualenv Python or `pre-commit` executable.
+Create a virtualenv (python -m venv .venv) and install dependencies, or install
+pre-commit globally.
+EOF
+	exit 1
+fi
