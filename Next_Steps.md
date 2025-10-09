@@ -19,5 +19,6 @@
 
 - Renovate is now configured to pin GitHub Actions digests. Consider adding a CI status check to ensure Renovate PRs for action updates are reviewed promptly.
 - PyJWT and keyring are now optional auth dependencies; ensure production environments install the `all` extra (or a dedicated `auth` extra) so GitHub App sync remains functional.
-- `pip-audit --strict` currently stalls in sandboxed containers; wire resilient timeout/offline dataset handling before promoting the gate to required status.
+- `pip-audit --strict` currently stalls in sandboxed containers; wire resilient timeout/offline dataset handling before promoting the gate to required status (allowlist now covers GHSA-4xh5-x5gv-qwph pending upstream fix).【F:src/issuesuite/data/security_allowlist.json†L1-L13】
+- Curated security allowlist entry for GHSA-4xh5-x5gv-qwph expires 2025-11-30; track upstream pip remediation and remove once patched.【F:src/issuesuite/data/security_allowlist.json†L1-L13】
 - Frontier Apex planning should involve PMO + UX leads; capture accessibility heuristics and Projects automation requirements alongside engineering tasks.
