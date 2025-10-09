@@ -1,0 +1,58 @@
+name: Docs Preview & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
+        with:
+          python-version: "3.11"
+      - name: Install nox
+        run: |
+          python -m pip install --upgrade pip
+          pip install nox
+      - uses: actions/setup-node@60bc3b9e0f3580d7361a5347b8a0df2037e01bc0 # v4
+        with:
+          node-version: "20"
+      - name: Build documentation
+        run: nox -s docs
+      - name: Upload preview artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@fa0a91b85d4f4040d104be4d2ec07029846b6d96 # v4
+        with:
+          name: docs-preview
+          path: docs/starlight/dist
+      - name: Upload GitHub Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@62ebbbf0ead9561c8ea494433358e36dc4e72389 # v3
+        with:
+          path: docs/starlight/dist
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@af5a39d30d93f554aa20cd17b5675dca9bbb3230 # v4

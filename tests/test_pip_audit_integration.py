@@ -3,6 +3,9 @@ from __future__ import annotations
 import contextlib
 import json
 import subprocess
+from collections.abc import Iterator
+from contextlib import AbstractContextManager
+from typing import Any, NoReturn
 
 import pytest
 import requests
@@ -12,11 +15,11 @@ from packaging.version import Version
 from issuesuite.dependency_audit import Advisory
 from issuesuite.dependency_audit import Finding
 from issuesuite.pip_audit_integration import (
+    PipAuditError,
     ResilientPyPIService,
     collect_online_findings,
     install_resilient_pip_audit,
     run_resilient_pip_audit,
-    PipAuditError,
 )
 
 try:
@@ -51,7 +54,7 @@ def test_resilient_service_falls_back_to_offline(
         pytest.skip("pip-audit not installed")
     service = _build_service()
 
-    def _raise(*args, **kwargs):
+    def _raise(*args: object, **kwargs: object) -> NoReturn:
         raise requests.exceptions.SSLError("boom")
 
     monkeypatch.setattr(service.session, "get", _raise)
@@ -100,11 +103,11 @@ def test_resilient_service_records_telemetry(monkeypatch: pytest.MonkeyPatch) ->
             recorded.append((key, value))
 
     class _Tracer:
-        def start_as_current_span(self, name: str):
+        def start_as_current_span(self, name: str) -> AbstractContextManager[_Span]:
             recorded.append(("span", name))
 
             @contextlib.contextmanager
-            def _manager():
+            def _manager() -> Iterator[_Span]:
                 yield _Span()
 
             return _manager()
@@ -113,7 +116,7 @@ def test_resilient_service_records_telemetry(monkeypatch: pytest.MonkeyPatch) ->
 
     service = _build_service()
 
-    def _raise(*args, **kwargs):
+    def _raise(*args: object, **kwargs: object) -> NoReturn:
         raise requests.exceptions.SSLError("boom")
 
     monkeypatch.setattr(service.session, "get", _raise)
@@ -208,7 +211,7 @@ def test_run_resilient_pip_audit_falls_back_on_error(
     monkeypatch.setattr("issuesuite.pip_audit_integration.load_advisories", lambda: [])
     monkeypatch.setattr("issuesuite.pip_audit_integration.collect_installed_packages", lambda: [])
 
-    def _mock_perform_audit(**kwargs):
+    def _mock_perform_audit(**kwargs: object) -> tuple[list[Finding], str]:
         assert kwargs["online_probe"] is False
         return ([], "offline-only")
 
@@ -236,7 +239,9 @@ def test_run_resilient_pip_audit_handles_nonzero_exit(
     monkeypatch.setattr("issuesuite.pip_audit_integration.load_advisories", lambda: [])
     monkeypatch.setattr("issuesuite.pip_audit_integration.collect_installed_packages", lambda: [])
 
-    def _mock_perform_audit(**kwargs):
+    def _mock_perform_audit(
+        **kwargs: object,
+    ) -> tuple[list[Finding], str | None]:
         return (
             [
                 Finding(
@@ -276,7 +281,7 @@ def test_run_resilient_pip_audit_honours_disable_flag(
     monkeypatch.setattr("issuesuite.pip_audit_integration.load_advisories", lambda: [])
     monkeypatch.setattr("issuesuite.pip_audit_integration.collect_installed_packages", lambda: [])
 
-    def _mock_perform_audit(**kwargs):
+    def _mock_perform_audit(**kwargs: object) -> tuple[list[Finding], str]:
         assert kwargs["online_probe"] is False
         return ([], "offline-only")
 

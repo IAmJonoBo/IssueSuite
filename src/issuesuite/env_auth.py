@@ -41,6 +41,7 @@ class EnvAuthConfig:
     github_app_private_key_var: str = "GITHUB_APP_PRIVATE_KEY"
     github_app_installation_id_var: str = "GITHUB_APP_INSTALLATION_ID"
     vscode_secrets_enabled: bool = True
+    vscode_secrets_redact: bool = True
 
 
 class EnvironmentAuthManager:
@@ -126,7 +127,14 @@ class EnvironmentAuthManager:
         self.logger.debug("No GitHub token found in environment")
         return False
 
-    def get_vscode_secrets(self) -> dict[str, Any]:
+    @staticmethod
+    def _redacted_summary(value: str) -> str:
+        """Return a concise redacted summary for a secret value."""
+
+        length = len(value)
+        return f"<redacted:{length} chars>"
+
+    def get_vscode_secrets(self, *, redact: bool | None = None) -> dict[str, Any]:
         """Get secrets from VS Code environment (if available).
 
         Returns only variables that appear after manager construction so pre-existing
@@ -135,6 +143,7 @@ class EnvironmentAuthManager:
         if not self.config.vscode_secrets_enabled:
             return {}
         vscode_secrets: dict[str, Any] = {}
+        should_redact = self.config.vscode_secrets_redact if redact is None else redact
         vscode_env_vars = [
             "VSCODE_GIT_ASKPASS_MAIN",
             "VSCODE_GIT_IPC_HANDLE",
@@ -145,9 +154,14 @@ class EnvironmentAuthManager:
             if value and (
                 var not in self._initial_vscode_vars or self._initial_vscode_vars[var] != value
             ):
-                vscode_secrets[var.lower()] = value
+                if should_redact:
+                    vscode_secrets[var.lower()] = self._redacted_summary(value)
+                else:
+                    vscode_secrets[var.lower()] = value
         if vscode_secrets:
-            self.logger.debug("Found VS Code environment secrets")
+            self.logger.debug(
+                "Found VS Code environment secrets", extra={"redacted": should_redact}
+            )
         return vscode_secrets
 
     def is_online_environment(self) -> bool:

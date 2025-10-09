@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+from types import ModuleType
+from typing import IO, Any
 
 import pytest
 
 
-def _load_module():
+def _load_module() -> ModuleType:
     path = Path("scripts/update_changelog.py")
     spec = importlib.util.spec_from_file_location("update_changelog", path)
     assert spec and spec.loader
@@ -18,11 +20,11 @@ def _load_module():
 _module = _load_module()
 
 
-def _acquire_lock(handle):
+def _acquire_lock(handle: IO[Any]) -> None:
     return _module._acquire_lock(handle)
 
 
-def update_changelog(path: Path, *, version: str, highlights: list[str]):
+def update_changelog(path: Path, *, version: str, highlights: list[str]) -> str:
     return _module.update_changelog(path, version=version, highlights=highlights)
 
 
@@ -64,7 +66,7 @@ def test_update_changelog_preserves_file_on_lock_failure(
     changelog.write_text(original)
 
     def fail_lock(
-        handle,
+        handle: IO[Any],
     ) -> None:  # pragma: no cover - behaviour asserted via exception
         raise RuntimeError("locked")
 

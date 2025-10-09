@@ -53,7 +53,11 @@ def build(session: nox.Session) -> None:
 @nox.session
 def docs(session: nox.Session) -> None:
     session.chdir(str(DOCS_DIR))
-    session.run("npm", "install", external=True)
+    package_lock = DOCS_DIR / "package-lock.json"
+    if package_lock.exists():
+        session.run("npm", "ci", external=True)
+    else:
+        session.run("npm", "install", external=True)
     session.run("npm", "run", "check", external=True)
     session.run("npm", "run", "build", external=True)
 
