@@ -120,6 +120,9 @@ python scripts/coverage_trends.py
 
 # Generate a GitHub Projects status payload and Markdown summary
 python scripts/projects_status_report.py
+
+# Generate the same status artifacts directly from the CLI
+issuesuite projects-status --output projects_status_report.json --comment-output projects_status.md
 ```
 
 Enable the repo-managed pre-commit hook so commits automatically use the local

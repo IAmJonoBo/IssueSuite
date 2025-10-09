@@ -46,6 +46,11 @@ from issuesuite.pip_audit_integration import (
     collect_online_findings,
     run_resilient_pip_audit,
 )
+from issuesuite.projects_status import (
+    generate_report,
+    render_comment,
+    serialize_report,
+)
 from issuesuite.reconcile import format_report, reconcile
 from issuesuite.runtime import execute_command, prepare_config
 from issuesuite.scaffold import scaffold_project
@@ -146,6 +151,45 @@ def _build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help="Forward an additional argument to pip-audit (can be supplied multiple times)",
+    )
+
+    proj = sub.add_parser(
+        "projects-status",
+        help="Generate GitHub Projects status payloads and Markdown commentary",
+    )
+    proj.add_argument(
+        "--next-steps",
+        dest="next_steps",
+        action="append",
+        type=Path,
+        help="Path to a Next Steps tracker (defaults to repository root files)",
+    )
+    proj.add_argument("--config", default=CONFIG_DEFAULT)
+    proj.add_argument("--repo", help=REPO_HELP)
+    proj.add_argument(
+        "--coverage",
+        dest="coverage",
+        type=Path,
+        help="Path to coverage_projects_payload.json (defaults to telemetry export)",
+    )
+    proj.add_argument(
+        "--output",
+        dest="output",
+        type=Path,
+        default=Path("projects_status_report.json"),
+        help="Where to write the JSON report",
+    )
+    proj.add_argument(
+        "--comment-output",
+        dest="comment_output",
+        type=Path,
+        help="Optional path for a rendered Markdown comment",
+    )
+    proj.add_argument(
+        "--lookahead-days",
+        dest="lookahead_days",
+        type=int,
+        help="Override the due-soon lookahead window (defaults to 7 days)",
     )
 
     aictx = sub.add_parser("ai-context", help="Emit machine-readable context JSON for AI tooling")
@@ -826,6 +870,46 @@ def _cmd_security(args: argparse.Namespace) -> int:
     return exit_code
 
 
+def _ensure_parent(path: Path | None) -> None:
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _cmd_projects_status(args: argparse.Namespace) -> int:
+    report = generate_report(
+        next_steps_paths=args.next_steps,
+        coverage_payload_path=args.coverage,
+        lookahead_days=args.lookahead_days,
+    )
+    serialized = serialize_report(report)
+
+    output_path = Path(args.output)
+    _ensure_parent(output_path)
+    output_path.write_text(
+        json.dumps(serialized, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+    comment = render_comment(report) + "\n"
+    if args.comment_output:
+        comment_path = Path(args.comment_output)
+        _ensure_parent(comment_path)
+        comment_path.write_text(comment, encoding="utf-8")
+    if not getattr(args, "quiet", False):
+        print(comment, end="")
+
+    tasks_payload = serialized.get("tasks", {}) if isinstance(serialized.get("tasks"), dict) else {}
+    args._plugin_payload = {
+        "projects_status": {
+            "status": serialized.get("status"),
+            "open_count": tasks_payload.get("open_count"),
+            "overdue_count": tasks_payload.get("overdue_count"),
+            "due_soon_count": tasks_payload.get("due_soon_count"),
+        }
+    }
+    return 0
+
+
 def _collect_upgrade_suggestions(cfg: SuiteConfig) -> list[dict[str, Any]]:
     suggestions: list[dict[str, Any]] = []
     if cfg.mapping_file.endswith("_mapping.json"):
@@ -902,6 +986,7 @@ def _build_handlers(args: argparse.Namespace, cfg: SuiteConfig | None) -> dict[s
         "reconcile": lambda: _cmd_reconcile(_require_cfg(cfg), args),
         "doctor": lambda: _cmd_doctor(_require_cfg(cfg), args),
         "security": lambda: _cmd_security(args),
+        "projects-status": lambda: _cmd_projects_status(args),
         "init": lambda: _cmd_init(args),
         "upgrade": lambda: _cmd_upgrade(_require_cfg(cfg), args),
     }

@@ -240,3 +240,88 @@ def test_cli_security_refresh_offline(
     assert rc == 0
     assert invoked.get("called") is True
     assert "No known vulnerabilities detected." in captured.out
+
+
+def test_cli_projects_status_generates_artifacts(tmp_path: Path) -> None:
+    next_steps_path = tmp_path / "Next Steps.md"
+    next_steps_path.write_text(
+        """# Next Steps
+
+## Tasks
+
+- [ ] **Owner:** Maintainers (Due: 2025-10-15) — Automate dashboards
+- [x] **Owner:** Assistant (Due: 2025-10-01) — Ship telemetry exporter
+
+## Steps
+- placeholder
+""",
+        encoding="utf-8",
+    )
+    coverage_path = tmp_path / "coverage_projects_payload.json"
+    coverage_path.write_text(
+        json.dumps(
+            {
+                "status": "on_track",
+                "emoji": "✅",
+                "message": "Coverage 87% (target 85%)",
+            }
+        ),
+        encoding="utf-8",
+    )
+    json_output = tmp_path / "projects_status.json"
+    comment_output = tmp_path / "projects_status.md"
+
+    rc = main(
+        [
+            "projects-status",
+            "--next-steps",
+            str(next_steps_path),
+            "--coverage",
+            str(coverage_path),
+            "--output",
+            str(json_output),
+            "--comment-output",
+            str(comment_output),
+            "--lookahead-days",
+            "10",
+        ]
+    )
+
+    assert rc == 0
+    payload = json.loads(json_output.read_text())
+    assert payload["status"] == "at_risk"
+    assert payload["tasks"]["open_count"] == 1
+    assert payload["tasks"]["due_soon_count"] == 1
+    comment = comment_output.read_text()
+    assert "Frontier Apex status" in comment
+    assert "Automate dashboards" in comment
+
+
+def test_cli_projects_status_respects_quiet(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    next_steps_path = tmp_path / "Next Steps.md"
+    next_steps_path.write_text(
+        """# Next Steps
+
+## Tasks
+
+- [ ] **Owner:** Maintainers — Follow up
+""",
+        encoding="utf-8",
+    )
+
+    rc = main(
+        [
+            "--quiet",
+            "projects-status",
+            "--next-steps",
+            str(next_steps_path),
+            "--output",
+            str(tmp_path / "projects_status.json"),
+        ]
+    )
+
+    assert rc == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""

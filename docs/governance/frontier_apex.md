@@ -58,9 +58,12 @@ teams can forecast the rollout, wire automation, and measure success.
   client instead of shelling out to `gh`.
 - Implement `scripts/projects_status_report.py` that syncs project metrics and
   attaches JSON summaries to pull requests.
-- Prototype landed: `scripts/projects_status_report.py` now generates
-  `projects_status_report.json` and a Markdown summary by merging coverage
-  telemetry with `/Next Steps.md`, paving the way for nightly automation.
+- Expose the same automation as `issuesuite projects-status` so operators can
+  generate artifacts without invoking standalone scripts.
+- Prototype landed: `scripts/projects_status_report.py` and `issuesuite
+  projects-status` now generate `projects_status_report.json` and a Markdown
+  summary by merging coverage telemetry with `/Next Steps.md`, paving the way
+  for nightly automation.
 - Configure a scheduled workflow (`.github/workflows/projects-daily.yml`) to
   refresh project dashboards, annotate risks, and backfill timeline milestones.
 - Document runbooks for incident response when automation detects stale project
