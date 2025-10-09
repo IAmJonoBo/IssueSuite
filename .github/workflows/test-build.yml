@@ -49,3 +49,77 @@ jobs:
           # Use shell expansion to resolve the exact wheel path (avoid quoting the glob)
           # Invoke with --help (our CLI has no global --version flag)
           pipx run --spec dist/*.whl issuesuite --help
+
+  offline-installation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
+        with:
+          python-version: '3.11'
+      
+      - name: Build package
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+      
+      - name: Download dependencies to local cache
+        run: |
+          mkdir -p /tmp/offline-wheels
+          pip download --dest /tmp/offline-wheels dist/*.whl
+      
+      - name: Test offline installation (no network)
+        run: |
+          # Create fresh venv and install without network
+          python -m venv /tmp/offline-venv
+          /tmp/offline-venv/bin/pip install \
+            --no-index \
+            --find-links /tmp/offline-wheels \
+            issuesuite
+      
+      - name: Test core functionality offline
+        run: |
+          # Verify basic CLI works in offline mode
+          /tmp/offline-venv/bin/python -m issuesuite --help
+          /tmp/offline-venv/bin/python -m issuesuite schema
+        env:
+          ISSUES_SUITE_MOCK: "1"
+          ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE: "1"
+      
+      - name: Test minimal installation (no optional dependencies)
+        run: |
+          # Install only core dependencies
+          python -m venv /tmp/minimal-venv
+          /tmp/minimal-venv/bin/pip install --no-index --find-links /tmp/offline-wheels issuesuite
+          
+          # Verify core imports work without optional dependencies
+          /tmp/minimal-venv/bin/python -c "
+          import issuesuite
+          from issuesuite import load_config, IssueSuite
+          print('✓ Core imports successful without optional dependencies')
+          "
+      
+      - name: Test mock mode validation
+        run: |
+          # Create minimal config
+          echo "version: 1" > /tmp/test_config.yaml
+          echo "source:" >> /tmp/test_config.yaml
+          echo "  file: ISSUES.md" >> /tmp/test_config.yaml
+          
+          # Create test issues
+          echo "# Issues" > /tmp/ISSUES.md
+          echo "" >> /tmp/ISSUES.md
+          echo "## [slug: test-issue]" >> /tmp/ISSUES.md
+          echo "" >> /tmp/ISSUES.md
+          echo "\`\`\`yaml" >> /tmp/ISSUES.md
+          echo "title: Test Issue" >> /tmp/ISSUES.md
+          echo "labels: [test]" >> /tmp/ISSUES.md
+          echo "\`\`\`" >> /tmp/ISSUES.md
+          
+          # Validate in offline mock mode
+          cd /tmp
+          /tmp/offline-venv/bin/python -m issuesuite validate --config test_config.yaml
+        env:
+          ISSUES_SUITE_MOCK: "1"

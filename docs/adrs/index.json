@@ -17,6 +17,65 @@
           "Next Steps.md#quality-gates"
         ]
       }
+    },
+    {
+      "id": "ADR-0002",
+      "slug": "dependency-sync-enforcement",
+      "title": "Automated Dependency Synchronization Enforcement",
+      "status": "Accepted",
+      "decision_date": "2025-10-09",
+      "deciders": ["IssueSuite Maintainers"],
+      "tags": ["dependencies", "ci", "quality-gates", "security"],
+      "links": {
+        "implementation": [
+          ".github/workflows/dependencies.yml",
+          "scripts/refresh-deps.sh",
+          "tests/test_refresh_deps.py"
+        ],
+        "follow_up": [
+          "Next Steps.md#quality-gates"
+        ]
+      },
+      "related": ["ADR-0003", "ADR-0004"]
+    },
+    {
+      "id": "ADR-0003",
+      "slug": "hermetic-packaging",
+      "title": "Hermetic Packaging Validation",
+      "status": "Accepted",
+      "decision_date": "2025-10-09",
+      "deciders": ["IssueSuite Maintainers"],
+      "tags": ["packaging", "ci", "security", "offline"],
+      "links": {
+        "implementation": [
+          ".github/workflows/test-build.yml",
+          "tests/test_hermetic_installation.py"
+        ],
+        "follow_up": [
+          "Next Steps.md#quality-gates"
+        ]
+      },
+      "related": ["ADR-0002", "ADR-0004"]
+    },
+    {
+      "id": "ADR-0004",
+      "slug": "dev-environment-parity",
+      "title": "Development Environment Parity",
+      "status": "Proposed",
+      "decision_date": "2025-10-09",
+      "deciders": ["IssueSuite Maintainers"],
+      "tags": ["developer-experience", "ci", "quality-gates", "tooling"],
+      "links": {
+        "implementation": [
+          "scripts/setup-dev-env.sh",
+          ".githooks/pre-commit",
+          "CONTRIBUTING.md"
+        ],
+        "follow_up": [
+          "Next Steps.md#quality-gates"
+        ]
+      },
+      "related": ["ADR-0002", "ADR-0003"]
     }
   ]
 }
