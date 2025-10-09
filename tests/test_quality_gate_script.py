@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 
@@ -119,3 +121,60 @@ def test_module_threshold_enforcement_failure(tmp_path, quality_gate_script):
     with pytest.raises(quality_gate_script.ModuleCoverageError) as excinfo:
         quality_gate_script._enforce_module_thresholds(coverage, thresholds)
     assert "Coverage shortfall" in str(excinfo.value)
+
+
+def test_persist_coverage_artifacts_exports_trends(tmp_path, quality_gate_script):
+    summary_path = tmp_path / "coverage_summary.json"
+    history_path = tmp_path / "coverage_trends.json"
+    snapshot_path = tmp_path / "coverage_trends_latest.json"
+    project_payload_path = tmp_path / "coverage_projects_payload.json"
+    coverages = {
+        "issuesuite/cli.py": 95.0,
+        "issuesuite/core.py": 94.0,
+        "issuesuite/github_issues.py": 92.0,
+        "issuesuite/project.py": 93.0,
+        "issuesuite/pip_audit_integration.py": 91.0,
+    }
+
+    quality_gate_script._persist_coverage_artifacts(
+        coverages,
+        summary_path=summary_path,
+        history_path=history_path,
+        snapshot_path=snapshot_path,
+        project_payload_path=project_payload_path,
+        now=datetime(2025, 10, 9, 7, 30, tzinfo=timezone.utc),
+    )
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert "generated_at" in summary
+    modules = {module["module"]: module for module in summary["modules"]}
+    cli_entry = modules["issuesuite/cli.py"]
+    assert cli_entry["coverage"] == pytest.approx(0.95)
+    assert cli_entry["threshold"] == pytest.approx(0.9)
+    assert cli_entry["meets_threshold"] is True
+
+    history = json.loads(history_path.read_text(encoding="utf-8"))
+    assert len(history) == 1
+    entry = history[0]
+    assert entry["recorded_at"] == "2025-10-09T07:30:00+00:00"
+    assert entry["overall"]["coverage"] == pytest.approx(0.93)
+
+    project_payload = json.loads(project_payload_path.read_text(encoding="utf-8"))
+    assert project_payload["recorded_at"] == entry["recorded_at"]
+    assert project_payload["overall_coverage"] == pytest.approx(entry["overall"]["coverage"])
+
+
+def test_export_trends_failure_raises_custom_error(tmp_path, quality_gate_script):
+    summary_path = tmp_path / "coverage_summary.json"
+    summary_path.write_text("{}\n", encoding="utf-8")
+    history_path = tmp_path / "coverage_trends.json"
+    snapshot_path = tmp_path / "coverage_trends_latest.json"
+    project_payload_path = tmp_path / "coverage_projects_payload.json"
+
+    with pytest.raises(quality_gate_script.CoverageTrendExportError):
+        quality_gate_script._export_coverage_trends(
+            summary_path=summary_path,
+            history_path=history_path,
+            snapshot_path=snapshot_path,
+            project_payload_path=project_payload_path,
+        )
