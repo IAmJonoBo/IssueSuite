@@ -378,3 +378,125 @@ def test_run_resilient_pip_audit_handles_missing_dependency(
     assert rc == 0
     assert "offline table" in captured.out
     assert "pip-audit unavailable (missing-dependency)" in captured.err
+
+
+def test_get_audit_timeout_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test _resolve_timeout with various environment values."""
+    from issuesuite.pip_audit_integration import _resolve_timeout
+    
+    # Test with no env var set
+    monkeypatch.delenv("ISSUESUITE_PIP_AUDIT_TIMEOUT", raising=False)
+    assert _resolve_timeout() == 60.0
+    
+    # Test with valid float
+    monkeypatch.setenv("ISSUESUITE_PIP_AUDIT_TIMEOUT", "120.5")
+    assert _resolve_timeout() == 120.5
+    
+    # Test with invalid value (non-numeric)
+    monkeypatch.setenv("ISSUESUITE_PIP_AUDIT_TIMEOUT", "invalid")
+    assert _resolve_timeout() == 60.0
+    
+    # Test with zero (should return None)
+    monkeypatch.setenv("ISSUESUITE_PIP_AUDIT_TIMEOUT", "0")
+    assert _resolve_timeout() is None
+    
+    # Test with negative value (should return None)
+    monkeypatch.setenv("ISSUESUITE_PIP_AUDIT_TIMEOUT", "-10")
+    assert _resolve_timeout() is None
+
+
+def test_online_collection_disabled_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test _online_collection_disabled with various environment values."""
+    from issuesuite.pip_audit_integration import _online_collection_disabled
+    
+    # Test with no env var set
+    monkeypatch.delenv("ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE", raising=False)
+    assert _online_collection_disabled() is False
+    
+    # Test with various truthy values
+    for val in ["1", "true", "TRUE", "yes", "YES", "on", "ON"]:
+        monkeypatch.setenv("ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE", val)
+        assert _online_collection_disabled() is True
+    
+    # Test with falsy values
+    for val in ["0", "false", "no", "off", "other"]:
+        monkeypatch.setenv("ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE", val)
+        assert _online_collection_disabled() is False
+
+
+def test_parse_findings_with_invalid_payload() -> None:
+    """Test _iter_entries and _extract_findings with invalid payload types."""
+    from issuesuite.pip_audit_integration import _iter_entries, _extract_findings
+    
+    # Test with non-dict payload
+    findings = list(_iter_entries("not a dict"))
+    assert findings == []
+    
+    # Test with dict but non-list result field
+    findings = list(_iter_entries({"results": "not a list"}))
+    assert findings == []
+    
+    # Test with empty list
+    findings = list(_iter_entries({"results": []}))
+    assert findings == []
+    
+    # Test with non-dict entries in list
+    findings = list(_iter_entries({"results": ["string", 123, None]}))
+    assert findings == []
+    
+    # Test _extract_findings wrapper
+    all_findings = list(_extract_findings({"results": []}))
+    assert all_findings == []
+
+
+def test_extract_alias_with_various_types() -> None:
+    """Test _extract_alias with various alias types."""
+    from issuesuite.pip_audit_integration import _extract_alias
+    
+    # Test with list of aliases
+    assert _extract_alias({"aliases": ["GHSA-1234", "CVE-2024-1234"]}) == "GHSA-1234"
+    
+    # Test with empty list
+    assert _extract_alias({"aliases": []}) == ""
+    
+    # Test with tuple
+    assert _extract_alias({"aliases": ("GHSA-5678",)}) == "GHSA-5678"
+    
+    # Test with set
+    assert _extract_alias({"aliases": {"GHSA-9012"}}) != ""  # Set order is unpredictable
+    
+    # Test with non-iterable
+    assert _extract_alias({"aliases": "not-a-list"}) == ""
+    
+    # Test with missing aliases
+    assert _extract_alias({}) == ""
+
+
+def test_iter_vulns_with_edge_cases() -> None:
+    """Test _iter_vulns with various edge cases."""
+    from issuesuite.pip_audit_integration import _iter_vulns
+    
+    # Test with non-list vulns
+    findings = list(_iter_vulns({"name": "pkg", "version": "1.0", "vulns": "not-a-list"}))
+    assert findings == []
+    
+    # Test with non-dict vuln entries
+    findings = list(_iter_vulns({"name": "pkg", "version": "1.0", "vulns": ["string", 123]}))
+    assert findings == []
+    
+    # Test with vuln having fixed_versions as non-iterable
+    entry = {
+        "name": "test-pkg",
+        "version": "1.0",
+        "vulns": [
+            {
+                "id": "GHSA-test",
+                "description": "Test vuln",
+                "fixed_versions": "2.0",  # Not a list
+            }
+        ]
+    }
+    findings = list(_iter_vulns(entry))
+    assert len(findings) == 1
+    assert findings[0].fixed_versions == ()
+
