@@ -13,15 +13,15 @@ IssueSuite publishes versioned JSON Schemas via `issuesuite schema` and `issuesu
 
 ## Export schema
 
-`issuesuite schema --stdout --export` prints the issue export schema. Use it to validate integrations that consume `issues_export.json`.
+Run `issuesuite schema` to write the export schema to the path configured by `schema_export_file` (default `issue_export.schema.json`). Add `--stdout` to print the combined schema bundle to the terminal for quick inspection or piping to other tools.
 
 ## Summary schema
 
-`issuesuite schema --stdout --summary` emits the plan summary schema. CI systems can assert plan shape before applying changes.
+The same command writes the summary schema to `schema_summary_file` (default `issue_change_summary.schema.json`). CI systems can assert plan shape before applying changes, or you can pair `--stdout` with a JSON processor for ad-hoc validation.
 
 ## AI context schema
 
-`issuesuite ai-context --schema-json ai_context.schema.json` writes the structure assistants expect when ingesting project state.
+When AI context support is available, `issuesuite schema` also persists an AI context schema to `schema_ai_context_file` (default `ai_context.schema.json`). Pair it with `issuesuite ai-context --output ai_context.json` to capture real payloads for assistants and validate them against the generated schema.
 
 :::tip[Planned features]
 Nightly builds will soon update a public schema registry and embed diffs directly into Starlight reference pages.

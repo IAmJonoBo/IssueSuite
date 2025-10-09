@@ -49,7 +49,7 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
   - Mock create operations fabricate deterministic incremental issue numbers so mapping persistence and tests remain stable.
   - Dry-run planning: `issuesuite sync --dry-run` now returns a `plan` array in the summary showing proposed actions (`create|update|close|skip`) with label/milestone/body change counts.
   - Plan artifacts: the CLI honours `--plan-json <file>` (or the config `output.plan_json`, default `issues_plan.json`) to write just the plan to disk for CI review.
-- Pluggable extensions and telemetry: configure `extensions` and `telemetry` blocks (or use `ISSUESUITE_PLUGINS` / `ISSUESUITE_TELEMETRY`) to emit structured events and trigger entry-point hooks after every CLI command. See [Extensions, Plugins, and Telemetry](docs/explanations/extensions.md) for setup details.
+- Pluggable extensions and telemetry: configure `extensions` and `telemetry` blocks (or use `ISSUESUITE_PLUGINS` / `ISSUESUITE_TELEMETRY`) to emit structured events and trigger entry-point hooks after every CLI command. See [Extensions, Plugins, and Telemetry](docs/starlight/src/content/docs/explanations/extensions.mdx) for setup details.
 
 ## Quick Start
 
@@ -84,7 +84,7 @@ issuesuite sync --update --config issue_suite.config.yaml --summary-json issues_
 
 Add the `--preflight` flag (or set `behavior.dry_run_default: true`) to auto-create labels/milestones before closing the dry-run loop.
 
-See the [Getting Started tutorial](docs/tutorials/getting-started.md) for a narrated walkthrough, including troubleshooting tips and screenshots.
+See the [Getting Started tutorial](docs/starlight/src/content/docs/tutorials/getting-started.mdx) for a narrated walkthrough, including troubleshooting tips and screenshots.
 
 Handy follow-up commands:
 
