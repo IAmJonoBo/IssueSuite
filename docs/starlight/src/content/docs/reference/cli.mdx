@@ -1,0 +1,63 @@
+---
+title: CLI reference
+sidebar:
+  label: CLI reference
+description: Discover IssueSuite commands, flags, exit codes, and environment variables for automation workflows.
+tags:
+  - reference
+  - cli
+template: doc
+---
+
+The `issuesuite` CLI orchestrates validation, synchronization, and tooling tasks. Run `issuesuite <command> --help` for exhaustive usage details.
+
+## Global flags
+
+| Flag | Description |
+| --- | --- |
+| `--quiet` | Suppress informational logs (`ISSUESUITE_QUIET=1`). |
+| `--config <path>` | Override the default `issue_suite.config.yaml`. |
+
+## Subcommands
+
+| Command | Purpose | Key options |
+| --- | --- | --- |
+| `issuesuite init` | Scaffold configuration, specs, workflows, and editor tasks. | `--all-extras`, `--include`, `--force` |
+| `issuesuite validate` | Parse specs and enforce slug patterns. | — |
+| `issuesuite summary` | Print a quick backlog overview. | `--limit`, `--repo` |
+| `issuesuite sync` | Create/update/close issues against GitHub. | `--dry-run`, `--update`, `--summary-json`, `--plan-json`, `--preflight`, `--prune`, `--respect-status` |
+| `issuesuite export` | Emit parsed issues as JSON. | `--output`, `--pretty`, `--repo` |
+| `issuesuite import` | Draft `ISSUES.md` from live issues. | `--output`, `--limit`, `--repo` |
+| `issuesuite reconcile` | Compare local specs with live issues without mutating. | `--limit`, `--repo` |
+| `issuesuite schema` | Generate JSON schemas for exports and summaries. | `--stdout` |
+| `issuesuite ai-context` | Produce machine-readable context for AI tooling. | `--preview`, `--output`, `--quiet` |
+| `issuesuite agent-apply` | Apply AI agent suggestions and optionally sync. | `--updates-json`, `--apply`, `--no-sync`, `--respect-status`, `--dry-run-sync`, `--summary-json` |
+| `issuesuite doctor` | Diagnose authentication, repo access, and environment flags. | `--repo` |
+| `issuesuite setup` | Generate VS Code assets or check auth state. | `--create-env`, `--check-auth`, `--vscode` |
+| `issuesuite upgrade` | Recommend config migrations. | `--json` |
+| `issuesuite projects-status` | Emit GitHub Projects payloads and Markdown summary. | `--output`, `--comment-output`, `--force` |
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Command succeeded. |
+| `1` | Validation error, exception, or recommendations produced by `upgrade`. |
+| `2` | Drift detected (used by `reconcile`, doctor guards, and some gate scripts). |
+
+## Environment variables
+
+| Variable | Effect |
+| --- | --- |
+| `ISSUESUITE_QUIET=1` | Suppress info logs (same as `--quiet`). |
+| `ISSUESUITE_AI_MODE=1` | Force dry-run mode (no mutations). |
+| `ISSUES_SUITE_MOCK=1` | Use mock integrations for offline development. |
+| `ISSUESUITE_TELEMETRY=1` | Force telemetry on (`0` to force off). |
+| `ISSUESUITE_DRY_FORCE=1` | Impose dry-run mode regardless of CLI flags. |
+| `ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1` | Disable remote vulnerability feed, using curated offline advisories. |
+
+:::note[Planned features]
+We plan to expose `issuesuite pipelines` to orchestrate multi-stage workflows, surfacing pipeline definitions in this reference once stabilized.
+:::
+
+See the [Configuration reference](./configuration) for YAML fields backing these behaviors.

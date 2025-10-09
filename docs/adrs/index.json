@@ -1,0 +1,22 @@
+{
+  "adrs": [
+    {
+      "id": "ADR-0001",
+      "slug": "starlight-migration",
+      "title": "Adopt Astro Starlight for documentation",
+      "status": "Accepted",
+      "decision_date": "2025-10-09",
+      "deciders": ["IssueSuite Maintainers"],
+      "tags": ["documentation", "governance"],
+      "links": {
+        "implementation": [
+          "docs/starlight",
+          "tests/test_documentation_structure.py"
+        ],
+        "follow_up": [
+          "Next Steps.md#quality-gates"
+        ]
+      }
+    }
+  ]
+}

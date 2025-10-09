@@ -1,0 +1,41 @@
+---
+title: Documentation strategy
+sidebar:
+  label: Documentation strategy
+description: Learn how IssueSuite applies the Diátaxis framework and maintains documentation quality gates.
+tags:
+  - explanations
+  - documentation
+template: doc
+---
+
+IssueSuite follows the [Diátaxis](https://diataxis.fr/) framework to keep documentation purposeful and scannable.
+
+## Goals
+
+- Provide a frictionless "Hello IssueSuite" journey via a single tutorial.
+- Separate practitioner workflows from maintainer automation.
+- Offer authoritative references for CLI commands and configuration keys.
+- Capture design intent for long-lived architectural decisions.
+
+## Structure
+
+| Category | Purpose |
+| --- | --- |
+| Tutorials | Guided learning experiences for newcomers. |
+| How-to guides | Task-oriented instructions for practitioners. |
+| Reference | Authoritative, factual resources (CLI, configuration, schemas). |
+| Explanations | Architectural context, design docs, and philosophy. |
+
+## Maintenance tips
+
+- Keep tutorials linear — each step builds on the previous one without branching.
+- Document new features with a how-to first, then add reference entries for new configuration keys.
+- Place design decisions, trade-offs, and roadmap notes into explanations or ADRs.
+- Update cross-links from the README and site navigation when adding pages.
+
+:::caution[Planned features]
+Documentation PRs will soon trigger preview builds with lighthouse checks so we can review UX quality before merging.
+:::
+
+Consult `docs/adrs/index.json` for architecture decision history and keep `Next Steps.md` aligned with documentation milestones.
