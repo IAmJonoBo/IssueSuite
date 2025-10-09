@@ -34,9 +34,9 @@
 - [ ] **Owner:** Maintainers (Due: 2025-10-24) — Wire `coverage_projects_payload.json` into GitHub Projects automation and nightly status comments once dashboards are provisioned.【F:docs/governance/frontier_apex.md†L28-L37】【F:src/issuesuite/coverage_trends.py†L1-L191】
 - [x] **Owner:** Assistant (Due: 2025-10-22) — Implement coverage trend exporter feeding GitHub Projects dashboards using `coverage_summary.json` telemetry.【F:docs/governance/frontier_apex.md†L30-L37】【F:scripts/quality_gates.py†L176-L348】【F:tests/test_quality_gate_script.py†L126-L180】
 - [ ] **Owner:** Maintainers (Due: 2025-10-25) — Draft GitHub Projects automation workflows and nightly status reporters to operationalize the Apex governance metrics.【F:docs/governance/frontier_apex.md†L76-L95】【F:docs/governance/frontier_apex.md†L109-L118】
-- [ ] **Owner:** Maintainers (Due: 2025-10-30) — Publish the Starlight site via GitHub Pages with preview builds on pull requests so docs remain reviewable before merge.【F:docs/starlight/package.json†L4-L18】【F:noxfile.py†L1-L40】
-- [ ] **Owner:** Maintainers (Due: 2025-11-01) — Integrate `nox -s docs` into CI required checks and surface doc build status alongside Frontier gates.【F:noxfile.py†L1-L40】【F:docs/starlight/src/content/docs/how-to/docs-automation.mdx†L18-L60】
-- [ ] **Owner:** Maintainers (Due: 2025-10-23) — Resolve `pip` GHSA-4xh5-x5gv-qwph detection so the pip-audit gate succeeds without suppressing genuine vulnerabilities (upgrade packaged toolchain or curate an allowlist exception).【4e63a4†L1-L8】【F:scripts/quality_gates.py†L60-L88】
+- [x] **Owner:** Maintainers (Due: 2025-10-30) — Publish the Starlight site via GitHub Pages with preview builds on pull requests so docs remain reviewable before merge.【F:.github/workflows/docs.yml†L1-L63】【F:noxfile.py†L1-L40】
+- [x] **Owner:** Maintainers (Due: 2025-11-01) — Integrate `nox -s docs` into CI required checks and surface doc build status alongside Frontier gates.【F:.github/workflows/ci.yml†L33-L53】【F:noxfile.py†L1-L40】
+- [x] **Owner:** Maintainers (Due: 2025-10-23) — Resolve `pip` GHSA-4xh5-x5gv-qwph detection so the pip-audit gate succeeds without suppressing genuine vulnerabilities (upgrade packaged toolchain or curate an allowlist exception).【F:src/issuesuite/data/security_allowlist.json†L1-L13】【F:src/issuesuite/dependency_audit.py†L1-L314】【F:src/issuesuite/cli.py†L808-L921】【F:tests/test_dependency_audit.py†L1-L229】【F:tests/test_cli_extended.py†L1-L280】
 
 ## Steps
 
@@ -60,6 +60,7 @@
 - [x] Hardened pip-audit integration to treat missing package metadata as a recoverable fallback, ensuring quality gates and contributor checklists run through the CLI wrapper instead of the raw binary.【F:src/issuesuite/pip_audit_integration.py†L352-L427】【F:tests/test_pip_audit_integration.py†L170-L221】【F:scripts/quality_gates.py†L60-L88】【F:.github/pull_request_template.md†L7-L13】
 - [x] Scoped the pip-audit disable flag to CLI invocations so hermetic runners can opt-in per gate without mutating global process state, keeping regression suites deterministic.【F:src/issuesuite/cli.py†L64-L175】【F:src/issuesuite/cli.py†L850-L878】【F:scripts/quality_gates.py†L63-L109】【F:tests/test_cli_extended.py†L222-L260】【F:tests/test_quality_gate_script.py†L22-L79】
 - [x] Added an opt-out flag `ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE` so hermetic runners can bypass remote pip-audit execution while still emitting offline advisories via the resilient wrapper.【F:src/issuesuite/pip_audit_integration.py†L50-L420】【F:tests/test_pip_audit_integration.py†L140-L198】【F:tests/test_pip_audit_integration.py†L268-L294】
+- [x] Curated a governed security allowlist for GHSA-4xh5-x5gv-qwph so pip-audit gates acknowledge accepted risk while emitting explicit context in CLI output and JSON payloads.【F:src/issuesuite/data/security_allowlist.json†L1-L13】【F:src/issuesuite/dependency_audit.py†L1-L314】【F:src/issuesuite/cli.py†L808-L921】【F:tests/test_dependency_audit.py†L1-L229】【F:tests/test_cli_extended.py†L1-L280】
 - [x] Centralized agent-update schema validator state to simplify guards and keep mypy happy.【F:src/issuesuite/agent_updates.py†L13-L199】
 - [x] Draft `docs/gap_analysis.md` summarizing strengths, gaps, and frontier recommendations with citations.【F:docs/gap_analysis.md†L1-L94】
 - [x] Automate quality gate enforcement in CI via `python scripts/quality_gates.py` to consolidate tooling expectations per PR.【F:.github/workflows/ci.yml†L35-L37】
@@ -116,7 +117,7 @@
 - [x] Advisories: `python -m issuesuite.advisory_refresh --check --max-age-days 30` locks in offline dataset freshness alongside GitHub Projects governance updates.【F:scripts/quality_gates.py†L70-L75】【F:docs/red_team_report.md†L18-L64】
 - [x] Follow-up: stabilize `python -m pip_audit --progress-spinner off --strict` in hermetic runners (tracking separately).【F:src/issuesuite/pip_audit_integration.py†L228-L393】【F:scripts/quality_gates.py†L27-L61】【F:tests/test_pip_audit_integration.py†L155-L219】
 - [ ] Frontier Apex gates (coverage ≥85%, UX acceptance scripts, GitHub Projects sync telemetry, dependency posture SLOs) documented and automated prior to enabling “ready for review” workflows — blueprint published, automation backlog tracked in new tasks.【F:docs/governance/frontier_apex.md†L20-L118】
-- [ ] Documentation previews: Add CI job to run `nox -s docs` on pull requests and publish preview artifacts for reviewer UX.【F:noxfile.py†L1-L40】【F:docs/starlight/src/content/docs/how-to/docs-automation.mdx†L18-L60】
+- [x] Documentation previews: Add CI job to run `nox -s docs` on pull requests and publish preview artifacts for reviewer UX.【F:.github/workflows/docs.yml†L1-L63】【F:.github/workflows/ci.yml†L33-L53】
 - [x] Static analysis & formatting: `ruff check`, `ruff format --check`, and `mypy src` stay green prior to any merge.【F:scripts/quality_gates.py†L29-L44】
 - [x] Security posture: `python -m bandit -r src`, `python -m pip_audit --progress-spinner off --strict` (pending hang fix), and `python -m issuesuite.dependency_audit` safeguard supply-chain baselines with offline fallbacks.【F:scripts/quality_gates.py†L45-L65】【F:src/issuesuite/dependency_audit.py†L1-L314】
 - [x] Secrets & governance: `python -m detect_secrets scan --baseline .secrets.baseline` plus `python scripts/verify_next_steps.py` ensure no sensitive leakage and that UX/GitHub Projects expectations remain documented.【F:scripts/quality_gates.py†L66-L82】【F:src/issuesuite/next_steps_validator.py†L1-L109】
@@ -144,11 +145,13 @@
 - [x] Quality gate roll-up — `python scripts/quality_gates.py` output (all gates passing with offline-aware dependency audit).【106476†L1-L8】
 - [x] Gap analysis — `docs/gap_analysis.md`.
 - [x] Coverage trend export harness — `python scripts/coverage_trends.py` + regression tests for history/payload output.【F:scripts/coverage_trends.py†L1-L63】【F:tests/test_coverage_trends.py†L1-L120】
+- [x] Docs preview & Pages automation — `.github/workflows/docs.yml` builds Starlight, uploads PR artifacts, and deploys `main` to GitHub Pages.【F:.github/workflows/docs.yml†L1-L63】
 
 ## Risks / Notes
 
 - [x] REST client now sanitizes env configuration, so enterprise packaging flows won't choke on whitespace tokens or disable flags toggled via non-numeric values.【F:src/issuesuite/github_issues.py†L270-L316】【F:tests/test_github_rest_client.py†L120-L177】
 - [x] Astro Starlight workspace introduces npm-based gates; ensure Node 18+ is available in CI and cache `docs/starlight/package-lock.json` once published to avoid reinstall churn.【F:docs/starlight/package.json†L1-L28】【F:docs/starlight/src/content/docs/how-to/docs-automation.mdx†L18-L60】
+- [ ] GitHub Pages deployment requires repository administrators to enable the Pages environment and grant `pages: write`/`id-token: write` permissions for `.github/workflows/docs.yml` before first release cut.【F:.github/workflows/docs.yml†L1-L63】
 - [ ] npm audit reports moderate vulnerabilities in transient Astro tooling dependencies; evaluate upgrades or doc build isolation before enabling public previews.【F:docs/starlight/package-lock.json†L1-L284】【da8b6a†L1-L10】
 - [x] Resilient pip-audit wrapper eliminates sandbox trust failures; telemetry spans and offline refresh automation surface degraded feeds promptly.【F:src/issuesuite/pip_audit_integration.py†L1-L393】【F:src/issuesuite/advisory_refresh.py†L1-L236】
 - [x] Timeout watchdog and CLI suppression flag prevent duplicate offline reports while guaranteeing hermetic runners receive curated advisories instead of stalls.【F:src/issuesuite/pip_audit_integration.py†L228-L393】【F:src/issuesuite/cli.py†L779-L820】
@@ -172,6 +175,6 @@
 - [x] Guided setup wizard surfaces environment/config gaps; keep recommendations current as new quality gates land so the checklist stays authoritative.【F:src/issuesuite/setup_wizard.py†L1-L211】【F:src/issuesuite/cli.py†L209-L226】
 - [x] Coverage trend exporter now persists telemetry directly from the quality gates workflow, emitting history, snapshot, and GitHub Projects payloads after every run.【F:scripts/quality_gates.py†L239-L348】【F:tests/test_quality_gate_script.py†L126-L180】
 - [x] Audit confirmed previously completed coverage telemetry tasks remain satisfied after wiring automation into the gate, eliminating duplicate backlog entries while preserving regression coverage.【F:scripts/quality_gates.py†L176-L348】【F:tests/test_quality_gate_script.py†L126-L180】
-- [ ] pip-audit gate still surfaces a live `pip` advisory (GHSA-4xh5-x5gv-qwph); address via pip upgrade or curated exception so security checks return green alongside the new fallback logic.【4e63a4†L1-L8】【F:src/issuesuite/pip_audit_integration.py†L352-L427】
+- [x] pip-audit gate still surfaces a live `pip` advisory (GHSA-4xh5-x5gv-qwph); address via pip upgrade or curated exception so security checks return green alongside the new fallback logic.【F:src/issuesuite/data/security_allowlist.json†L1-L13】【F:src/issuesuite/dependency_audit.py†L1-L314】【F:src/issuesuite/cli.py†L808-L921】【F:tests/test_dependency_audit.py†L1-L229】【F:tests/test_cli_extended.py†L1-L280】
 - [ ] `pip-audit --strict` currently hangs in offline environments; wire resilient timeouts/offline datasets so dependency gates don't block local QA.【fce977†L1-L120】
 - [ ] Transition plan required for Frontier Apex gates so contributors have staged rollouts, sandbox dashboards, and GitHub Projects training before enforcement.
