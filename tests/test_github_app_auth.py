@@ -254,6 +254,7 @@ def test_jwt_generation_with_key_file(tmp_path: Path) -> None:
     assert jwt_token is not None
     assert isinstance(jwt_token, str)
     assert "." in jwt_token  # JWT format has dots
+    assert jwt_token.endswith("signature_placeholder")
 
 
 def test_jwt_generation_without_pyjwt(tmp_path: Path) -> None:

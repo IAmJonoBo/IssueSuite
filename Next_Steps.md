@@ -11,8 +11,10 @@
 | Medium   | Completed   | Typing       | Ship `py.typed` marker                            | Added `src/issuesuite/py.typed` and updated `MANIFEST.in` to ensure type hints ship with the wheel.                                                 |
 | Medium   | Completed   | Supply Chain | Pin build tooling in workflows                    | Workflow now installs `pip==24.2`, `build==1.2.2.post1`, and `twine==6.2.0`; evaluate adding `--require-hashes` once digests are curated.           |
 | Medium   | New         | Testing      | Add security regression tests                     | Add unit/integration coverage for GitHub App auth failures, JWT validation, and token cache permissions.                                            |
+| Medium   | New         | Tooling      | Stabilise pip-audit in offline CI                 | Investigate resilient timeouts/offline datasets so `pip-audit --strict` no longer hangs without network access.                                     |
 
 ## Notes
 
 - Renovate is now configured to pin GitHub Actions digests. Consider adding a CI status check to ensure Renovate PRs for action updates are reviewed promptly.
 - PyJWT and keyring are now optional auth dependencies; ensure production environments install the `all` extra (or a dedicated `auth` extra) so GitHub App sync remains functional.
+- `pip-audit --strict` currently stalls in sandboxed containers; wire resilient timeout/offline dataset handling before promoting the gate to required status.
