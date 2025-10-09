@@ -23,6 +23,6 @@ Adopt Astro Starlight as the documentation platform and restructure content into
 
 ## Follow-up work
 
-- Publish preview builds per PR and host the site on GitHub Pages.
-- Extend the ADR registry when new architectural decisions are made (e.g., documentation deployments, schema automation).
-- Surface documentation health metrics in GitHub Projects dashboards.
+- [x] Publish preview builds per PR and host the site on GitHub Pages.
+- [ ] Extend the ADR registry when new architectural decisions are made (e.g., documentation deployments, schema automation).
+- [ ] Surface documentation health metrics in GitHub Projects dashboards.

@@ -273,10 +273,10 @@ These are automatically installed when you run `pip install -e .[dev]`.
 
 ## Follow-up Tasks
 
-- [ ] Create `scripts/setup-dev-env.sh`
-- [ ] Enhance `issuesuite doctor` with parity checks
-- [ ] Add pre-commit hook to `.githooks/pre-commit`
-- [ ] Update CONTRIBUTING.md with setup guide
+- [x] Create `scripts/setup-dev-env.sh`
+- [x] Enhance `issuesuite doctor` with parity checks
+- [x] Add pre-commit hook to `.githooks/pre-commit`
+- [x] Update CONTRIBUTING.md with setup guide
 - [ ] Add "Dev Environment Setup" to README.md
 - [ ] Consider Dev Containers as future enhancement
 - [ ] Add environment validation to release checklist
