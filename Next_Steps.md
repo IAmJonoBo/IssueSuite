@@ -19,8 +19,8 @@
 
 - Renovate is now configured to pin GitHub Actions digests. Consider adding a CI status check to ensure Renovate PRs for action updates are reviewed promptly.
 - PyJWT and keyring are now optional auth dependencies; ensure production environments install the `all` extra (or a dedicated `auth` extra) so GitHub App sync remains functional.
-- `pip-audit --strict` currently stalls in sandboxed containers; wire resilient timeout/offline dataset handling before promoting the gate to required status (allowlist now covers GHSA-4xh5-x5gv-qwph pending upstream fix).【F:src/issuesuite/data/security_allowlist.json†L1-L13】
+- `sitecustomize.py` applies the resilient pip-audit shim automatically so hermetic `python -m pip_audit` invocations reuse the offline dataset and 60s timeout. Prefer `issuesuite security --pip-audit` for new automation.【F:sitecustomize.py†L1-L63】
 - Curated security allowlist entry for GHSA-4xh5-x5gv-qwph expires 2025-11-30; track upstream pip remediation and remove once patched.【F:src/issuesuite/data/security_allowlist.json†L1-L13】
-- Frontier Apex planning should involve PMO + UX leads; capture accessibility heuristics and Projects automation requirements alongside engineering tasks.
+- Frontier Apex planning should involve PMO + UX leads; capture accessibility heuristics and Projects automation requirements alongside engineering tasks. Nightly dry-runs now publish artifacts via `.github/workflows/projects-status.yml` for review before tokens are granted.
 - VS Code secret harvesting now returns redacted summaries by default; only tests and explicit scripts should request raw values via the new opt-out flag.
 - Docs preview and deployment workflows are wired via `.github/workflows/docs.yml`; repository admins must enable GitHub Pages for the `github-pages` environment to complete deployments.【F:.github/workflows/docs.yml†L1-L63】

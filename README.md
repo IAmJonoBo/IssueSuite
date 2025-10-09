@@ -106,6 +106,8 @@ nox -s tests lint typecheck security secrets build
 nox -s lock  # refresh uv.lock and docs/starlight/package-lock.json
 ```
 
+Frontier Apex prototypes introduce two new harnesses you can run ad-hoc while we- Preview nightly GitHub Projects automation dry-runs with `issuesuite projects-sync --comment-output preview.md` (set the relevant environment variables or pass `--project-owner/--project-number` to target your dashboard).
+
 Frontier Apex prototypes introduce two new harnesses you can run ad-hoc while we
 stabilise the elevated standards:
 

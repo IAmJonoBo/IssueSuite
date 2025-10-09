@@ -83,7 +83,7 @@ def build_default_gates() -> list[Gate]:
                 "--cov-report=term",
                 "--cov-report=xml",
             ],
-            coverage_threshold=80.0,
+            coverage_threshold=85.0,
             coverage_report=PROJECT_ROOT / "coverage.xml",
         ),
         Gate(name="Format", command=["ruff", "format", "--check"]),
