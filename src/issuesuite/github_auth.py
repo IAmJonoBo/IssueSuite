@@ -12,7 +12,7 @@ import importlib
 import json
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404 - subprocess is required for GitHub CLI integration
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -421,7 +421,9 @@ class GitHubAppTokenManager:
                 "Accept: application/vnd.github.v3+json",
             ]
 
-            result = subprocess.run(_gh_command(*cmd), capture_output=True, text=True, check=True)
+            result = subprocess.run(  # nosec B603 - GitHub CLI command constructed from trusted parameters
+                _gh_command(*cmd), capture_output=True, text=True, check=True
+            )
             token_data: dict[str, Any] = json.loads(result.stdout)
 
             self.logger.debug(
@@ -458,7 +460,7 @@ class GitHubAppTokenManager:
             os.environ["GITHUB_TOKEN"] = token
 
             # Verify authentication
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 - GitHub CLI command constructed from trusted parameters
                 _gh_command("auth", "status"),
                 capture_output=True,
                 text=True,

@@ -307,10 +307,7 @@ def _resolve_plan_path(cfg: SuiteConfig, args: argparse.Namespace) -> str | None
 def _apply_update_alias(args: argparse.Namespace) -> None:
     if not getattr(args, "apply", False) or getattr(args, "update", False):
         return
-    try:
-        args.update = True
-    except Exception:
-        pass
+    args.update = True
 
 
 def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
@@ -784,7 +781,16 @@ def _maybe_run_pip_audit(args: argparse.Namespace, exit_code: int) -> int:
         forwarded = ["--progress-spinner", "off", *forwarded]
     if "--strict" not in forwarded:
         forwarded.append("--strict")
-    rc = run_resilient_pip_audit(forwarded)
+    suppress_env = "ISSUESUITE_PIP_AUDIT_SUPPRESS_TABLE"
+    previous = os.environ.get(suppress_env)
+    os.environ[suppress_env] = "1"
+    try:
+        rc = run_resilient_pip_audit(forwarded)
+    finally:
+        if previous is None:
+            os.environ.pop(suppress_env, None)
+        else:
+            os.environ[suppress_env] = previous
     return exit_code if rc == 0 else rc
 
 
