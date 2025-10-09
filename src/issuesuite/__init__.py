@@ -22,8 +22,6 @@ Note:
 
 from __future__ import annotations
 
-import importlib
-
 from .ai_context import get_ai_context  # new public helper
 from .config import SuiteConfig, load_config
 from .core import IssueSpec, IssueSuite
@@ -58,6 +56,7 @@ def __getattr__(name: str) -> object:
     if name == "IssueSpec":
         return IssueSpec
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
 
 __all__ = [
     "load_config",
