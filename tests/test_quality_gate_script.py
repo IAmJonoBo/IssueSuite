@@ -70,6 +70,12 @@ def test_type_and_ux_gates_present(quality_gate_script):
     assert "UX Acceptance" in names
 
 
+def test_pip_audit_gate_disables_online_probe(quality_gate_script):
+    gates = quality_gate_script.build_default_gates()
+    pip_gate = next(gate for gate in gates if gate.name == "pip-audit")
+    assert "--pip-audit-disable-online" in pip_gate.command
+
+
 def test_module_threshold_enforcement_pass(tmp_path, quality_gate_script):
     coverage = tmp_path / "coverage.xml"
     coverage.write_text(

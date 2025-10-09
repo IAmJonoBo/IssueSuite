@@ -9,7 +9,7 @@
 - [ ] `ruff check`
 - [ ] `mypy src`
 - [ ] `bandit -r src`
-- [ ] `pip-audit --strict --progress-spinner off`
+- [ ] `python -m issuesuite.cli security --pip-audit`
 - [ ] `detect-secrets scan --baseline .secrets.baseline`
 - [ ] `python -m build`
 

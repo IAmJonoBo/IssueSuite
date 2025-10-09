@@ -61,12 +61,26 @@ CONFIG_DEFAULT = "issue_suite.config.yaml"
 REPO_HELP = "Override target repository (owner/repo)"
 
 
+_MAX_HELP_WIDTH = 100
+
+
+class _HelpFormatter(argparse.HelpFormatter):
+    def __init__(self, prog: str) -> None:
+        super().__init__(prog, max_help_position=30, width=_MAX_HELP_WIDTH)
+
+
+class _FormatterArgumentParser(argparse.ArgumentParser):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault("formatter_class", _HelpFormatter)
+        super().__init__(*args, **kwargs)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     """Construct top-level CLI parser with subcommands.
 
     Keep ordering stable for help output readability.
     """
-    p = argparse.ArgumentParser(
+    p = _FormatterArgumentParser(
         prog="issuesuite", description="Declarative GitHub issue automation"
     )
     p.add_argument(
@@ -74,7 +88,9 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Suppress informational logging (env: ISSUESUITE_QUIET=1)",
     )
-    sub = p.add_subparsers(dest="cmd", required=True)
+    sub = p.add_subparsers(
+        dest="cmd", required=True, parser_class=_FormatterArgumentParser, metavar="<command>"
+    )
 
     ps = sub.add_parser("sync", help="Sync issues to GitHub (create/update/close)")
     ps.add_argument("--config", default=CONFIG_DEFAULT)
@@ -151,6 +167,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help="Forward an additional argument to pip-audit (can be supplied multiple times)",
+    )
+    sec.add_argument(
+        "--pip-audit-disable-online",
+        action="store_true",
+        help=("Disable online pip-audit checks for this run (scoped to the subprocess)"),
     )
 
     proj = sub.add_parser(
@@ -837,6 +858,11 @@ def _maybe_run_pip_audit(args: argparse.Namespace, exit_code: int) -> int:
     suppress_env = "ISSUESUITE_PIP_AUDIT_SUPPRESS_TABLE"
     previous = os.environ.get(suppress_env)
     os.environ[suppress_env] = "1"
+    disable_env = "ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE"
+    disable_previous = os.environ.get(disable_env)
+    disable_online = getattr(args, "pip_audit_disable_online", False)
+    if disable_online:
+        os.environ[disable_env] = "1"
     try:
         rc = run_resilient_pip_audit(forwarded)
     finally:
@@ -844,6 +870,11 @@ def _maybe_run_pip_audit(args: argparse.Namespace, exit_code: int) -> int:
             os.environ.pop(suppress_env, None)
         else:
             os.environ[suppress_env] = previous
+        if disable_online:
+            if disable_previous is None:
+                os.environ.pop(disable_env, None)
+            else:
+                os.environ[disable_env] = disable_previous
     return exit_code if rc == 0 else rc
 
 

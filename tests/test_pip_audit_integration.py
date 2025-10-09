@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import contextlib
+import json
+import subprocess
 
 import pytest
 import requests
@@ -8,8 +10,6 @@ from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
 from issuesuite.dependency_audit import Advisory
-import subprocess
-
 from issuesuite.dependency_audit import Finding
 from issuesuite.pip_audit_integration import (
     ResilientPyPIService,
@@ -145,11 +145,57 @@ def test_collect_online_findings_returns_findings(
 
     restore = install_resilient_pip_audit(advisories=[ADVISORY])
     try:
-        findings = collect_online_findings()
+        payload = {
+            "dependencies": [
+                {
+                    "name": "requests",
+                    "version": "2.31.0",
+                    "vulns": [
+                        {
+                            "id": "GHSA-j8r2-6x86-q33q",
+                            "description": "Requests header parsing issue",
+                            "fix_versions": ["2.32.0"],
+                        }
+                    ],
+                }
+            ]
+        }
+
+        completed = subprocess.CompletedProcess(
+            args=["pip-audit", "--format", "json"],
+            returncode=1,
+            stdout=json.dumps(payload),
+            stderr="",
+        )
+
+        monkeypatch.setattr(
+            "issuesuite.pip_audit_integration._run_pip_audit",
+            lambda *args, **kwargs: completed,
+        )
+
+        findings = list(collect_online_findings())
     finally:
         restore()
 
     assert isinstance(findings, list)
+    assert len(findings) == 1
+    assert findings[0].package == "requests"
+    assert findings[0].vulnerability_id == "GHSA-j8r2-6x86-q33q"
+
+
+def test_collect_online_findings_respects_disable_flag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE", "1")
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration._run_pip_audit",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should not run")),
+    )
+
+    with pytest.raises(PipAuditError) as excinfo:
+        list(collect_online_findings())
+
+    assert "ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE" in str(excinfo.value)
 
 
 def test_run_resilient_pip_audit_falls_back_on_error(
@@ -219,6 +265,35 @@ def test_run_resilient_pip_audit_handles_nonzero_exit(
     assert "rc=2" in captured.err
 
 
+def test_run_resilient_pip_audit_honours_disable_flag(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE", "true")
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration._run_pip_audit",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should not run")),
+    )
+    monkeypatch.setattr("issuesuite.pip_audit_integration.load_advisories", lambda: [])
+    monkeypatch.setattr("issuesuite.pip_audit_integration.collect_installed_packages", lambda: [])
+
+    def _mock_perform_audit(**kwargs):
+        assert kwargs["online_probe"] is False
+        return ([], "offline-only")
+
+    monkeypatch.setattr("issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit)
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.render_findings_table",
+        lambda findings: "offline table",
+    )
+
+    rc = run_resilient_pip_audit(["--strict"])
+    captured = capsys.readouterr()
+
+    assert rc == 0
+    assert "offline table" in captured.out
+    assert "online-collection-disabled" in captured.err
+
+
 def test_run_resilient_pip_audit_passthrough_outputs(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -267,3 +342,34 @@ def test_run_resilient_pip_audit_detects_ssl_in_stdout(
     assert rc == 0
     assert "offline table" in captured.out
     assert "pip-audit unavailable (ssl-error)" in captured.err
+
+
+def test_run_resilient_pip_audit_handles_missing_dependency(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    result = subprocess.CompletedProcess(
+        ("pip-audit",),
+        returncode=1,
+        stdout="",
+        stderr="Dependency not found on PyPI and could not be audited: issuesuite (0.1.13)",
+    )
+    monkeypatch.setattr("issuesuite.pip_audit_integration._run_pip_audit", lambda *_, **__: result)
+    monkeypatch.setattr("issuesuite.pip_audit_integration.load_advisories", lambda: [])
+    monkeypatch.setattr("issuesuite.pip_audit_integration.collect_installed_packages", lambda: [])
+
+    def _mock_perform_audit(**kwargs: object) -> tuple[list[Finding], str | None]:
+        assert kwargs["online_probe"] is False
+        return ([], "offline-only")
+
+    monkeypatch.setattr("issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit)
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.render_findings_table",
+        lambda findings: "offline table",
+    )
+
+    rc = run_resilient_pip_audit(["--strict"])
+    captured = capsys.readouterr()
+
+    assert rc == 0
+    assert "offline table" in captured.out
+    assert "pip-audit unavailable (missing-dependency)" in captured.err

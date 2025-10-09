@@ -1,4 +1,5 @@
 import json
+import os
 import textwrap
 from pathlib import Path
 
@@ -240,6 +241,29 @@ def test_cli_security_refresh_offline(
     assert rc == 0
     assert invoked.get("called") is True
     assert "No known vulnerabilities detected." in captured.out
+
+
+def test_cli_security_scopes_disable_flag(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    marker: dict[str, object] = {}
+
+    def _fake_run(args):
+        marker["args"] = args
+        marker["env"] = os.environ.get("ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE")
+        return 0
+
+    monkeypatch.setattr("issuesuite.cli.run_resilient_pip_audit", _fake_run)
+    monkeypatch.delenv("ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE", raising=False)
+
+    rc = main(["security", "--offline-only", "--pip-audit", "--pip-audit-disable-online"])
+    captured = capsys.readouterr()
+
+    assert rc == 0
+    assert "No known vulnerabilities detected." in captured.out
+    assert marker["env"] == "1"
+    assert os.environ.get("ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE") is None
+    assert marker["args"][-1] == "--strict"
 
 
 def test_cli_projects_status_generates_artifacts(tmp_path: Path) -> None:
