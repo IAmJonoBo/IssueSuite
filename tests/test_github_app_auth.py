@@ -6,7 +6,10 @@ import os
 import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from issuesuite.github_auth import (
     GitHubAppConfig,
@@ -299,6 +302,116 @@ def test_jwt_generation_with_pyjwt_bytes(tmp_path: Path) -> None:
         token = manager._generate_jwt()
 
     assert token == "signed-token"
+
+
+def test_jwt_generation_invalid_key_fallback(tmp_path: Path) -> None:
+    """Invalid key errors from PyJWT trigger unsigned fallback tokens."""
+
+    class DummyInvalidKeyError(Exception):
+        pass
+
+    class DummyJWT:
+        exceptions = SimpleNamespace(
+            InvalidKeyError=DummyInvalidKeyError,
+            PyJWTError=Exception,
+        )
+
+        @staticmethod
+        def encode(*_: object, **__: object) -> str:
+            raise DummyInvalidKeyError("bad key material")
+
+    key_path = tmp_path / "test_key.pem"
+    key_path.write_text("-----BEGIN PRIVATE KEY-----\ntest_key_content\n-----END PRIVATE KEY-----")
+
+    config = GitHubAppConfig(
+        enabled=True,
+        app_id="12345",
+        private_key_path=str(key_path),
+        installation_id="67890",
+    )
+    manager = GitHubAppTokenManager(config)
+
+    with patch("issuesuite.github_auth.jwt", DummyJWT):
+        token = manager._generate_jwt()
+
+    assert token is not None
+    assert token.endswith("signature_placeholder")
+
+
+def test_should_fallback_to_unsigned_for_pyjwt_error() -> None:
+    """PyJWTError with unsupported key message triggers fallback."""
+
+    class DummyPyJWTError(Exception):
+        pass
+
+    dummy_jwt = SimpleNamespace(
+        exceptions=SimpleNamespace(
+            InvalidKeyError=None,
+            PyJWTError=DummyPyJWTError,
+        )
+    )
+
+    config = GitHubAppConfig(
+        enabled=True, app_id="1", private_key_path="/tmp/key", installation_id="2"
+    )
+    manager = GitHubAppTokenManager(config)
+
+    with patch("issuesuite.github_auth.jwt", dummy_jwt):
+        assert (
+            manager._should_fallback_to_unsigned(DummyPyJWTError("Could not deserialize key"))
+            is True
+        )
+        assert (
+            manager._should_fallback_to_unsigned(DummyPyJWTError("key format is invalid")) is True
+        )
+
+
+def test_should_fallback_to_unsigned_for_value_errors() -> None:
+    """Generic value decoding failures trigger fallback handling."""
+
+    config = GitHubAppConfig(
+        enabled=True, app_id="1", private_key_path="/tmp/key", installation_id="2"
+    )
+    manager = GitHubAppTokenManager(config)
+
+    with patch("issuesuite.github_auth.jwt", SimpleNamespace(exceptions=None)):
+        assert manager._should_fallback_to_unsigned(ValueError("bad padding")) is True
+
+
+def test_get_token_prefers_loaded_cache(tmp_path: Path) -> None:
+    """Cached payloads loaded during resolution are reused."""
+
+    config = GitHubAppConfig(
+        enabled=True,
+        app_id="12345",
+        private_key_path=str(tmp_path / "key.pem"),
+        installation_id="67890",
+    )
+    manager = GitHubAppTokenManager(config)
+
+    def fake_load_cache() -> bool:
+        manager._cached_token = "reloaded-token"
+        manager._token_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+        return True
+
+    manager._load_cached_token = MagicMock(side_effect=fake_load_cache)
+
+    token = manager.get_token()
+
+    assert token == "reloaded-token"
+    manager._load_cached_token.assert_called_once_with()
+
+
+def test_encode_cache_blob_requires_token() -> None:
+    """Encoding cache blob without a token raises an explicit error."""
+
+    config = GitHubAppConfig(
+        enabled=True, app_id="1", private_key_path="/tmp/key", installation_id="2"
+    )
+    manager = GitHubAppTokenManager(config)
+
+    with pytest.raises(ValueError, match="No token available"):
+        manager._encode_cache_blob()
 
 
 @patch("subprocess.run")
