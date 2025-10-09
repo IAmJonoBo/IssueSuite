@@ -9,6 +9,7 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 
@@ -141,6 +142,39 @@ class StructuredLogger:
     def error(self, message: str, **kw: Any) -> None:  # noqa: D401
         self._logger.error(message, extra=kw)
 
+    def log_type_check_metrics(self, report_path: Path | None = None) -> None:
+        candidates: list[Path] = []
+        if report_path is not None:
+            candidates.append(report_path)
+        else:
+            candidates.append(Path.cwd() / "type_coverage.json")
+            candidates.append(Path(__file__).resolve().parents[2] / "type_coverage.json")
+        for candidate in candidates:
+            try:
+                data = json.loads(candidate.read_text(encoding="utf-8"))
+            except FileNotFoundError:
+                continue
+            except json.JSONDecodeError as exc:  # pragma: no cover - defensive
+                self.warning(
+                    "type coverage telemetry invalid",
+                    report=str(candidate),
+                    error=str(exc),
+                )
+                return
+            modules_total = data.get("modules_total")
+            strict_clean = data.get("modules_strict_clean")
+            strict_ratio = data.get("strict_ratio")
+            payload = {
+                "operation": "type_check",
+                "modules_total": modules_total,
+                "modules_strict_clean": strict_clean,
+                "strict_ratio": strict_ratio,
+                "report_path": str(candidate),
+            }
+            self._emit(logging.INFO, "Type coverage snapshot", payload)
+            return
+        self.debug("type coverage report not found", report="type_coverage.json")
+
     @contextmanager
     def timed_operation(self, operation: str, **kw: Any) -> Iterator[None]:  # noqa: D401
         start = time.perf_counter()
@@ -166,4 +200,8 @@ def get_logger() -> StructuredLogger:
 def configure_logging(json_logging: bool = False, level: str = "INFO") -> StructuredLogger:
     global _GLOBAL  # noqa: PLW0603
     _GLOBAL = StructuredLogger(json_logging=json_logging, level=level)
+    try:
+        _GLOBAL.log_type_check_metrics()
+    except Exception:  # pragma: no cover - telemetry should never crash configuration
+        _GLOBAL.debug("type coverage telemetry emission failed")
     return _GLOBAL

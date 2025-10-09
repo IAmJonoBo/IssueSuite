@@ -18,7 +18,7 @@ from __future__ import annotations
 import os
 import random
 import re
-import subprocess
+import subprocess  # nosec B404 - required for retrying GitHub CLI interactions
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -34,6 +34,7 @@ TRANSIENT_TOKENS = (
 
 _RE_RETRY_AFTER = re.compile(r"retry[-\s]after:?\s*(\d+)", re.IGNORECASE)
 _RE_SECONDS_HINT = re.compile(r"wait\s*(\d+)\s*seconds", re.IGNORECASE)
+_JITTER = random.SystemRandom()
 
 
 def _extract_explicit_backoff(text: str) -> float | None:
@@ -52,14 +53,14 @@ def _extract_explicit_backoff(text: str) -> float | None:
         try:
             val = float(m.group(1))
             return val if val > 0 else None
-        except Exception:  # pragma: no cover - defensive
+        except ValueError:  # pragma: no cover - defensive
             return None
     m2 = _RE_SECONDS_HINT.search(text)
     if m2:
         try:
             val = float(m2.group(1))
             return val if val > 0 else None
-        except Exception:  # pragma: no cover
+        except ValueError:  # pragma: no cover
             return None
     return None
 
@@ -77,7 +78,7 @@ def is_transient(output: str) -> bool:
 
 def _compute_sleep(attempt: int, cfg: RetryConfig, out: str) -> float:
     explicit = _extract_explicit_backoff(out)
-    backoff = cfg.base_sleep * (2 ** (attempt - 1)) + random.uniform(0, 0.25)
+    backoff = cfg.base_sleep * (2 ** (attempt - 1)) + _JITTER.uniform(0, 0.25)
     sleep_for: float = explicit if explicit is not None else backoff
     max_cap_env = os.environ.get("ISSUESUITE_RETRY_MAX_SLEEP")
     if max_cap_env:
@@ -85,8 +86,8 @@ def _compute_sleep(attempt: int, cfg: RetryConfig, out: str) -> float:
             cap = float(max_cap_env)
             if cap >= 0:
                 sleep_for = min(sleep_for, cap)
-        except Exception:  # pragma: no cover
-            pass
+        except ValueError:  # pragma: no cover
+            return sleep_for
     return sleep_for
 
 

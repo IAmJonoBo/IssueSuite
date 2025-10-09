@@ -50,6 +50,7 @@ from issuesuite.reconcile import format_report, reconcile
 from issuesuite.runtime import execute_command, prepare_config
 from issuesuite.scaffold import scaffold_project
 from issuesuite.schemas import get_schemas
+from issuesuite.setup_wizard import run_guided_setup
 
 CONFIG_DEFAULT = "issue_suite.config.yaml"
 REPO_HELP = "Override target repository (owner/repo)"
@@ -211,6 +212,11 @@ def _build_parser() -> argparse.ArgumentParser:
     setup.add_argument("--check-auth", action="store_true", help="Check authentication status")
     setup.add_argument("--vscode", action="store_true", help="Setup VS Code integration files")
     setup.add_argument("--config", default=CONFIG_DEFAULT)
+    setup.add_argument(
+        "--guided",
+        action="store_true",
+        help="Render a guided setup checklist with recommended commands",
+    )
 
     init = sub.add_parser("init", help="Scaffold IssueSuite config and specs")
     init.add_argument("--directory", default=".", help="Target directory for generated files")
@@ -307,10 +313,7 @@ def _resolve_plan_path(cfg: SuiteConfig, args: argparse.Namespace) -> str | None
 def _apply_update_alias(args: argparse.Namespace) -> None:
     if not getattr(args, "apply", False) or getattr(args, "update", False):
         return
-    try:
-        args.update = True
-    except Exception:
-        pass
+    args.update = True
 
 
 def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
@@ -412,6 +415,7 @@ def _setup_show_help() -> None:
             "  --create-env    Create sample .env file",
             "  --check-auth    Check authentication status",
             "  --vscode        Setup VS Code integration",
+            "  --guided       Interactive checklist with recommended follow-ups",
         ]
     )
 
@@ -424,7 +428,9 @@ def _cmd_setup(args: argparse.Namespace) -> int:
         _setup_check_auth(auth_manager)
     if args.vscode:
         _setup_vscode()
-    if not any([args.create_env, args.check_auth, args.vscode]):
+    if args.guided:
+        run_guided_setup(auth_manager)
+    if not any([args.create_env, args.check_auth, args.vscode, args.guided]):
         _setup_show_help()
     return 0
 
@@ -784,7 +790,16 @@ def _maybe_run_pip_audit(args: argparse.Namespace, exit_code: int) -> int:
         forwarded = ["--progress-spinner", "off", *forwarded]
     if "--strict" not in forwarded:
         forwarded.append("--strict")
-    rc = run_resilient_pip_audit(forwarded)
+    suppress_env = "ISSUESUITE_PIP_AUDIT_SUPPRESS_TABLE"
+    previous = os.environ.get(suppress_env)
+    os.environ[suppress_env] = "1"
+    try:
+        rc = run_resilient_pip_audit(forwarded)
+    finally:
+        if previous is None:
+            os.environ.pop(suppress_env, None)
+        else:
+            os.environ[suppress_env] = previous
     return exit_code if rc == 0 else rc
 
 
