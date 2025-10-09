@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from packaging.specifiers import SpecifierSet
 
+from issuesuite import cli
 from issuesuite.cli import main
 from issuesuite.dependency_audit import AllowlistedAdvisory, Finding, SuppressedFinding
 from issuesuite.github_issues import IssuesClient
@@ -482,3 +483,80 @@ def test_cli_projects_sync_apply_requires_token(tmp_path: Path, capsys: pytest.C
     assert rc == 1
     captured = capsys.readouterr()
     assert "token required" in captured.err
+
+
+def test_cli_projects_sync_uses_config_defaults(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    config_path = tmp_path / "issue_suite.config.yaml"
+    config_path.write_text(
+        textwrap.dedent(
+            """
+            version: 1
+            source:
+              file: ISSUES.md
+            github:
+              repo: acme/example
+              project:
+                enable: true
+                number: 7
+                field_mappings:
+                  status: Status
+            """
+        ).strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    next_steps_path = tmp_path / "Next Steps.md"
+    next_steps_path.write_text(
+        textwrap.dedent(
+            """
+            # Next Steps
+
+            ## Tasks
+
+            - [ ] **Owner:** Maintainers — Follow up
+            """
+        ).strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    captured_config: dict[str, object] = {}
+
+    original_build = cli.build_projects_sync_config
+    original_sync = cli.sync_projects
+
+    def fake_build_config(**kwargs: object) -> object:
+        captured_config.update(kwargs)
+        return original_build(**kwargs)
+
+    def fake_sync_projects(**kwargs: object) -> dict[str, object]:
+        captured_config["sync_kwargs"] = kwargs
+        return {
+            "comment": "✅ Frontier Apex status: on_track\n",
+            "project": {"enabled": True, "updated": False, "status": "on_track"},
+            "comment_result": {"enabled": False},
+            "report": {"status": "on_track", "message": "ok"},
+        }
+
+    monkeypatch.setattr(cli, "build_projects_sync_config", fake_build_config)
+    monkeypatch.setattr(cli, "sync_projects", fake_sync_projects)
+
+    rc = main(
+        [
+            "projects-sync",
+            "--config",
+            str(config_path),
+            "--next-steps",
+            str(next_steps_path),
+        ]
+    )
+
+    assert rc == 0
+    captured = capsys.readouterr()
+    assert "Frontier Apex status" in captured.out
+    assert "dry-run preview" in captured.err
+    assert captured_config["owner"] == "acme"
+    assert captured_config["project_number"] == 7
+    assert captured_config["status_field"] == "Status"

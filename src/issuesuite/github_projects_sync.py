@@ -1,3 +1,5 @@
+# ruff: noqa: PLR0912
+
 from __future__ import annotations
 
 from collections.abc import Mapping
