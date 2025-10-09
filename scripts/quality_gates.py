@@ -25,6 +25,7 @@ SECRETS_BASELINE = PROJECT_ROOT / ".secrets.baseline"
 
 
 def build_default_gates() -> list[Gate]:
+    python = sys.executable
     return [
         Gate(
             name="Tests",
@@ -34,16 +35,17 @@ def build_default_gates() -> list[Gate]:
                 "--cov-report=term",
                 "--cov-report=xml",
             ],
-            coverage_threshold=65.0,
+            coverage_threshold=80.0,
             coverage_report=PROJECT_ROOT / "coverage.xml",
         ),
+        Gate(name="Format", command=["ruff", "format", "--check"]),
         Gate(name="Lint", command=["ruff", "check"]),
         Gate(name="Type Check", command=["mypy", "src"]),
-        Gate(name="Security", command=["bandit", "-r", "src"]),
+        Gate(name="Security", command=[python, "-m", "bandit", "-r", "src"]),
         Gate(
             name="Dependencies",
             command=[
-                sys.executable,
+                python,
                 "-m",
                 "issuesuite.dependency_audit",
             ],
@@ -51,7 +53,9 @@ def build_default_gates() -> list[Gate]:
         Gate(
             name="pip-audit",
             command=[
-                "pip-audit",
+                python,
+                "-m",
+                "pip_audit",
                 "--progress-spinner",
                 "off",
                 "--strict",
@@ -60,23 +64,26 @@ def build_default_gates() -> list[Gate]:
         Gate(
             name="Secrets",
             command=[
-                "detect-secrets",
+                python,
+                "-m",
+                "detect_secrets",
                 "scan",
                 "--baseline",
                 str(SECRETS_BASELINE),
             ],
         ),
+        Gate(name="Bytecode Compile", command=[python, "-m", "compileall", "src"]),
         Gate(
             name="Performance Report",
             command=[
-                sys.executable,
+                python,
                 str(PROJECT_ROOT / "scripts" / "generate_performance_report.py"),
             ],
         ),
         Gate(
             name="Performance Budget",
             command=[
-                sys.executable,
+                python,
                 "-m",
                 "issuesuite.benchmarking",
                 "--check",
@@ -87,7 +94,7 @@ def build_default_gates() -> list[Gate]:
         Gate(
             name="Offline Advisories Freshness",
             command=[
-                sys.executable,
+                python,
                 "-m",
                 "issuesuite.advisory_refresh",
                 "--check",
@@ -95,7 +102,11 @@ def build_default_gates() -> list[Gate]:
                 "30",
             ],
         ),
-        Gate(name="Build", command=["python", "-m", "build"]),
+        Gate(name="Build", command=[python, "-m", "build"]),
+        Gate(
+            name="Next Steps Governance",
+            command=[python, str(PROJECT_ROOT / "scripts" / "verify_next_steps.py")],
+        ),
     ]
 
 

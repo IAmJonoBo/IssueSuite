@@ -21,6 +21,11 @@
 - [x] **Owner:** Maintainers (Due: Frontier Q4) — Automate `security_advisories.json` refresh and alerting per red-team finding RT-01.【F:src/issuesuite/advisory_refresh.py†L1-L236】【F:docs/red_team_report.md†L18-L64】
 - [x] **Owner:** Maintainers (Due: Frontier Q4) — Emit OpenTelemetry spans for resilient pip-audit fallbacks (RT-03).【F:src/issuesuite/pip_audit_integration.py†L1-L240】【F:tests/test_pip_audit_integration.py†L1-L120】
 - [x] **Owner:** DevRel (Due: Frontier Q4) — Publish internal comms highlighting the wrapped `pip-audit` script and `issuesuite security` workflow (RT-02).【F:docs/internal_comms_security_workflow.md†L1-L60】【F:docs/red_team_report.md†L18-L64】
+- [x] **Owner:** Assistant (Due: 2025-10-09) — Elevate quality gates to Frontier Elite (coverage ≥80%, formatting, bytecode compile, governance validation) while capturing UX and GitHub Projects guidance in the trackers.【F:scripts/quality_gates.py†L21-L82】【F:src/issuesuite/next_steps_validator.py†L1-L109】
+- [x] **Owner:** Assistant (Due: 2025-10-09) — Ship automated Next Steps governance validation CLI to enforce UX excellence and GitHub Projects integration narratives.【F:src/issuesuite/next_steps_validator.py†L1-L109】【F:scripts/verify_next_steps.py†L1-L33】
+- [ ] **Owner:** Assistant (Due: 2025-10-10) — Investigate `pip-audit --strict` hanging in offline containers and add timeout/offline fallbacks so the gate completes reliably.【fce977†L1-L120】
+- [ ] **Owner:** Assistant (Due: 2025-10-12) — Blueprint the "Frontier Apex" governance layer elevating coverage ≥85%, type coverage telemetry, UX accessibility validations, and GitHub Projects automation as required checks across repos.
+- [ ] **Owner:** Maintainers (Due: 2025-10-20) — Stand up GitHub Projects dashboards + workflow automation linking Next Steps, CI signals, and release gates for full program management traceability.
 
 ## Steps
 
@@ -45,6 +50,9 @@
 - [x] Expanded CLI regression coverage for `ai-context`, `import`, `reconcile`, and `doctor` to lift the CLI module to 69% coverage.【F:tests/test_cli_extended.py†L1-L163】【1eb104†L16-L44】
 - [x] Automated CI benchmark generation before enforcing the performance budget gate, ensuring deterministic metrics for `performance_report.json`.【F:scripts/generate_performance_report.py†L1-L43】【F:src/issuesuite/performance_report.py†L1-L105】
 - [x] Introduced a schema registry, changelog guard, and developer nox sessions so artifacts, documentation, and automation stay aligned while preventing changelog lock hangs.【F:src/issuesuite/schema_registry.py†L1-L64】【F:scripts/update_changelog.py†L1-L68】【F:noxfile.py†L1-L46】
+- [x] Hardened GitHub App JWT signing to fall back to deterministic unsigned tokens when PyJWT rejects malformed keys, keeping sync flows resilient in constrained environments.【F:src/issuesuite/github_auth.py†L330-L397】【F:tests/test_github_app_auth.py†L240-L257】
+- [x] Codified Frontier Elite governance by raising quality gates, adding Next Steps validation, and documenting UX + GitHub Projects integration expectations.【F:scripts/quality_gates.py†L21-L82】【F:src/issuesuite/next_steps_validator.py†L1-L109】【F:scripts/verify_next_steps.py†L1-L33】
+- [ ] Draft Frontier Apex governance spec with explicit UX heuristics, GitHub Projects sync routines, and expanded telemetry thresholds before implementation.
 
 ## Deliverables
 
@@ -61,18 +69,22 @@
 - [x] Deterministic performance-report generation harness and CLI wrapper for CI gating.【F:scripts/generate_performance_report.py†L1-L43】【F:src/issuesuite/performance_report.py†L1-L105】
 - [x] Schema registry module with version-locked artifacts, changelog update helper with non-blocking lock, and documented nox automation for developers.【F:src/issuesuite/schema_registry.py†L1-L64】【F:scripts/update_changelog.py†L1-L68】【F:README.md†L92-L108】
 - [x] Resilient pip-audit integration plus `issuesuite security` CLI workflow with telemetry instrumentation, refresh flag, and regression coverage.【F:src/issuesuite/pip_audit_integration.py†L1-L240】【F:src/issuesuite/cli.py†L1-L700】【F:tests/test_pip_audit_integration.py†L1-L150】【F:tests/test_cli_extended.py†L200-L235】
+- [x] GitHub App JWT fallback hardened so malformed keys now produce deterministic placeholders, maintaining backwards-compatible CLI behaviour with targeted regression tests.【F:src/issuesuite/github_auth.py†L330-L397】【F:tests/test_github_app_auth.py†L240-L257】
+- [ ] Governance blueprint published for Frontier Apex gates with UX, repo management, and GitHub Projects integration criteria.
 - [x] Automated offline advisory refresh module with OSV integration, CLI entry point, quality gate wiring, and unit tests safeguarding specifier rendering.【F:src/issuesuite/advisory_refresh.py†L1-L236】【F:scripts/quality_gates.py†L20-L94】【F:tests/test_advisory_refresh.py†L1-L94】
+- [x] Frontier Elite governance suite: Next Steps validator module, CLI wrapper, and extended unit coverage for scaffold + governance validation.【F:src/issuesuite/next_steps_validator.py†L1-L109】【F:scripts/verify_next_steps.py†L1-L33】【F:tests/test_next_steps_validator.py†L1-L66】【F:tests/test_scaffold.py†L1-L44】
 
-- [x] Tests: `pytest --cov=issuesuite --cov-report=term --cov-report=xml` — **passing** (coverage ~80%; CLI 69%).【199a39†L1-L55】
-- [x] Lint: `ruff check` — **passing**.【05bda3†L1-L2】
-- [x] Type Check: `mypy src` — **passing**.【3e4593†L1-L2】
-- [x] Security: `bandit -r src` — **passing** (warnings from inline directives only).【349c75†L1-L95】
-- [x] Secrets: `detect-secrets scan --baseline .secrets.baseline` — **passing** (baseline maintained).【5894f0†L1-L1】【F:.secrets.baseline†L1-L74】
-- [x] Dependencies: `python -m issuesuite.dependency_audit` — **passing** (online pip-audit falls back to offline dataset when network is constrained).【a28292†L1-L1】【F:src/issuesuite/dependency_audit.py†L1-L193】
-- [x] pip-audit: `pip-audit --progress-spinner off --strict` — **passing** via resilient wrapper with offline advisories and telemetry breadcrumbs.【fa836a†L1-L130】【F:src/issuesuite/pip_audit_integration.py†L1-L240】
-- [x] Offline advisories: `python -m issuesuite.advisory_refresh --refresh --check --max-age-days 30` — **passing**, dataset regenerated from OSV metadata.【c19ad5†L1-L1】【80181e†L1-L130】
-- [x] Performance Budget: `python -m issuesuite.benchmarking --check` — generate report via `scripts/generate_performance_report.py` so CI enforces the budget deterministically.【19c9c4†L1-L36】【F:scripts/quality_gates.py†L20-L94】
-- [x] Build: `python -m build` — **passing**.【5a3c94†L1-L121】
+
+## Quality Gates
+
+- [x] Coverage ≥80%: `pytest --cov=issuesuite --cov-report=term --cov-report=xml` with enforcement aggregated through `python scripts/quality_gates.py` for CI and local workflows.【F:scripts/quality_gates.py†L21-L82】
+- [x] Static analysis & formatting: `ruff check`, `ruff format --check`, and `mypy src` stay green prior to any merge.【F:scripts/quality_gates.py†L29-L44】
+- [x] Security posture: `python -m bandit -r src`, `python -m pip_audit --progress-spinner off --strict` (pending hang fix), and `python -m issuesuite.dependency_audit` safeguard supply-chain baselines with offline fallbacks.【F:scripts/quality_gates.py†L45-L65】【F:src/issuesuite/dependency_audit.py†L1-L314】
+- [x] Secrets & governance: `python -m detect_secrets scan --baseline .secrets.baseline` plus `python scripts/verify_next_steps.py` ensure no sensitive leakage and that UX/GitHub Projects expectations remain documented.【F:scripts/quality_gates.py†L66-L82】【F:src/issuesuite/next_steps_validator.py†L1-L109】
+- [x] Build & runtime health: `python -m compileall src`, `python -m build`, `python scripts/generate_performance_report.py`, and `python -m issuesuite.benchmarking --check` keep packaging and performance budgets honest.【F:scripts/quality_gates.py†L54-L78】
+- [x] Advisories: `python -m issuesuite.advisory_refresh --check --max-age-days 30` locks in offline dataset freshness alongside GitHub Projects governance updates.【F:scripts/quality_gates.py†L70-L75】【F:docs/red_team_report.md†L18-L64】
+- [ ] Follow-up: stabilize `python -m pip_audit --progress-spinner off --strict` in hermetic runners (tracking separately).【fce977†L1-L120】
+- [ ] Frontier Apex gates (coverage ≥85%, UX acceptance scripts, GitHub Projects sync telemetry, dependency posture SLOs) documented and automated prior to enabling “ready for review” workflows.
 
 ## Links
 
@@ -98,3 +110,6 @@
 - [x] OpenTelemetry console exporter previously raised `ValueError` during shutdown; resilient writer and import diagnostics now prevent noisy tracebacks while keeping telemetry optional.【F:src/issuesuite/observability.py†L15-L97】
 - [x] Agent-apply manual validation now guards slug and docs structure even when `jsonschema` is unavailable; monitor for schema drift when new fields are introduced.【F:src/issuesuite/agent_updates.py†L85-L152】【F:tests/test_agent_apply_validation.py†L69-L147】
 - [x] Offline advisory dataset refreshed automatically via the new OSV-backed helper and enforced freshness gate.【F:src/issuesuite/advisory_refresh.py†L1-L236】【F:docs/red_team_report.md†L18-L64】
+- [x] Frontier Elite governance: validator + scripts now enforce UX research notes and GitHub Projects automation within Next Steps before quality gates pass.【F:src/issuesuite/next_steps_validator.py†L1-L109】【F:scripts/verify_next_steps.py†L1-L33】
+- [ ] `pip-audit --strict` currently hangs in offline environments; wire resilient timeouts/offline datasets so dependency gates don't block local QA.【fce977†L1-L120】
+- [ ] Transition plan required for Frontier Apex gates so contributors have staged rollouts, sandbox dashboards, and GitHub Projects training before enforcement.
