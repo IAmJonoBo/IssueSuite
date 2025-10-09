@@ -1,11 +1,14 @@
 import json
 import os
 import textwrap
+from datetime import date
 from pathlib import Path
 
 import pytest
+from packaging.specifiers import SpecifierSet
 
 from issuesuite.cli import main
+from issuesuite.dependency_audit import AllowlistedAdvisory, Finding, SuppressedFinding
 from issuesuite.github_issues import IssuesClient
 
 SAMPLE_ISSUES = textwrap.dedent(
@@ -264,6 +267,46 @@ def test_cli_security_scopes_disable_flag(
     assert marker["env"] == "1"
     assert os.environ.get("ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE") is None
     assert marker["args"][-1] == "--strict"
+
+
+def test_cli_security_reports_allowlisted(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    finding = Finding(
+        package="pip",
+        installed_version="25.2",
+        vulnerability_id="GHSA-4xh5-x5gv-qwph",
+        description="",
+        fixed_versions=(),
+        source="pip-audit",
+    )
+    allow = AllowlistedAdvisory(
+        package="pip",
+        vulnerability_id="GHSA-4xh5-x5gv-qwph",
+        specifiers=SpecifierSet("<=25.2"),
+        reason="Awaiting upstream fix",
+        expires=date.today(),
+        owner="Maintainers",
+        reference="https://github.com/advisories/GHSA-4xh5-x5gv-qwph",
+    )
+    suppressed = SuppressedFinding(finding=finding, allowlisted=allow)
+
+    monkeypatch.setattr(
+        "issuesuite.cli.run_dependency_audit",
+        lambda advisories, packages, online_probe=True, online_collector=None: ([finding], None),
+    )
+    monkeypatch.setattr("issuesuite.cli.load_security_allowlist", lambda: [allow])
+    monkeypatch.setattr(
+        "issuesuite.cli.apply_security_allowlist",
+        lambda findings, allowlist: ([], [suppressed]),
+    )
+
+    rc = main(["security", "--offline-only"])
+    captured = capsys.readouterr()
+
+    assert rc == 0
+    assert "Allowlisted vulnerabilities detected" in captured.err
+    assert "pip GHSA-4xh5-x5gv-qwph" in captured.err
 
 
 def test_cli_projects_status_generates_artifacts(tmp_path: Path) -> None:

@@ -23,6 +23,7 @@ import json
 import sys
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
+from datetime import date
 from importlib import metadata
 from pathlib import Path
 from typing import Any, cast
@@ -36,6 +37,7 @@ from packaging.specifiers import SpecifierSet
 from packaging.version import InvalidVersion, Version
 
 DEFAULT_ADVISORY_PATH = Path(__file__).with_name("security_advisories.json")
+DEFAULT_ALLOWLIST_PATH = Path(__file__).with_name("security_allowlist.json")
 
 
 class OnlineAuditUnavailableError(RuntimeError):
@@ -118,6 +120,70 @@ class Finding:
     source: str
 
 
+@dataclass(frozen=True)
+class AllowlistedAdvisory:
+    """Represents an accepted-risk vulnerability exception."""
+
+    package: str
+    vulnerability_id: str
+    specifiers: SpecifierSet
+    reason: str
+    expires: date | None = None
+    owner: str | None = None
+    reference: str | None = None
+
+    @classmethod
+    def from_json(cls, payload: dict[str, Any]) -> AllowlistedAdvisory:
+        package = str(payload.get("package", "")).strip().lower().replace("_", "-")
+        vulnerability_id = str(payload.get("id") or payload.get("vulnerability_id") or "").strip()
+        specifiers_raw = payload.get("specifiers") or payload.get("spec")
+        specifiers = SpecifierSet(str(specifiers_raw)) if specifiers_raw else SpecifierSet()
+        reason = str(payload.get("reason") or "Accepted risk").strip()
+        expires_raw = payload.get("expires")
+        expires: date | None
+        if expires_raw:
+            try:
+                expires = date.fromisoformat(str(expires_raw))
+            except ValueError:
+                expires = None
+        else:
+            expires = None
+        owner = str(payload.get("owner") or payload.get("approved_by") or "").strip() or None
+        reference = payload.get("reference") or payload.get("url")
+        return cls(
+            package=package,
+            vulnerability_id=vulnerability_id,
+            specifiers=specifiers,
+            reason=reason,
+            expires=expires,
+            owner=owner,
+            reference=str(reference) if reference is not None else None,
+        )
+
+    def matches(self, finding: Finding) -> bool:
+        if finding.package != self.package:
+            return False
+        if self.vulnerability_id and finding.vulnerability_id != self.vulnerability_id:
+            return False
+        if self.expires and date.today() > self.expires:
+            return False
+        if not self.specifiers:
+            return True
+        try:
+            version = Version(finding.installed_version)
+        except InvalidVersion:
+            return False
+        return version in self.specifiers
+
+
+@dataclass(frozen=True)
+class SuppressedFinding:
+    """Tracks a vulnerability suppressed via the allowlist."""
+
+    finding: Finding
+    allowlisted: AllowlistedAdvisory
+
+
 OfflineCollector = Callable[[Sequence[InstalledPackage]], list[Finding]]
 OnlineCollector = Callable[[Sequence[InstalledPackage]], Iterable[Finding]]
 FlexibleCollector = OnlineCollector | Callable[[], Iterable[Finding]]
@@ -129,6 +195,21 @@ def _deduplicate(findings: Iterable[Finding]) -> list[Finding]:
         key = (finding.package, finding.vulnerability_id)
         seen[key] = finding
     return list(seen.values())
+
+
+def apply_allowlist(
+    findings: Sequence[Finding],
+    allowlist: Sequence[AllowlistedAdvisory],
+) -> tuple[list[Finding], list[SuppressedFinding]]:
+    remaining: list[Finding] = []
+    suppressed: list[SuppressedFinding] = []
+    for finding in findings:
+        match = next((entry for entry in allowlist if entry.matches(finding)), None)
+        if match is None:
+            remaining.append(finding)
+        else:
+            suppressed.append(SuppressedFinding(finding=finding, allowlisted=match))
+    return remaining, suppressed
 
 
 def collect_installed_packages(
@@ -183,6 +264,24 @@ def load_advisories(advisories_path: Path | None = None) -> list[Advisory]:
         if isinstance(entry, dict):
             advisories.append(Advisory.from_json(entry))
     return advisories
+
+
+def load_allowlist(path: Path | None = None) -> list[AllowlistedAdvisory]:
+    allowlist_path = Path(path or DEFAULT_ALLOWLIST_PATH)
+    if not allowlist_path.exists():
+        return []
+    try:
+        payload = json.loads(allowlist_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return []
+    entries = payload.get("allow") if isinstance(payload, dict) else payload
+    if not isinstance(entries, list):
+        return []
+    allowlist: list[AllowlistedAdvisory] = []
+    for entry in entries:
+        if isinstance(entry, dict):
+            allowlist.append(AllowlistedAdvisory.from_json(entry))
+    return allowlist
 
 
 def evaluate_advisories(
@@ -293,6 +392,26 @@ def render_findings_table(findings: Sequence[Finding]) -> str:
     return _render_table(findings)
 
 
+def _emit_allowlist_warnings(suppressed: Sequence[SuppressedFinding]) -> None:
+    if not suppressed:
+        return
+    print("[security] Allowlisted vulnerabilities detected:", file=sys.stderr)
+    for item in suppressed:
+        allow = item.allowlisted
+        parts = [allow.reason]
+        if allow.expires:
+            parts.append(f"expires {allow.expires.isoformat()}")
+        if allow.owner:
+            parts.append(f"owner {allow.owner}")
+        if allow.reference:
+            parts.append(str(allow.reference))
+        details = "; ".join(parts)
+        print(
+            f"  - {item.finding.package} {item.finding.vulnerability_id} ({details})",
+            file=sys.stderr,
+        )
+
+
 def _print(msg: str) -> None:
     print(msg)
 
@@ -311,6 +430,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         packages=packages,
         online_probe=not args.offline_only,
     )
+    allowlist = load_allowlist()
+    findings, suppressed = apply_allowlist(findings, allowlist)
 
     if args.output_json:
         payload = {
@@ -326,6 +447,20 @@ def main(argv: Sequence[str] | None = None) -> int:
                 for finding in findings
             ],
             "fallback_reason": fallback_reason,
+            "allowlisted": [
+                {
+                    "package": item.finding.package,
+                    "installed_version": item.finding.installed_version,
+                    "vulnerability_id": item.finding.vulnerability_id,
+                    "reason": item.allowlisted.reason,
+                    "expires": (
+                        item.allowlisted.expires.isoformat() if item.allowlisted.expires else None
+                    ),
+                    "owner": item.allowlisted.owner,
+                    "reference": item.allowlisted.reference,
+                }
+                for item in suppressed
+            ],
         }
         _print(json.dumps(payload, indent=2))
     else:
@@ -335,6 +470,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 f"[security] Warning: online audit unavailable ({fallback_reason}).",
                 file=sys.stderr,
             )
+        _emit_allowlist_warnings(suppressed)
 
     return 0 if not findings else 1
 
@@ -343,11 +479,16 @@ __all__ = [
     "Advisory",
     "InstalledPackage",
     "Finding",
+    "AllowlistedAdvisory",
+    "SuppressedFinding",
     "OnlineAuditUnavailableError",
     "DEFAULT_ADVISORY_PATH",
+    "DEFAULT_ALLOWLIST_PATH",
     "collect_installed_packages",
     "load_advisories",
+    "load_allowlist",
     "evaluate_advisories",
+    "apply_allowlist",
     "perform_audit",
     "render_findings_table",
     "main",

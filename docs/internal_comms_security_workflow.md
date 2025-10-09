@@ -7,6 +7,7 @@ _Date: 2025-10-06_
 - `issuesuite security` now supports `--refresh-offline` to update the curated advisory dataset before scanning.
 - A resilient `pip-audit` wrapper is installed with the package; invoking `issuesuite security --pip-audit` forwards to the wrapped entry point with hermetic-safe defaults.
 - Offline advisories are refreshed via `python -m issuesuite.advisory_refresh --refresh --check`, which merges OSV metadata and enforces freshness through CI quality gates.
+- Accepted-risk vulnerabilities now flow through a governed allowlist (`src/issuesuite/data/security_allowlist.json`) so unavoidable upstream issues (for example GHSA-4xh5-x5gv-qwph affecting pip) surface with context while CI remains green until upstream patches land.
 
 ## Why it matters
 
