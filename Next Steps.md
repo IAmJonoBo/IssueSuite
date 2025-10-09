@@ -31,6 +31,7 @@
 - [x] **Owner:** Assistant (Due: 2025-10-22) — Implement coverage trend exporter feeding GitHub Projects dashboards using `coverage_summary.json` telemetry.【F:docs/governance/frontier_apex.md†L28-L37】【F:src/issuesuite/coverage_trends.py†L1-L191】【F:scripts/coverage_trends.py†L1-L63】【F:tests/test_coverage_trends.py†L1-L120】
 - [x] **Owner:** Assistant (Due: 2025-10-22) — Ship a guided CLI setup wizard that audits workspace readiness and prints prioritized follow-ups for Frontier gates with regression coverage.【F:src/issuesuite/setup_wizard.py†L1-L211】【F:src/issuesuite/cli.py†L209-L226】【F:tests/test_setup_wizard.py†L1-L94】
 - [ ] **Owner:** Maintainers (Due: 2025-10-24) — Wire `coverage_projects_payload.json` into GitHub Projects automation and nightly status comments once dashboards are provisioned.【F:docs/governance/frontier_apex.md†L28-L37】【F:src/issuesuite/coverage_trends.py†L1-L191】
+- [ ] **Owner:** Assistant (Due: 2025-10-22) — Implement coverage trend exporter feeding GitHub Projects dashboards using `coverage_summary.json` telemetry.【F:docs/governance/frontier_apex.md†L30-L37】【F:scripts/quality_gates.py†L166-L193】
 - [ ] **Owner:** Maintainers (Due: 2025-10-25) — Draft GitHub Projects automation workflows and nightly status reporters to operationalize the Apex governance metrics.【F:docs/governance/frontier_apex.md†L76-L95】【F:docs/governance/frontier_apex.md†L109-L118】
 
 ## Steps
@@ -107,6 +108,23 @@
 - [x] Advisories: `python -m issuesuite.advisory_refresh --check --max-age-days 30` locks in offline dataset freshness alongside GitHub Projects governance updates.【F:scripts/quality_gates.py†L70-L75】【F:docs/red_team_report.md†L18-L64】
 - [x] Follow-up: stabilize `python -m pip_audit --progress-spinner off --strict` in hermetic runners (tracking separately).【F:src/issuesuite/pip_audit_integration.py†L228-L393】【F:scripts/quality_gates.py†L27-L61】【F:tests/test_pip_audit_integration.py†L155-L219】
 - [ ] Frontier Apex gates (coverage ≥85%, UX acceptance scripts, GitHub Projects sync telemetry, dependency posture SLOs) documented and automated prior to enabling “ready for review” workflows — blueprint published, automation backlog tracked in new tasks.【F:docs/governance/frontier_apex.md†L20-L118】
+- [x] Static analysis & formatting: `ruff check`, `ruff format --check`, and `mypy src` stay green prior to any merge.【F:scripts/quality_gates.py†L29-L44】
+- [x] Security posture: `python -m bandit -r src`, `python -m pip_audit --progress-spinner off --strict` (pending hang fix), and `python -m issuesuite.dependency_audit` safeguard supply-chain baselines with offline fallbacks.【F:scripts/quality_gates.py†L45-L65】【F:src/issuesuite/dependency_audit.py†L1-L314】
+- [x] Secrets & governance: `python -m detect_secrets scan --baseline .secrets.baseline` plus `python scripts/verify_next_steps.py` ensure no sensitive leakage and that UX/GitHub Projects expectations remain documented.【F:scripts/quality_gates.py†L66-L82】【F:src/issuesuite/next_steps_validator.py†L1-L109】
+- [x] Build & runtime health: `python -m compileall src`, `python -m build`, `python scripts/generate_performance_report.py`, and `python -m issuesuite.benchmarking --check` keep packaging and performance budgets honest.【F:scripts/quality_gates.py†L54-L78】
+- [x] Advisories: `python -m issuesuite.advisory_refresh --check --max-age-days 30` locks in offline dataset freshness alongside GitHub Projects governance updates.【F:scripts/quality_gates.py†L70-L75】【F:docs/red_team_report.md†L18-L64】
+- [ ] Follow-up: stabilize `python -m pip_audit --progress-spinner off --strict` in hermetic runners (tracking separately).【fce977†L1-L120】
+- [ ] Frontier Apex gates (coverage ≥85%, UX acceptance scripts, GitHub Projects sync telemetry, dependency posture SLOs) documented and automated prior to enabling “ready for review” workflows.
+- [x] Tests: `pytest --cov=issuesuite --cov-report=term --cov-report=xml` — **passing** after JWT fallback hardening.【c4e86b†L1-L37】
+- [x] Lint: `ruff check` — **passing**.【05bda3†L1-L2】
+- [x] Type Check: `mypy src` — **passing**.【3e4593†L1-L2】
+- [x] Security: `bandit -r src` — **passing** (warnings from inline directives only).【349c75†L1-L95】
+- [x] Secrets: `detect-secrets scan --baseline .secrets.baseline` — **passing** (baseline maintained).【5894f0†L1-L1】【F:.secrets.baseline†L1-L74】
+- [x] Dependencies: `python -m issuesuite.dependency_audit` — **passing** (online pip-audit falls back to offline dataset when network is constrained).【a28292†L1-L1】【F:src/issuesuite/dependency_audit.py†L1-L193】
+- [ ] pip-audit: `pip-audit --progress-spinner off --strict` — **hanging**; command aborted after several minutes in offline container, follow-up needed to stabilise gate.【fce977†L1-L120】【F:src/issuesuite/pip_audit_integration.py†L1-L240】
+- [x] Offline advisories: `python -m issuesuite.advisory_refresh --refresh --check --max-age-days 30` — **passing**, dataset regenerated from OSV metadata.【c19ad5†L1-L1】【80181e†L1-L130】
+- [x] Performance Budget: `python -m issuesuite.benchmarking --check` — generate report via `scripts/generate_performance_report.py` so CI enforces the budget deterministically.【19c9c4†L1-L36】【F:scripts/quality_gates.py†L20-L94】
+- [x] Build: `python -m build` — **passing**.【5a3c94†L1-L121】
 
 ## Links
 
@@ -139,3 +157,6 @@
 - [x] Transition plan required for Frontier Apex gates so contributors have staged rollouts, sandbox dashboards, and GitHub Projects training before enforcement.【F:docs/governance/frontier_apex.md†L96-L118】
 - [x] Coverage trend exporter now persists history/snapshot/project payloads; ensure `coverage_summary.json` stays fresh (rerun pytest --cov) before invoking dashboards.【F:src/issuesuite/coverage_trends.py†L1-L191】【F:scripts/coverage_trends.py†L1-L63】
 - [x] Guided setup wizard surfaces environment/config gaps; keep recommendations current as new quality gates land so the checklist stays authoritative.【F:src/issuesuite/setup_wizard.py†L1-L211】【F:src/issuesuite/cli.py†L209-L226】
+- [ ] Coverage trend exporter remains outstanding; `coverage_summary.json` will inform dashboards once automation lands.【F:scripts/quality_gates.py†L166-L193】
+- [ ] `pip-audit --strict` currently hangs in offline environments; wire resilient timeouts/offline datasets so dependency gates don't block local QA.【fce977†L1-L120】
+- [ ] Transition plan required for Frontier Apex gates so contributors have staged rollouts, sandbox dashboards, and GitHub Projects training before enforcement.
