@@ -29,9 +29,13 @@ export default defineConfig({
           autogenerate: { directory: "explanations" },
         },
       ],
-      social: {
-        github: "https://github.com/IAmJonoBo/IssueSuite",
-      },
+      social: [
+        {
+          icon: "github",
+          label: "GitHub",
+          href: "https://github.com/IAmJonoBo/IssueSuite",
+        },
+      ],
       editLink: {
         baseUrl: "https://github.com/IAmJonoBo/IssueSuite/tree/main/docs/starlight/src/content/docs",
       },
