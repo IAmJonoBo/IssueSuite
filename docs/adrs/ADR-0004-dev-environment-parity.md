@@ -1,7 +1,7 @@
 ---
 id: ADR-0004
 title: Development Environment Parity
-status: Proposed
+status: Accepted
 decision_date: 2025-10-09
 authors:
   - IssueSuite Maintainers
