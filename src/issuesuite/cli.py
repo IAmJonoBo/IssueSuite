@@ -32,13 +32,31 @@ from issuesuite.config import SuiteConfig
 from issuesuite.core import IssueSuite
 from issuesuite.dependency_audit import (
     Finding,
+    SuppressedFinding,
     collect_installed_packages,
     render_findings_table,
 )
-from issuesuite.dependency_audit import load_advisories as load_security_advisories
-from issuesuite.dependency_audit import perform_audit as run_dependency_audit
+from issuesuite.dependency_audit import (
+    apply_allowlist as apply_security_allowlist,
+)
+from issuesuite.dependency_audit import (
+    load_advisories as load_security_advisories,
+)
+from issuesuite.dependency_audit import (
+    load_allowlist as load_security_allowlist,
+)
+from issuesuite.dependency_audit import (
+    perform_audit as run_dependency_audit,
+)
 from issuesuite.env_auth import create_env_auth_manager
 from issuesuite.github_issues import IssuesClient, IssuesClientConfig
+from issuesuite.github_projects_sync import (
+    ProjectsSyncError,
+    sync_projects,
+)
+from issuesuite.github_projects_sync import (
+    build_config as build_projects_sync_config,
+)
 from issuesuite.observability import configure_telemetry
 from issuesuite.orchestrator import sync_with_summary
 from issuesuite.parser import render_issue_block
@@ -211,6 +229,84 @@ def _build_parser() -> argparse.ArgumentParser:
         dest="lookahead_days",
         type=int,
         help="Override the due-soon lookahead window (defaults to 7 days)",
+    )
+
+    psync = sub.add_parser(
+        "projects-sync",
+        help="Preview or apply GitHub Projects status updates and comments",
+    )
+    psync.add_argument("--config", default=CONFIG_DEFAULT)
+    psync.add_argument("--repo", help=REPO_HELP)
+    psync.add_argument(
+        "--next-steps",
+        dest="next_steps",
+        action="append",
+        type=Path,
+        help="Path to a Next Steps tracker (defaults to repository root files)",
+    )
+    psync.add_argument(
+        "--coverage",
+        dest="coverage",
+        type=Path,
+        help="Path to coverage_projects_payload.json (defaults to telemetry export)",
+    )
+    psync.add_argument("--project-owner")
+    psync.add_argument("--project-number", type=int)
+    psync.add_argument(
+        "--owner-type",
+        choices=("organization", "user"),
+        help="Project owner type (defaults to organization)",
+    )
+    psync.add_argument(
+        "--item-title",
+        help="Project item title to manage (defaults to IssueSuite Health)",
+    )
+    psync.add_argument(
+        "--status-field",
+        help="Project single-select field name for status updates",
+    )
+    psync.add_argument(
+        "--status-mapping",
+        action="append",
+        help="Map status keys to project option labels (repeat key=value entries)",
+    )
+    psync.add_argument(
+        "--coverage-field",
+        help="Project number field used for coverage percentage",
+    )
+    psync.add_argument(
+        "--summary-field",
+        help="Project text field to receive the status summary",
+    )
+    psync.add_argument(
+        "--comment-repo",
+        help="Target repository (owner/name) for posting the status comment",
+    )
+    psync.add_argument(
+        "--comment-issue",
+        type=int,
+        help="Issue or discussion number for posting the status comment",
+    )
+    psync.add_argument(
+        "--comment-output",
+        dest="comment_output",
+        type=Path,
+        help="Optional path for a rendered Markdown comment",
+    )
+    psync.add_argument(
+        "--lookahead-days",
+        dest="lookahead_days",
+        type=int,
+        help="Override the due-soon lookahead window (defaults to 7 days)",
+    )
+    psync.add_argument(
+        "--token",
+        help="Explicit GitHub token (falls back to ISSUESUITE_GITHUB_TOKEN/GITHUB_TOKEN)",
+    )
+    psync.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply updates instead of running a dry-run preview",
     )
 
     aictx = sub.add_parser("ai-context", help="Emit machine-readable context JSON for AI tooling")
@@ -816,7 +912,9 @@ def _maybe_refresh_offline_advisories(requested: bool) -> None:
 
 
 def _build_security_payload(
-    findings: Sequence[Finding], fallback_reason: str | None
+    findings: Sequence[Finding],
+    fallback_reason: str | None,
+    suppressed: Sequence[SuppressedFinding],
 ) -> dict[str, object]:
     return {
         "findings": [
@@ -831,6 +929,20 @@ def _build_security_payload(
             for finding in findings
         ],
         "fallback_reason": fallback_reason,
+        "allowlisted": [
+            {
+                "package": item.finding.package,
+                "installed_version": item.finding.installed_version,
+                "vulnerability_id": item.finding.vulnerability_id,
+                "reason": item.allowlisted.reason,
+                "expires": (
+                    item.allowlisted.expires.isoformat() if item.allowlisted.expires else None
+                ),
+                "owner": item.allowlisted.owner,
+                "reference": item.allowlisted.reference,
+            }
+            for item in suppressed
+        ],
     }
 
 
@@ -839,6 +951,25 @@ def _emit_security_table(findings: Sequence[Finding], fallback_reason: str | Non
     if fallback_reason:
         print(
             f"[security] Warning: online audit unavailable ({fallback_reason}).",
+            file=sys.stderr,
+        )
+
+
+def _emit_security_allowlist_summary(suppressed: Sequence[SuppressedFinding]) -> None:
+    if not suppressed:
+        return
+    print("[security] Allowlisted vulnerabilities detected:", file=sys.stderr)
+    for item in suppressed:
+        allow = item.allowlisted
+        parts = [allow.reason]
+        if allow.expires:
+            parts.append(f"expires {allow.expires.isoformat()}")
+        if allow.owner:
+            parts.append(f"owner {allow.owner}")
+        if allow.reference:
+            parts.append(str(allow.reference))
+        print(
+            f"  - {item.finding.package} {item.finding.vulnerability_id} ({'; '.join(parts)})",
             file=sys.stderr,
         )
 
@@ -888,15 +1019,22 @@ def _cmd_security(args: argparse.Namespace) -> int:
         online_probe=not args.offline_only,
         online_collector=collect_online_findings,
     )
-    output_payload = _build_security_payload(findings, fallback_reason)
+    allowlist = load_security_allowlist()
+    findings, suppressed = apply_security_allowlist(findings, allowlist)
+    output_payload = _build_security_payload(findings, fallback_reason, suppressed)
     if args.output_json:
         _write_security_json(Path(args.output_json), output_payload)
     else:
         _emit_security_table(findings, fallback_reason)
+        _emit_security_allowlist_summary(suppressed)
     exit_code = 0 if not findings else 1
     exit_code = _maybe_run_pip_audit(args, exit_code)
     args._plugin_payload = {
-        "security": {"findings": len(findings), "fallback_reason": fallback_reason}
+        "security": {
+            "findings": len(findings),
+            "fallback_reason": fallback_reason,
+            "allowlisted": len(suppressed),
+        }
     }
     return exit_code
 
@@ -936,6 +1074,130 @@ def _cmd_projects_status(args: argparse.Namespace) -> int:
             "open_count": tasks_payload.get("open_count"),
             "overdue_count": tasks_payload.get("overdue_count"),
             "due_soon_count": tasks_payload.get("due_soon_count"),
+        }
+    }
+    return 0
+
+
+def _resolve_project_owner(cfg: SuiteConfig | None, owner: str | None) -> str | None:
+    if owner:
+        return owner
+    if cfg and cfg.github_repo and "/" in cfg.github_repo:
+        return cfg.github_repo.split("/", 1)[0]
+    return None
+
+
+def _resolve_project_number(cfg: SuiteConfig | None, number: int | None) -> int | None:
+    if number is not None:
+        return number
+    if cfg and cfg.project_enable and cfg.project_number:
+        return cfg.project_number
+    return None
+
+
+def _resolve_field(cfg: SuiteConfig | None, override: str | None, key: str) -> str | None:
+    if override:
+        return override
+    if cfg:
+        value = cfg.project_field_mappings.get(key)
+        if value:
+            return value
+    return None
+
+
+def _resolve_comment_repo(cfg: SuiteConfig | None, repo: str | None) -> str | None:
+    if repo:
+        return repo
+    if cfg and cfg.github_repo:
+        return cfg.github_repo
+    return None
+
+
+def _resolve_token(args: argparse.Namespace) -> str | None:
+    token_arg = getattr(args, "token", None)
+    if isinstance(token_arg, str) and token_arg.strip():
+        return token_arg
+    for name in ("ISSUESUITE_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"):
+        token = os.environ.get(name)
+        if token and token.strip():
+            return token.strip()
+    return None
+
+
+def _cmd_projects_sync(cfg: SuiteConfig | None, args: argparse.Namespace) -> int:
+    field_status = _resolve_field(cfg, getattr(args, "status_field", None), "status")
+    field_coverage = _resolve_field(cfg, getattr(args, "coverage_field", None), "coverage")
+    field_summary = _resolve_field(cfg, getattr(args, "summary_field", None), "summary")
+    owner = _resolve_project_owner(cfg, getattr(args, "project_owner", None))
+    project_number = _resolve_project_number(cfg, getattr(args, "project_number", None))
+    owner_type = getattr(args, "owner_type", None) or ("organization" if owner else None)
+    comment_repo = _resolve_comment_repo(cfg, getattr(args, "comment_repo", None))
+    comment_issue = getattr(args, "comment_issue", None)
+    comment_output = getattr(args, "comment_output", None)
+    if isinstance(comment_output, Path):
+        _ensure_parent(comment_output)
+    coverage_path = getattr(args, "coverage", None)
+    next_steps_paths = getattr(args, "next_steps", None)
+    lookahead_days = getattr(args, "lookahead_days", None)
+    token = _resolve_token(args)
+
+    try:
+        sync_cfg = build_projects_sync_config(
+            owner=owner,
+            project_number=project_number,
+            owner_type=owner_type,
+            item_title=getattr(args, "item_title", None),
+            status_field=field_status,
+            status_mapping=getattr(args, "status_mapping", None),
+            coverage_field=field_coverage,
+            summary_field=field_summary,
+            comment_repo=comment_repo,
+            comment_issue=comment_issue,
+            token=token,
+        )
+        result = sync_projects(
+            config=sync_cfg,
+            next_steps_paths=next_steps_paths,
+            coverage_payload_path=coverage_path,
+            comment_output=comment_output,
+            lookahead_days=lookahead_days,
+            apply=getattr(args, "apply", False),
+        )
+    except ProjectsSyncError as exc:
+        print(f"[projects-sync] {exc}", file=sys.stderr)
+        return 1
+
+    comment = result.get("comment", "")
+    if comment and not getattr(args, "quiet", False):
+        print(comment, end="")
+
+    project_result = result.get("project", {}) or {}
+    comment_result = result.get("comment_result", {}) or {}
+    status_label = project_result.get("status_label") or project_result.get("status")
+    action = "applied update" if getattr(args, "apply", False) else "dry-run preview"
+    coverage_percent = project_result.get("coverage_percent")
+    coverage_msg = (
+        f", coverage={coverage_percent:.1f}%" if isinstance(coverage_percent, (int, float)) else ""
+    )
+    print(
+        f"[projects-sync] {action}: enabled={project_result.get('enabled')} updated={project_result.get('updated')}"
+        f", status={status_label or 'n/a'}{coverage_msg}",
+        file=sys.stderr,
+    )
+    if comment_result.get("enabled"):
+        print(
+            "[projects-sync] comment "
+            f"{'posted' if comment_result.get('updated') else 'dry-run preview'}: repo="
+            f"{comment_result.get('repo')} issue={comment_result.get('issue')} length={comment_result.get('length')}",
+            file=sys.stderr,
+        )
+
+    args._plugin_payload = {
+        "projects_sync": {
+            "applied": bool(project_result.get("updated")),
+            "project_enabled": bool(project_result.get("enabled")),
+            "comment_enabled": bool(comment_result.get("enabled")),
+            "status": status_label,
         }
     }
     return 0
@@ -1018,6 +1280,7 @@ def _build_handlers(args: argparse.Namespace, cfg: SuiteConfig | None) -> dict[s
         "doctor": lambda: _cmd_doctor(_require_cfg(cfg), args),
         "security": lambda: _cmd_security(args),
         "projects-status": lambda: _cmd_projects_status(args),
+        "projects-sync": lambda: _cmd_projects_sync(cfg, args),
         "init": lambda: _cmd_init(args),
         "upgrade": lambda: _cmd_upgrade(_require_cfg(cfg), args),
     }

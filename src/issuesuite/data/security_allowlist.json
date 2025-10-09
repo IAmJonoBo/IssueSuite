@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "generated": "2025-10-19T00:00:00Z",
+  "allow": [
+    {
+      "package": "pip",
+      "id": "GHSA-4xh5-x5gv-qwph",
+      "specifiers": "<=25.2",
+      "reason": "Awaiting upstream fix for pip's tar extraction symlink validation; CI runs inside ephemeral containers.",
+      "expires": "2025-11-30",
+      "owner": "Maintainers",
+      "reference": "https://github.com/advisories/GHSA-4xh5-x5gv-qwph"
+    }
+  ]
+}

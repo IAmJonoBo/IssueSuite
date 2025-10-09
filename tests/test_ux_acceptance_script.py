@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 from pathlib import Path
 from subprocess import CompletedProcess
-import sys
+from types import ModuleType
 
 import pytest
 
 
 @pytest.fixture(scope="module")
-def ux_acceptance_module():
+def ux_acceptance_module() -> ModuleType:
     script_path = Path(__file__).resolve().parents[1] / "scripts" / "ux_acceptance.py"
     spec = importlib.util.spec_from_file_location("ux_acceptance", script_path)
     if spec is None or spec.loader is None:  # pragma: no cover - defensive
@@ -22,11 +23,11 @@ def ux_acceptance_module():
 
 
 class DummyProcess(CompletedProcess[str]):
-    def __init__(self, stdout: str, returncode: int = 0):
+    def __init__(self, stdout: str, returncode: int = 0) -> None:
         super().__init__(args=["issuesuite"], returncode=returncode, stdout=stdout, stderr="")
 
 
-def test_run_checks_passes(tmp_path: Path, ux_acceptance_module) -> None:
+def test_run_checks_passes(tmp_path: Path, ux_acceptance_module: ModuleType) -> None:
     help_text = "Usage: issuesuite\n\nOptions:\n  --help  Show this message.\n"
     process = DummyProcess(stdout=help_text)
     report = ux_acceptance_module.run_checks(
@@ -39,7 +40,7 @@ def test_run_checks_passes(tmp_path: Path, ux_acceptance_module) -> None:
     assert payload["checks"][0]["status"] == "pass"
 
 
-def test_run_checks_detects_failures(tmp_path: Path, ux_acceptance_module) -> None:
+def test_run_checks_detects_failures(tmp_path: Path, ux_acceptance_module: ModuleType) -> None:
     long_line = "Usage: issuesuite " + "x" * 150
     process = DummyProcess(stdout=long_line)
     report = ux_acceptance_module.run_checks(
