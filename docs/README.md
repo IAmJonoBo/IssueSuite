@@ -3,7 +3,8 @@
 > **Note**
 > The canonical documentation lives in the [Astro Starlight workspace](starlight). The legacy Markdown tree has been retired to avoid divergence—browse the Starlight content directly when editing docs or run `nox -s docs` to build the site locally.
 
-Key entry points inside the workspace:
+Key entry points inside the workspace (run `scripts/refresh-deps.sh` or `nox -s lock`
+after Renovate/Dependabot updates to keep lockfiles in sync):
 
 - Tutorials: `docs/starlight/src/content/docs/tutorials/`
 - How-to guides: `docs/starlight/src/content/docs/how-to/`

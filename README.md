@@ -103,6 +103,7 @@ Run the consolidated quality gates locally with the bundled `nox` sessions:
 
 ```bash
 nox -s tests lint typecheck security secrets build
+nox -s lock  # refresh uv.lock and docs/starlight/package-lock.json
 ```
 
 Frontier Apex prototypes introduce two new harnesses you can run ad-hoc while we
@@ -134,6 +135,11 @@ git config core.hooksPath .githooks
 
 This looks for `.venv` (or `venv` / `.env`) under the repository root before
 falling back to a globally installed `pre-commit`.
+
+When dependency manifests change (for example, after Renovate bumps a package),
+run `scripts/refresh-deps.sh` (or `nox -s lock`) to regenerate `uv.lock` and the
+Starlight `package-lock.json`. Use `./scripts/refresh-deps.sh --check` in CI or
+pre-merge validation to ensure lockfiles remain current.
 
 When preparing release notes, use `scripts/update_changelog.py` to append a new entry without risking editor hangs caused by blocking file locks:
 

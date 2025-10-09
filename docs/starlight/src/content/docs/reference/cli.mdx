@@ -70,3 +70,8 @@ We plan to expose `issuesuite pipelines` to orchestrate multi-stage workflows, s
 :::
 
 See the [Configuration reference](./configuration) for YAML fields backing these behaviors.
+
+## Dependency management helpers
+
+- `./scripts/refresh-deps.sh` — regenerate `uv.lock` and the Starlight `package-lock.json` after Renovate or manual dependency bumps.
+- `nox -s lock` — run the same refresh workflow from a managed virtualenv (handy for CI or local automation).

@@ -56,3 +56,9 @@ def docs(session: nox.Session) -> None:
     session.run("npm", "install", external=True)
     session.run("npm", "run", "check", external=True)
     session.run("npm", "run", "build", external=True)
+
+
+@nox.session
+def lock(session: nox.Session) -> None:
+    """Regenerate lockfiles after dependency manifest changes."""
+    session.run("bash", "scripts/refresh-deps.sh", external=True)
