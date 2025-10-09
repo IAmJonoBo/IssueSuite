@@ -341,12 +341,24 @@ class GitHubAppTokenManager:
                 )
                 return self._generate_unsigned_jwt(payload)
 
-            signed_jwt = jwt.encode(
-                payload,
-                private_key,
-                algorithm="RS256",
-                headers={"typ": "JWT"},
-            )
+            try:
+                signed_jwt = jwt.encode(
+                    payload,
+                    private_key,
+                    algorithm="RS256",
+                    headers={"typ": "JWT"},
+                )
+            except Exception as exc:  # pragma: no cover - guarded below
+                if self._should_fallback_to_unsigned(exc):
+                    self.logger.warning(
+                        "PyJWT failed to sign key; falling back to unsigned JWT",
+                        app_id=self.config.app_id,
+                        error=str(exc),
+                        key_path=str(private_key_path),
+                    )
+                    return self._generate_unsigned_jwt(payload)
+                self.logger.log_error("Failed to generate JWT", error=str(exc))
+                return None
 
             if isinstance(signed_jwt, bytes):
                 signed_jwt = signed_jwt.decode("utf-8")
@@ -356,8 +368,33 @@ class GitHubAppTokenManager:
             return token_str
 
         except Exception as e:
+            if self._should_fallback_to_unsigned(e):
+                self.logger.warning(
+                    "Falling back to unsigned JWT placeholder after unexpected signing failure",
+                    app_id=self.config.app_id,
+                    error=str(e),
+                )
+                return self._generate_unsigned_jwt(payload)
             self.logger.log_error("Failed to generate JWT", error=str(e))
             return None
+
+    def _should_fallback_to_unsigned(self, exc: Exception) -> bool:
+        """Detect whether signing failed due to an invalid or unsupported key."""
+        if jwt is None:
+            return False
+
+        exceptions_module = getattr(jwt, "exceptions", None)
+        invalid_key_error = getattr(exceptions_module, "InvalidKeyError", None)
+        pyjwt_error = getattr(exceptions_module, "PyJWTError", None)
+
+        if invalid_key_error and isinstance(exc, invalid_key_error):
+            return True
+
+        if pyjwt_error and isinstance(exc, pyjwt_error):
+            message = str(exc).lower()
+            return "could not deserialize key" in message or "key format" in message
+
+        return isinstance(exc, (ValueError, binascii.Error))
 
     def _generate_unsigned_jwt(self, payload: dict[str, Any]) -> str:
         """Fallback unsigned JWT (legacy behaviour)."""
