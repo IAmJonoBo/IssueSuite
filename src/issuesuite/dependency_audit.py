@@ -227,13 +227,19 @@ def collect_installed_packages(
             meta_name = dist.metadata["Name"]
         except Exception:  # pragma: no cover - missing metadata edge cases
             meta_name = None
-        name = meta_name or getattr(dist, "name", "")
+        try:
+            name = meta_name or getattr(dist, "name", "")
+        except Exception:  # pragma: no cover - corrupted metadata
+            continue
         if not name:
             continue
         canonical = name.lower().replace("_", "-")
         if selected and canonical not in selected:
             continue
-        version_value = dist.version or "0"
+        try:
+            version_value = dist.version or "0"
+        except Exception:  # pragma: no cover - corrupted metadata
+            continue
         try:
             version = Version(version_value)
         except (

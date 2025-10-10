@@ -60,10 +60,10 @@ optional-dependencies.all = [
   "opentelemetry-exporter-otlp>=1.25",
   "opentelemetry-sdk>=1.25",
   "psutil>=7.1",
-  "pyjwt>=2.9,<3",
+  "pyjwt[crypto]>=2.9,<3",
   "python-dotenv>=1",
 ]
-optional-dependencies.auth = [ "keyring>=25,<26", "pyjwt>=2.9,<3" ]
+optional-dependencies.auth = [ "keyring>=25,<26", "pyjwt[crypto]>=2.9,<3" ]
 optional-dependencies.dev = [
   "bandit>=1.8",
   "build>=1",

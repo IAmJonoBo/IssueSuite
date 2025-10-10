@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -177,7 +178,7 @@ def test_doctor_command_includes_parity_checks(tmp_path):
 
     # Run doctor command
     result = subprocess.run(
-        ["python", "-m", "issuesuite", "doctor", "--config", str(config)],
+        [sys.executable, "-m", "issuesuite", "doctor", "--config", str(config)],
         check=False,
         capture_output=True,
         text=True,
