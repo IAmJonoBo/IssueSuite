@@ -88,7 +88,8 @@ def test_cli_summary_export_schema_validate_sync(tmp_path: Path) -> None:
         env,
     )
     assert rc == 0, out
-    assert "Total: 2" in out
+    # Accept either old or new format
+    assert "Total: 2" in out or "Issue Summary (2 total)" in out
 
     # export
     export_path = tmp_path / "out.json"

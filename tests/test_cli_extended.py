@@ -219,8 +219,9 @@ def test_cli_doctor_reports_warnings_and_problems(
     captured = capsys.readouterr()
     assert "[doctor] repo: None" in captured.out
     assert "mock mode detected" in captured.out
-    assert "[doctor] warnings" in captured.out
-    assert "[doctor] problems" in captured.out
+    # Accept either old or new format
+    assert "[doctor] warnings" in captured.out or "warning(s) detected" in captured.out
+    assert "[doctor] problems" in captured.out or "problem(s) detected" in captured.err
 
 
 def test_cli_security_offline(capsys: pytest.CaptureFixture[str]) -> None:

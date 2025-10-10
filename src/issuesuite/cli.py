@@ -406,6 +406,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _cmd_export(cfg: SuiteConfig, args: argparse.Namespace) -> int:
+    from .ux import print_success  # noqa: PLC0415
+
     suite = IssueSuite(cfg)
     specs = suite.parse()
     data: list[dict[str, object]] = [
@@ -424,21 +426,47 @@ def _cmd_export(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     out_path.write_text(
         json.dumps(data, indent=2 if args.pretty else None) + ("\n" if args.pretty else "")
     )
-    print(f"[export] {len(data)} issues -> {out_path}")
+
+    if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+        print_success(f"Exported {len(data)} issues to {out_path}")
+    else:
+        print(f"[export] {len(data)} issues -> {out_path}")
+
     return 0
 
 
 def _cmd_summary(cfg: SuiteConfig, args: argparse.Namespace) -> int:
+    from .ux import Colors, colorize, print_header  # noqa: PLC0415
+
     suite = IssueSuite(cfg)
     specs = suite.parse()
-    print(f"Total: {len(specs)}")
+
+    if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+        print_header(f"Issue Summary ({len(specs)} total)")
+    else:
+        print(f"Total: {len(specs)}")
+
     if os.environ.get("ISSUESUITE_AI_MODE") == "1":
         # Include both hyphen and underscore style tokens so tests / tools can detect reliably
         print("[ai-mode] ai_mode=1 dry_run=True (forced)")
+
     for s in specs[: args.limit]:
-        print(f"  {s.external_id} {s.hash} {s.title[:70]}")
+        if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+            slug = colorize(s.external_id, Colors.CYAN, bold=True)
+            hash_str = colorize(s.hash[:8] if s.hash else "", Colors.DIM)
+            title = s.title[:70]
+            print(f"  {slug} {hash_str} {title}")
+        else:
+            print(f"  {s.external_id} {s.hash} {s.title[:70]}")
+
     if len(specs) > args.limit:
-        print(f"  ... ({len(specs) - args.limit} more)")
+        remaining = len(specs) - args.limit
+        if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+            msg = colorize(f"... ({remaining} more)", Colors.DIM)
+            print(f"  {msg}")
+        else:
+            print(f"  ... ({remaining} more)")
+
     return 0
 
 
@@ -471,8 +499,16 @@ def _apply_update_alias(args: argparse.Namespace) -> None:
 
 
 def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
+    from .ux import print_operation_status, print_summary_box  # noqa: PLC0415
+
     _apply_update_alias(args)
     plan_path = _resolve_plan_path(cfg, args)
+
+    # Show operation start
+    if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+        mode = "DRY RUN" if args.dry_run else ("READ-ONLY" if not args.update else "LIVE")
+        print_operation_status("sync", "starting", f"mode={mode}")
+
     summary = sync_with_summary(
         cfg,
         dry_run=args.dry_run,
@@ -484,32 +520,61 @@ def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     )
     totals = summary.get("totals") if isinstance(summary, dict) else None
     if isinstance(totals, dict):
-        print("[sync] totals", json.dumps(totals))
+        # Enhanced summary output
+        if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+            items = [
+                ("Parsed specs", totals.get("parsed", 0)),
+                ("Created", totals.get("created", 0)),
+                ("Updated", totals.get("updated", 0)),
+                ("Closed", totals.get("closed", 0)),
+                ("Unchanged", totals.get("unchanged", 0)),
+            ]
+            print_summary_box("Sync Summary", items)
+        else:
+            # Compact output for quiet mode or scripts
+            print("[sync] totals", json.dumps(totals))
+
     _write_plan_json(plan_path, summary)
     args._plugin_payload = {"summary": summary}
+
+    if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+        print_operation_status("sync", "completed")
+
     return 0
 
 
 def _cmd_schema(cfg: SuiteConfig, args: argparse.Namespace) -> int:
+    from .ux import print_error, print_success  # noqa: PLC0415
+
     schemas = get_schemas()
     if args.stdout:
         print(json.dumps(schemas, indent=2))
         return 0
     try:
+        files_written = []
+
         Path(cfg.schema_export_file).write_text(json.dumps(schemas["export"], indent=2) + "\n")
+        files_written.append(cfg.schema_export_file)
+
         Path(cfg.schema_summary_file).write_text(json.dumps(schemas["summary"], indent=2) + "\n")
+        files_written.append(cfg.schema_summary_file)
+
         if "ai_context" in schemas and getattr(cfg, "schema_ai_context_file", None):
             Path(cfg.schema_ai_context_file).write_text(
                 json.dumps(schemas["ai_context"], indent=2) + "\n"
             )
-            print(
-                f"[schema] wrote {cfg.schema_export_file}, {cfg.schema_summary_file}, {cfg.schema_ai_context_file}"
-            )
+            files_written.append(cfg.schema_ai_context_file)
+
+        if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+            print_success(f"Generated {len(files_written)} schema file(s)")
+            for f in files_written:
+                print(f"  • {f}")
         else:
-            print(f"[schema] wrote {cfg.schema_export_file}, {cfg.schema_summary_file}")
+            print(f"[schema] wrote {', '.join(files_written)}")
+
         return 0
     except Exception as e:  # pragma: no cover - rare filesystem error
-        print(f"[schema] ERROR: {e}", file=sys.stderr)
+        print_error(f"Failed to write schemas: {e}")
         return 2
 
 
@@ -959,16 +1024,24 @@ def _doctor_issue_list(repo: str | None, mock: bool, problems: list[str]) -> Non
 
 
 def _doctor_emit_results(warnings: list[str], problems: list[str]) -> int:
+    from .ux import print_error, print_success, print_warning  # noqa: PLC0415
+
     if warnings:
-        print("[doctor] warnings:")
+        print_warning(f"{len(warnings)} warning(s) detected:")
         for w in warnings:
-            print(f"  - {w}")
+            print(f"  • {w}")
+
     if problems:
-        print("[doctor] problems:")
+        print_error(f"{len(problems)} problem(s) detected:")
         for p in problems:
-            print(f"  - {p}")
+            print(f"  • {p}")
         return 2
-    print("[doctor] ok")
+
+    if not warnings:
+        print_success("All checks passed!")
+    else:
+        print_warning("Completed with warnings (see above)")
+
     return 0
 
 
