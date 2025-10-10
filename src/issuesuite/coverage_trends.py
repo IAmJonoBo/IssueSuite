@@ -53,9 +53,7 @@ def _load_summary(summary_path: Path) -> dict[str, Any]:
         raise CoverageTrendError(f"coverage summary not found: {summary_path}")
     try:
         data = json.loads(summary_path.read_text(encoding="utf-8"))
-    except (
-        json.JSONDecodeError
-    ) as exc:  # pragma: no cover - invalid file surface to caller
+    except json.JSONDecodeError as exc:  # pragma: no cover - invalid file surface to caller
         raise CoverageTrendError(f"invalid coverage summary: {exc}") from exc
     if not isinstance(data, dict):
         raise CoverageTrendError("coverage summary must be a JSON object")
@@ -70,9 +68,7 @@ def _load_history(history_path: Path) -> list[dict[str, Any]]:
         return []
     try:
         data = json.loads(text)
-    except (
-        json.JSONDecodeError
-    ) as exc:  # pragma: no cover - invalid file surface to caller
+    except json.JSONDecodeError as exc:  # pragma: no cover - invalid file surface to caller
         raise CoverageTrendError(f"invalid coverage trend history: {exc}") from exc
     if not isinstance(data, list):
         raise CoverageTrendError("coverage trend history must be a list")
@@ -144,9 +140,7 @@ def build_trend_entry(
         threshold = _to_float(module_payload.get("threshold"))
         meets_threshold = bool(module_payload.get("meets_threshold", False))
         previous_entry = previous_map.get(module_name)
-        delta = _compute_delta(
-            coverage, previous_entry.coverage if previous_entry else None
-        )
+        delta = _compute_delta(coverage, previous_entry.coverage if previous_entry else None)
         trend = "steady"
         if delta is not None:
             if delta > 0:
@@ -245,9 +239,7 @@ def export_trends(
     history = _load_history(history_path)
     previous = history[-1] if history else None
     timestamp = now or datetime.now(tz=timezone.utc)
-    entry = build_trend_entry(
-        summary, recorded_at=timestamp, target=target, previous=previous
-    )
+    entry = build_trend_entry(summary, recorded_at=timestamp, target=target, previous=previous)
 
     history.append(entry)
     if max_records > 0 and len(history) > max_records:
@@ -257,9 +249,7 @@ def export_trends(
     snapshot_path.write_text(json.dumps(entry, indent=2) + "\n", encoding="utf-8")
 
     project_payload = _build_project_payload(entry)
-    project_payload_path.write_text(
-        json.dumps(project_payload, indent=2) + "\n", encoding="utf-8"
-    )
+    project_payload_path.write_text(json.dumps(project_payload, indent=2) + "\n", encoding="utf-8")
     return entry
 
 

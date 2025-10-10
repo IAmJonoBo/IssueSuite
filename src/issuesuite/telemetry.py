@@ -34,19 +34,13 @@ def _environment_store_path(default_path: Path) -> Path:
         return default_path
     override_path = Path(override)
     return (
-        override_path
-        if override_path.is_absolute()
-        else default_path.with_name(override_path.name)
+        override_path if override_path.is_absolute() else default_path.with_name(override_path.name)
     )
 
 
 def resolve_config(cfg: SuiteConfig | None) -> TelemetryConfig:
     env_override = _environment_enabled()
-    enabled = (
-        env_override
-        if env_override is not None
-        else bool(cfg and cfg.telemetry_enabled)
-    )
+    enabled = env_override if env_override is not None else bool(cfg and cfg.telemetry_enabled)
     base_path = (
         Path(cfg.telemetry_store_path)
         if cfg and cfg.telemetry_store_path

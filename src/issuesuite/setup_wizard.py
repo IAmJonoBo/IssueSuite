@@ -180,9 +180,7 @@ def _coverage_check(base: Path) -> tuple[GuidedCheck, list[str]]:
             ["pytest --cov=issuesuite --cov-report=term --cov-report=xml"],
         )
     summary_name, overall, failing = coverage_summary
-    status = (
-        CheckStatus.READY if overall and overall >= DEFAULT_TARGET else CheckStatus.INFO
-    )
+    status = CheckStatus.READY if overall and overall >= DEFAULT_TARGET else CheckStatus.INFO
     message = f"{summary_name} reports {_format_percentage(overall)} coverage"
     if failing:
         message += f"; modules below threshold: {', '.join(failing)}"
@@ -223,9 +221,7 @@ def build_guided_plan(auth_manager: object, *, root: Path | None = None) -> Guid
 
     token_status = "✓ Found" if token else "✗ Missing"
     app_ready = (
-        all(bool(value) for value in app_cfg.values())
-        if isinstance(app_cfg, dict)
-        else False
+        all(bool(value) for value in app_cfg.values()) if isinstance(app_cfg, dict) else False
     )
     app_status = "✓ Configured" if app_ready else "✗ Incomplete"
 

@@ -67,16 +67,10 @@ def classify_error(exc: BaseException) -> ErrorInfo:
     low = msg.lower()
 
     if "rate limit" in low or "secondary rate" in low:
-        return ErrorInfo(
-            "github.rate_limit", redact(msg), exc.__class__.__name__, transient=True
-        )
+        return ErrorInfo("github.rate_limit", redact(msg), exc.__class__.__name__, transient=True)
     if "abuse" in low:
-        return ErrorInfo(
-            "github.abuse", redact(msg), exc.__class__.__name__, transient=True
-        )
-    if any(
-        k in low for k in ("timeout", "connection reset", "temporarily unavailable")
-    ):
+        return ErrorInfo("github.abuse", redact(msg), exc.__class__.__name__, transient=True)
+    if any(k in low for k in ("timeout", "connection reset", "temporarily unavailable")):
         return ErrorInfo("network", redact(msg), exc.__class__.__name__, transient=True)
     if any(k in low for k in ("yaml", "scannererror", "parsererror")):
         return ErrorInfo("parse", redact(msg), exc.__class__.__name__)

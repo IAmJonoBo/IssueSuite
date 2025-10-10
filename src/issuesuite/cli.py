@@ -33,26 +33,20 @@ from issuesuite.core import IssueSuite
 from issuesuite.dependency_audit import (
     Finding,
     SuppressedFinding,
+    collect_installed_packages,
+    render_findings_table,
 )
 from issuesuite.dependency_audit import apply_allowlist as apply_security_allowlist
-from issuesuite.dependency_audit import (
-    collect_installed_packages,
-)
 from issuesuite.dependency_audit import load_advisories as load_security_advisories
 from issuesuite.dependency_audit import load_allowlist as load_security_allowlist
 from issuesuite.dependency_audit import perform_audit as run_dependency_audit
-from issuesuite.dependency_audit import (
-    render_findings_table,
-)
 from issuesuite.env_auth import create_env_auth_manager
 from issuesuite.github_issues import IssuesClient, IssuesClientConfig
 from issuesuite.github_projects_sync import (
     ProjectsSyncError,
-)
-from issuesuite.github_projects_sync import build_config as build_projects_sync_config
-from issuesuite.github_projects_sync import (
     sync_projects,
 )
+from issuesuite.github_projects_sync import build_config as build_projects_sync_config
 from issuesuite.observability import configure_telemetry
 from issuesuite.orchestrator import sync_with_summary
 from issuesuite.parser import render_issue_block
@@ -113,9 +107,7 @@ def _build_parser() -> argparse.ArgumentParser:
     ps.add_argument("--config", default=CONFIG_DEFAULT)
     ps.add_argument("--repo", help=REPO_HELP)
     ps.add_argument("--update", action="store_true")
-    ps.add_argument(
-        "--apply", action="store_true", help="Alias for --update (creates/updates)"
-    )
+    ps.add_argument("--apply", action="store_true", help="Alias for --update (creates/updates)")
     ps.add_argument("--dry-run", action="store_true")
     ps.add_argument("--respect-status", action="store_true")
     ps.add_argument("--preflight", action="store_true")
@@ -129,9 +121,7 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Close issues not present in specs (removed)",
     )
-    ps.add_argument(
-        "--project-owner", help="Override project owner (for future GraphQL)"
-    )
+    ps.add_argument("--project-owner", help="Override project owner (for future GraphQL)")
     ps.add_argument("--project-number", type=int, help="Override project number")
 
     pe = sub.add_parser("export", help="Export issues to JSON")
@@ -153,13 +143,9 @@ def _build_parser() -> argparse.ArgumentParser:
         default="ISSUES.import.md",
         help="Output markdown file (default: ISSUES.import.md)",
     )
-    imp.add_argument(
-        "--limit", type=int, default=500, help="Max issues to import (default 500)"
-    )
+    imp.add_argument("--limit", type=int, default=500, help="Max issues to import (default 500)")
 
-    rec = sub.add_parser(
-        "reconcile", help="Detect drift between local specs and live issues"
-    )
+    rec = sub.add_parser("reconcile", help="Detect drift between local specs and live issues")
     rec.add_argument("--config", default=CONFIG_DEFAULT)
     rec.add_argument("--repo", help=REPO_HELP)
     rec.add_argument(
@@ -173,16 +159,10 @@ def _build_parser() -> argparse.ArgumentParser:
     doc.add_argument("--config", default=CONFIG_DEFAULT)
     doc.add_argument("--repo", help=REPO_HELP)
 
-    sec = sub.add_parser(
-        "security", help="Audit dependencies with offline-aware fallback"
-    )
+    sec = sub.add_parser("security", help="Audit dependencies with offline-aware fallback")
     sec.add_argument("--config", default=CONFIG_DEFAULT)
-    sec.add_argument(
-        "--offline-only", action="store_true", help="Skip the live pip-audit probe"
-    )
-    sec.add_argument(
-        "--output-json", type=Path, help="Write findings JSON to the given path"
-    )
+    sec.add_argument("--offline-only", action="store_true", help="Skip the live pip-audit probe")
+    sec.add_argument("--output-json", type=Path, help="Write findings JSON to the given path")
     sec.add_argument(
         "--refresh-offline",
         action="store_true",
@@ -202,9 +182,7 @@ def _build_parser() -> argparse.ArgumentParser:
     sec.add_argument(
         "--pip-audit-disable-online",
         action="store_true",
-        help=(
-            "Disable online pip-audit checks for this run (scoped to the subprocess)"
-        ),
+        help=("Disable online pip-audit checks for this run (scoped to the subprocess)"),
     )
 
     proj = sub.add_parser(
@@ -324,9 +302,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Apply updates instead of running a dry-run preview",
     )
 
-    aictx = sub.add_parser(
-        "ai-context", help="Emit machine-readable context JSON for AI tooling"
-    )
+    aictx = sub.add_parser("ai-context", help="Emit machine-readable context JSON for AI tooling")
     aictx.add_argument("--config", default=CONFIG_DEFAULT)
     aictx.add_argument("--repo", help=REPO_HELP)
     aictx.add_argument("--output", help="Output file (defaults to stdout)")
@@ -351,12 +327,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Apply agent completion summaries to ISSUES.md and optional docs, then sync",
     )
     au.add_argument("--config", default=CONFIG_DEFAULT)
-    au.add_argument(
-        "--updates-json", help="Path to JSON file with agent updates (default: stdin)"
-    )
-    au.add_argument(
-        "--apply", action="store_true", help="Perform GitHub mutations (sync apply)"
-    )
+    au.add_argument("--updates-json", help="Path to JSON file with agent updates (default: stdin)")
+    au.add_argument("--apply", action="store_true", help="Perform GitHub mutations (sync apply)")
     au.add_argument(
         "--no-sync",
         action="store_true",
@@ -390,15 +362,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
 
     setup = sub.add_parser("setup", help="Setup authentication and VS Code integration")
-    setup.add_argument(
-        "--create-env", action="store_true", help="Create sample .env file"
-    )
-    setup.add_argument(
-        "--check-auth", action="store_true", help="Check authentication status"
-    )
-    setup.add_argument(
-        "--vscode", action="store_true", help="Setup VS Code integration files"
-    )
+    setup.add_argument("--create-env", action="store_true", help="Create sample .env file")
+    setup.add_argument("--check-auth", action="store_true", help="Check authentication status")
+    setup.add_argument("--vscode", action="store_true", help="Setup VS Code integration files")
     setup.add_argument("--config", default=CONFIG_DEFAULT)
     setup.add_argument(
         "--guided",
@@ -407,9 +373,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
 
     init = sub.add_parser("init", help="Scaffold IssueSuite config and specs")
-    init.add_argument(
-        "--directory", default=".", help="Target directory for generated files"
-    )
+    init.add_argument("--directory", default=".", help="Target directory for generated files")
     init.add_argument(
         "--config-name",
         default="issue_suite.config.yaml",
@@ -420,9 +384,7 @@ def _build_parser() -> argparse.ArgumentParser:
         default="ISSUES.md",
         help="Issues specification filename (default: ISSUES.md)",
     )
-    init.add_argument(
-        "--force", action="store_true", help="Overwrite files if they already exist"
-    )
+    init.add_argument("--force", action="store_true", help="Overwrite files if they already exist")
     init.add_argument(
         "--include",
         choices=["workflow", "vscode", "gitignore"],
@@ -436,9 +398,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Include workflow, VS Code tasks, and gitignore entries",
     )
 
-    upgrade = sub.add_parser(
-        "upgrade", help="Check config for recommended IssueSuite updates"
-    )
+    upgrade = sub.add_parser("upgrade", help="Check config for recommended IssueSuite updates")
     upgrade.add_argument("--config", default=CONFIG_DEFAULT)
     upgrade.add_argument("--json", action="store_true")
 
@@ -462,8 +422,7 @@ def _cmd_export(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     ]
     out_path = Path(args.output or cfg.export_json)
     out_path.write_text(
-        json.dumps(data, indent=2 if args.pretty else None)
-        + ("\n" if args.pretty else "")
+        json.dumps(data, indent=2 if args.pretty else None) + ("\n" if args.pretty else "")
     )
     print(f"[export] {len(data)} issues -> {out_path}")
     return 0
@@ -537,12 +496,8 @@ def _cmd_schema(cfg: SuiteConfig, args: argparse.Namespace) -> int:
         print(json.dumps(schemas, indent=2))
         return 0
     try:
-        Path(cfg.schema_export_file).write_text(
-            json.dumps(schemas["export"], indent=2) + "\n"
-        )
-        Path(cfg.schema_summary_file).write_text(
-            json.dumps(schemas["summary"], indent=2) + "\n"
-        )
+        Path(cfg.schema_export_file).write_text(json.dumps(schemas["export"], indent=2) + "\n")
+        Path(cfg.schema_summary_file).write_text(json.dumps(schemas["summary"], indent=2) + "\n")
         if "ai_context" in schemas and getattr(cfg, "schema_ai_context_file", None):
             Path(cfg.schema_ai_context_file).write_text(
                 json.dumps(schemas["ai_context"], indent=2) + "\n"
@@ -745,9 +700,7 @@ def _cmd_agent_apply(cfg: SuiteConfig, args: argparse.Namespace) -> int:
         return 2
 
     changed_files = result.get("changed_files", []) if isinstance(result, dict) else []
-    print(
-        f"[agent-apply] updated files: {', '.join(changed_files) if changed_files else 'none'}"
-    )
+    print(f"[agent-apply] updated files: {', '.join(changed_files) if changed_files else 'none'}")
 
     # Optionally run sync
     if not args.no_sync:
@@ -794,9 +747,7 @@ def _extract_issue_fields(
                 labels_raw.append(name)
     ms = it.get("milestone")
     milestone_title = (
-        ms.get("title")
-        if isinstance(ms, dict) and isinstance(ms.get("title"), str)
-        else None
+        ms.get("title") if isinstance(ms, dict) and isinstance(ms.get("title"), str) else None
     )
     state_val = str(it.get("state") or "").lower()
     status = state_val if state_val in {"open", "closed"} else None
@@ -812,9 +763,7 @@ def _render_issue_block(
     status: str | None,
 ) -> list[str]:
     # Preserve import-time trimming but use shared renderer for formatting
-    trimmed = re.sub(r"<!--\s*issuesuite:slug=[^>]+-->\s*", "", body)[:400].replace(
-        "```", "`\n`"
-    )
+    trimmed = re.sub(r"<!--\s*issuesuite:slug=[^>]+-->\s*", "", body)[:400].replace("```", "`\n`")
     if trimmed and not trimmed.endswith("\n"):
         trimmed += "\n"
     return render_issue_block(
@@ -852,9 +801,7 @@ def _cmd_import(cfg: SuiteConfig, args: argparse.Namespace) -> int:
             slug = f"{base}-{idx}"
             idx += 1
         seen_slugs.add(slug)
-        lines.extend(
-            _render_issue_block(slug, title, body, labels_list, milestone_title, status)
-        )
+        lines.extend(_render_issue_block(slug, title, body, labels_list, milestone_title, status))
         count += 1
     out_path = Path(args.output)
     out_path.write_text("\n".join(lines).rstrip() + "\n")
@@ -904,11 +851,11 @@ def _doctor_token_check(warnings: list[str]) -> None:
 
 def _doctor_tool_version_check(warnings: list[str]) -> None:
     """Check if development tools are available (ADR-0004)."""
-    import subprocess
-    
+    import subprocess  # noqa: PLC0415
+
     tools = ["ruff", "mypy", "pytest", "nox"]
     missing_tools = []
-    
+
     for tool in tools:
         try:
             result = subprocess.run(
@@ -925,7 +872,7 @@ def _doctor_tool_version_check(warnings: list[str]) -> None:
                 print(f"[doctor] {tool}: available but version check failed")
         except (FileNotFoundError, subprocess.TimeoutExpired):
             missing_tools.append(tool)
-    
+
     if missing_tools:
         warnings.append(
             f"Development tools not found: {', '.join(missing_tools)} "
@@ -935,8 +882,8 @@ def _doctor_tool_version_check(warnings: list[str]) -> None:
 
 def _doctor_lockfile_check(warnings: list[str]) -> None:
     """Check if lockfiles are synchronized (ADR-0004)."""
-    import subprocess
-    
+    import subprocess  # noqa: PLC0415
+
     # Find project root by looking for pyproject.toml
     current = Path.cwd()
     project_root = current
@@ -944,12 +891,12 @@ def _doctor_lockfile_check(warnings: list[str]) -> None:
         if (parent / "pyproject.toml").exists():
             project_root = parent
             break
-    
+
     refresh_script = project_root / "scripts" / "refresh-deps.sh"
     if not refresh_script.exists():
         print("[doctor] lockfile check: refresh-deps.sh not found, skipping")
         return
-    
+
     try:
         result = subprocess.run(
             [str(refresh_script), "--check"],
@@ -961,17 +908,15 @@ def _doctor_lockfile_check(warnings: list[str]) -> None:
         if result.returncode == 0:
             print("[doctor] lockfiles: synchronized")
         else:
-            warnings.append(
-                "Lockfiles out of sync with manifests (run: ./scripts/refresh-deps.sh)"
-            )
+            warnings.append("Lockfiles out of sync with manifests (run: ./scripts/refresh-deps.sh)")
     except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
         print(f"[doctor] lockfile check failed: {exc}")
 
 
 def _doctor_git_hooks_check(warnings: list[str]) -> None:
     """Check if Git hooks are configured (ADR-0004)."""
-    import subprocess
-    
+    import subprocess  # noqa: PLC0415
+
     try:
         result = subprocess.run(
             ["git", "config", "core.hooksPath"],
@@ -985,13 +930,10 @@ def _doctor_git_hooks_check(warnings: list[str]) -> None:
             # Accept both relative and absolute paths ending in .githooks
             if not hooks_path.endswith(".githooks"):
                 warnings.append(
-                    "Git hooks not configured correctly "
-                    "(run: ./scripts/setup-dev-env.sh)"
+                    "Git hooks not configured correctly (run: ./scripts/setup-dev-env.sh)"
                 )
         else:
-            warnings.append(
-                "Git hooks not configured (run: ./scripts/setup-dev-env.sh)"
-            )
+            warnings.append("Git hooks not configured (run: ./scripts/setup-dev-env.sh)")
     except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
         print(f"[doctor] git hooks check failed: {exc}")
 
@@ -1009,9 +951,7 @@ def _doctor_env_flags() -> tuple[bool, bool]:
 def _doctor_issue_list(repo: str | None, mock: bool, problems: list[str]) -> None:
     if repo and not mock:
         try:
-            client = IssuesClient(
-                IssuesClientConfig(repo=repo, dry_run=False, mock=False)
-            )
+            client = IssuesClient(IssuesClientConfig(repo=repo, dry_run=False, mock=False))
             issues = client.list_existing()
             print(f"[doctor] list_existing ok: fetched {len(issues)} issues")
         except Exception as exc:  # pragma: no cover - external env dependent
@@ -1041,13 +981,13 @@ def _cmd_doctor(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     _doctor_token_check(warnings)
     mock, _ = _doctor_env_flags()
     _doctor_issue_list(repo, mock, problems)
-    
+
     # Environment parity checks (ADR-0004)
     print("[doctor] checking environment parity...")
     _doctor_tool_version_check(warnings)
     _doctor_lockfile_check(warnings)
     _doctor_git_hooks_check(warnings)
-    
+
     return _doctor_emit_results(warnings, problems)
 
 
@@ -1057,9 +997,7 @@ def _maybe_refresh_offline_advisories(requested: bool) -> None:
     try:
         refresh_advisories()
     except Exception as exc:  # pragma: no cover - network/OSV availability
-        print(
-            f"[security] Failed to refresh offline advisories: {exc}", file=sys.stderr
-        )
+        print(f"[security] Failed to refresh offline advisories: {exc}", file=sys.stderr)
 
 
 def _build_security_payload(
@@ -1087,9 +1025,7 @@ def _build_security_payload(
                 "vulnerability_id": item.finding.vulnerability_id,
                 "reason": item.allowlisted.reason,
                 "expires": (
-                    item.allowlisted.expires.isoformat()
-                    if item.allowlisted.expires
-                    else None
+                    item.allowlisted.expires.isoformat() if item.allowlisted.expires else None
                 ),
                 "owner": item.allowlisted.owner,
                 "reference": item.allowlisted.reference,
@@ -1099,9 +1035,7 @@ def _build_security_payload(
     }
 
 
-def _emit_security_table(
-    findings: Sequence[Finding], fallback_reason: str | None
-) -> None:
+def _emit_security_table(findings: Sequence[Finding], fallback_reason: str | None) -> None:
     print(render_findings_table(findings))
     if fallback_reason:
         print(
@@ -1130,9 +1064,7 @@ def _emit_security_allowlist_summary(suppressed: Sequence[SuppressedFinding]) ->
 
 
 def _write_security_json(path: Path, payload: dict[str, object]) -> None:
-    path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _maybe_run_pip_audit(args: argparse.Namespace, exit_code: int) -> int:
@@ -1224,9 +1156,7 @@ def _cmd_projects_status(args: argparse.Namespace) -> int:
     if not getattr(args, "quiet", False):
         print(comment, end="")
 
-    tasks_payload = (
-        serialized.get("tasks", {}) if isinstance(serialized.get("tasks"), dict) else {}
-    )
+    tasks_payload = serialized.get("tasks", {}) if isinstance(serialized.get("tasks"), dict) else {}
     args._plugin_payload = {
         "projects_status": {
             "status": serialized.get("status"),
@@ -1254,9 +1184,7 @@ def _resolve_project_number(cfg: SuiteConfig | None, number: int | None) -> int 
     return None
 
 
-def _resolve_field(
-    cfg: SuiteConfig | None, override: str | None, key: str
-) -> str | None:
+def _resolve_field(cfg: SuiteConfig | None, override: str | None, key: str) -> str | None:
     if override:
         return override
     if cfg:
@@ -1287,15 +1215,11 @@ def _resolve_token(args: argparse.Namespace) -> str | None:
 
 def _cmd_projects_sync(cfg: SuiteConfig | None, args: argparse.Namespace) -> int:
     field_status = _resolve_field(cfg, getattr(args, "status_field", None), "status")
-    field_coverage = _resolve_field(
-        cfg, getattr(args, "coverage_field", None), "coverage"
-    )
+    field_coverage = _resolve_field(cfg, getattr(args, "coverage_field", None), "coverage")
     field_summary = _resolve_field(cfg, getattr(args, "summary_field", None), "summary")
     owner = _resolve_project_owner(cfg, getattr(args, "project_owner", None))
     project_number = _resolve_project_number(cfg, getattr(args, "project_number", None))
-    owner_type = getattr(args, "owner_type", None) or (
-        "organization" if owner else None
-    )
+    owner_type = getattr(args, "owner_type", None) or ("organization" if owner else None)
     comment_repo = _resolve_comment_repo(cfg, getattr(args, "comment_repo", None))
     comment_issue = getattr(args, "comment_issue", None)
     comment_output = getattr(args, "comment_output", None)
@@ -1342,9 +1266,7 @@ def _cmd_projects_sync(cfg: SuiteConfig | None, args: argparse.Namespace) -> int
     action = "applied update" if getattr(args, "apply", False) else "dry-run preview"
     coverage_percent = project_result.get("coverage_percent")
     coverage_msg = (
-        f", coverage={coverage_percent:.1f}%"
-        if isinstance(coverage_percent, (int, float))
-        else ""
+        f", coverage={coverage_percent:.1f}%" if isinstance(coverage_percent, (int, float)) else ""
     )
     print(
         f"[projects-sync] {action}: enabled={project_result.get('enabled')} updated={project_result.get('updated')}"
@@ -1432,9 +1354,7 @@ def _require_cfg(cfg: SuiteConfig | None) -> SuiteConfig:
     return cfg
 
 
-def _build_handlers(
-    args: argparse.Namespace, cfg: SuiteConfig | None
-) -> dict[str, Any]:
+def _build_handlers(args: argparse.Namespace, cfg: SuiteConfig | None) -> dict[str, Any]:
     return {
         "export": lambda: _cmd_export(_require_cfg(cfg), args),
         "summary": lambda: _cmd_summary(_require_cfg(cfg), args),

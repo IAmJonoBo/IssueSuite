@@ -74,11 +74,7 @@ def _override_env(name: str, value: str) -> Iterator[None]:
 def generate_ci_reference_report(output_path: str | Path | None = None) -> Path:
     """Generate a deterministic performance report suitable for CI gates."""
 
-    target = (
-        Path(output_path)
-        if output_path is not None
-        else Path("performance_report.json")
-    )
+    target = Path(output_path) if output_path is not None else Path("performance_report.json")
     target.parent.mkdir(parents=True, exist_ok=True)
 
     with TemporaryDirectory() as tmpdir, _override_env("ISSUES_SUITE_MOCK", "1"):

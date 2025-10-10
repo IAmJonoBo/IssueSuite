@@ -78,9 +78,7 @@ def test_sync_with_benchmarking_enabled(monkeypatch, tmp_path):
     assert suite._benchmark_config.enabled is True
 
     # Run sync - should collect performance metrics
-    summary = suite.sync(
-        dry_run=True, update=False, respect_status=False, preflight=False
-    )
+    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should complete successfully
     assert summary["totals"]["specs"] == 2
@@ -121,9 +119,7 @@ def test_sync_with_benchmarking_disabled(monkeypatch, tmp_path):
     assert suite._benchmark_config.enabled is False
 
     # Run sync - should not collect performance metrics
-    summary = suite.sync(
-        dry_run=True, update=False, respect_status=False, preflight=False
-    )
+    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should complete successfully
     assert summary["totals"]["specs"] == 2
@@ -188,9 +184,7 @@ def test_performance_metrics_collection(monkeypatch, tmp_path):
     suite = IssueSuite(cfg)
 
     # Run sync
-    summary = suite.sync(
-        dry_run=True, update=False, respect_status=False, preflight=False
-    )
+    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Get collected metrics
     metrics = suite._benchmark.get_metrics()
@@ -229,9 +223,7 @@ def test_benchmarking_with_preflight(monkeypatch, tmp_path):
     suite = IssueSuite(cfg)
 
     # Run sync with preflight
-    summary = suite.sync(
-        dry_run=True, update=False, respect_status=False, preflight=True
-    )
+    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=True)
 
     # Should include preflight metrics
     metrics = suite._benchmark.get_metrics()
@@ -299,7 +291,5 @@ def test_benchmarking_error_handling(monkeypatch, tmp_path, capsys):
     # Should log error but continue working
     captured = capsys.readouterr()
     # Error handling is internal, sync should still work
-    summary = suite.sync(
-        dry_run=True, update=False, respect_status=False, preflight=False
-    )
+    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
     assert summary["totals"]["specs"] == 2

@@ -151,8 +151,7 @@ def _load_next_steps(paths: Sequence[Path] | None = None) -> str:
         if path.exists():
             return path.read_text(encoding="utf-8")
     raise ProjectsStatusError(
-        "No Next Steps file found; expected one of: "
-        + ", ".join(str(p) for p in DEFAULT_FILES)
+        "No Next Steps file found; expected one of: " + ", ".join(str(p) for p in DEFAULT_FILES)
     )
 
 
@@ -162,22 +161,16 @@ def load_coverage_payload(path: Path | None = None) -> dict[str, Any] | None:
         return None
     try:
         data = json.loads(payload_path.read_text(encoding="utf-8"))
-    except (
-        json.JSONDecodeError
-    ) as exc:  # pragma: no cover - invalid file surfaces to caller
+    except json.JSONDecodeError as exc:  # pragma: no cover - invalid file surfaces to caller
         raise ProjectsStatusError(f"Invalid coverage payload: {exc}") from exc
     if not isinstance(data, dict):
         raise ProjectsStatusError("Coverage payload must be a JSON object")
     return data
 
 
-def combine_status(
-    coverage: dict[str, Any] | None, summary: dict[str, Any]
-) -> dict[str, Any]:
+def combine_status(coverage: dict[str, Any] | None, summary: dict[str, Any]) -> dict[str, Any]:
     base_status = "on_track"
-    coverage_message = (
-        "Coverage data unavailable; run scripts/coverage_trends.py before reporting."
-    )
+    coverage_message = "Coverage data unavailable; run scripts/coverage_trends.py before reporting."
     emoji_map = {"on_track": "✅", "at_risk": "⚠️", "off_track": "❌"}
 
     if coverage:
@@ -227,12 +220,8 @@ def generate_report(
     next_steps_text = _load_next_steps(next_steps_paths)
     tasks_section = _extract_tasks_section(next_steps_text)
     tasks = parse_tasks(tasks_section)
-    effective_lookahead = (
-        DEFAULT_LOOKAHEAD_DAYS if lookahead_days is None else lookahead_days
-    )
-    summary = summarize_tasks(
-        tasks, now=timestamp.date(), lookahead_days=effective_lookahead
-    )
+    effective_lookahead = DEFAULT_LOOKAHEAD_DAYS if lookahead_days is None else lookahead_days
+    summary = summarize_tasks(tasks, now=timestamp.date(), lookahead_days=effective_lookahead)
     coverage = load_coverage_payload(coverage_payload_path)
     status_payload = combine_status(coverage, summary)
 
@@ -258,9 +247,7 @@ def _format_task(task: TaskEntry) -> str:
 def render_comment(report: dict[str, Any]) -> str:
     emoji = report.get("emoji", "⚠️")
     status = str(report.get("status", "at_risk")).replace("_", " ").title()
-    coverage_message = report.get("coverage_message") or report.get("coverage", {}).get(
-        "message"
-    )
+    coverage_message = report.get("coverage_message") or report.get("coverage", {}).get("message")
     tasks = report.get("tasks", {})
 
     lines = [f"{emoji} Frontier Apex status: {status}"]

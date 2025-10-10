@@ -104,9 +104,7 @@ def _load_index_mapping(cfg: SuiteConfig) -> dict[str, int]:
     doc = load_index_document(idx_file)
     result: dict[str, int] = {}
     for slug, payload in doc.entries.items():
-        issue_value: Any = (
-            payload.get("issue") if isinstance(payload, dict) else payload
-        )
+        issue_value: Any = payload.get("issue") if isinstance(payload, dict) else payload
         parsed = _coerce_int(issue_value)
         if parsed is not None:
             result[str(slug)] = parsed
@@ -181,9 +179,7 @@ def _truncate_body_diffs(summary: dict[str, Any], truncate: int | None) -> None:
             continue
         if len(body_diff_any) <= truncate:
             continue
-        diff_obj_any["body_diff"] = [str(x) for x in body_diff_any[:truncate]] + [
-            "... (truncated)"
-        ]
+        diff_obj_any["body_diff"] = [str(x) for x in body_diff_any[:truncate]] + ["... (truncated)"]
 
 
 def _persist_mapping(
@@ -202,9 +198,7 @@ def _persist_mapping(
     index_path = index_dir / "index.json"
     mirror_env = os.environ.get("ISSUESUITE_INDEX_MIRROR")
     mirror_path = Path(mirror_env) if mirror_env else None
-    persist_index_document(
-        index_path, IndexDocument(entries=entries), mirror=mirror_path
-    )
+    persist_index_document(index_path, IndexDocument(entries=entries), mirror=mirror_path)
 
 
 def _merge_index_mapping(

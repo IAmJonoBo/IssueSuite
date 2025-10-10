@@ -87,9 +87,7 @@ def _extract_severity(osv_payload: dict[str, Any]) -> str | None:
     return str(level) if isinstance(level, str) else None
 
 
-def _format_range(
-    lower: str | None, upper: str | None, *, inclusive_upper: bool = False
-) -> str:
+def _format_range(lower: str | None, upper: str | None, *, inclusive_upper: bool = False) -> str:
     clauses: list[str] = []
     if lower and lower not in {"", "0"}:
         clauses.append(f">={lower}")
@@ -114,9 +112,7 @@ def _ranges_to_specifiers(ranges: Iterable[dict[str, Any]]) -> list[str]:
                 lower = None
             if "last_affected" in event:
                 clauses.append(
-                    _format_range(
-                        lower, event.get("last_affected"), inclusive_upper=True
-                    )
+                    _format_range(lower, event.get("last_affected"), inclusive_upper=True)
                 )
                 lower = None
         if lower is not None:
@@ -155,9 +151,7 @@ def build_advisory_records(
             vulnerability_id=finding.vulnerability_id,
             specifiers=specifiers,
             severity=_extract_severity(payload),
-            description=payload.get("summary")
-            or payload.get("details")
-            or finding.description,
+            description=payload.get("summary") or payload.get("details") or finding.description,
             fixed_in=tuple(finding.fixed_versions),
             reference=_extract_reference(payload),
         )
@@ -171,9 +165,7 @@ def generate_dataset(
     fetcher: Fetcher = fetch_osv,
     source: str = "IssueSuite Automation",
 ) -> dict[str, Any]:
-    advisories = [
-        record.as_json() for record in build_advisory_records(findings, fetcher=fetcher)
-    ]
+    advisories = [record.as_json() for record in build_advisory_records(findings, fetcher=fetcher)]
     return {
         "version": 1,
         "generated": _normalise_generated(datetime.now(timezone.utc)),
@@ -252,15 +244,9 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Manage IssueSuite offline security advisories",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
-        "--check", action="store_true", help="Check dataset freshness and exit"
-    )
-    parser.add_argument(
-        "--refresh", action="store_true", help="Refresh advisories before exiting"
-    )
-    parser.add_argument(
-        "--max-age-days", type=int, default=30, help="Maximum allowed dataset age"
-    )
+    parser.add_argument("--check", action="store_true", help="Check dataset freshness and exit")
+    parser.add_argument("--refresh", action="store_true", help="Refresh advisories before exiting")
+    parser.add_argument("--max-age-days", type=int, default=30, help="Maximum allowed dataset age")
     parser.add_argument(
         "--output",
         type=Path,

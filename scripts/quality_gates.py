@@ -19,8 +19,6 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from issuesuite.coverage_trends import (  # noqa: E402
     CoverageTrendError as CoverageTrendRuntimeError,
-)
-from issuesuite.coverage_trends import (
     export_trends,
 )
 from issuesuite.quality_gates import (  # noqa: E402
@@ -178,9 +176,7 @@ def main() -> int:
     module_coverages: dict[str, float] | None = None
     try:
         results = run_gates(build_default_gates())
-        module_coverages = _enforce_module_thresholds(
-            COVERAGE_REPORT, CRITICAL_MODULE_THRESHOLDS
-        )
+        module_coverages = _enforce_module_thresholds(COVERAGE_REPORT, CRITICAL_MODULE_THRESHOLDS)
     except ModuleCoverageError as exc:
         module_coverages = exc.coverages
         print(format_summary(results), file=sys.stderr)

@@ -69,9 +69,7 @@ def test_truncate_body_diffs_limits_entries():
 
 def test_normalize_mapping_filters_invalid_entries():
     raw = {"ok": {"issue": "101"}, "bad": {"issue": "abc"}, "other": "7"}
-    normalized = _normalize_mapping(
-        raw, context="test", value_getter=lambda v: v.get("issue")
-    )
+    normalized = _normalize_mapping(raw, context="test", value_getter=lambda v: v.get("issue"))
     assert normalized == {"ok": 101}
 
 
@@ -128,6 +126,4 @@ def test_sync_with_summary_ai_mode_skips_persistence(sample_config, monkeypatch)
 
     assert enriched["dry_run"] is True
     assert not mapping_path.exists()
-    assert "mapping_snapshot" not in enriched or enriched["mapping_snapshot"] == {
-        "demo": 42
-    }
+    assert "mapping_snapshot" not in enriched or enriched["mapping_snapshot"] == {"demo": 42}

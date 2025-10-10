@@ -43,9 +43,7 @@ NUMBER_PATTERN = re.compile(r"/issues/(\d+)")
 
 @dataclass
 class IssuesClientConfig:
-    repo: str | None = (
-        None  # owner/repo; if None gh defaults to current directory remote
-    )
+    repo: str | None = None  # owner/repo; if None gh defaults to current directory remote
     mock: bool = False
     dry_run: bool = False
 
@@ -61,9 +59,7 @@ class IssuesClient:
     # Class-level mock counter for deterministic fabricated issue numbers in mock mode
     _mock_counter: int = 1000
 
-    def __init__(
-        self, cfg: IssuesClientConfig, rest_client: GitHubRestClient | None = None
-    ):
+    def __init__(self, cfg: IssuesClientConfig, rest_client: GitHubRestClient | None = None):
         self.cfg = cfg
         self._env_quiet = os.environ.get("ISSUESUITE_QUIET") == "1"
         self._gh_path = shutil.which("gh")
@@ -97,9 +93,7 @@ class IssuesClient:
         except (
             subprocess.CalledProcessError
         ) as exc:  # pragma: no cover - propagate consistent RuntimeError
-            raise RuntimeError(
-                f"Command failed: {' '.join(cmd)}: {exc.output}"
-            ) from exc
+            raise RuntimeError(f"Command failed: {' '.join(cmd)}: {exc.output}") from exc
 
     # --- CRUD operations --------------------------------------------------
     def create_issue(
@@ -177,14 +171,10 @@ class IssuesClient:
         label_list = list(labels or [])
         if label_list:
             self._run(
-                self._base_cmd(
-                    "issue", "edit", str(number), "--add-label", ",".join(label_list)
-                )
+                self._base_cmd("issue", "edit", str(number), "--add-label", ",".join(label_list))
             )
         if milestone:
-            self._run(
-                self._base_cmd("issue", "edit", str(number), "--milestone", milestone)
-            )
+            self._run(self._base_cmd("issue", "edit", str(number), "--milestone", milestone))
         if body is not None:
             # Use gh api for body patch (consistent with existing code)
             self._run(
@@ -284,9 +274,7 @@ class IssuesClient:
             return None
         base_url = self._clean_env("ISSUESUITE_GITHUB_API", DEFAULT_API_URL)
         graphql_url = self._clean_env("ISSUESUITE_GITHUB_GRAPHQL", DEFAULT_GRAPHQL_URL)
-        return GitHubRestClient(
-            token=token, repo=repo, base_url=base_url, graphql_url=graphql_url
-        )
+        return GitHubRestClient(token=token, repo=repo, base_url=base_url, graphql_url=graphql_url)
 
     @staticmethod
     def _select_token() -> str | None:

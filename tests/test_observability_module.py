@@ -64,9 +64,7 @@ def test_configure_telemetry_with_otlp_exporter(
             exporter_calls["endpoint"] = endpoint
 
     dummy_trace = SimpleNamespace(
-        set_tracer_provider=lambda provider: exporter_calls.update(
-            {"provider": provider}
-        ),
+        set_tracer_provider=lambda provider: exporter_calls.update({"provider": provider}),
         get_tracer=lambda name: exporter_calls.update({"tracer": name}),
     )
 

@@ -8,12 +8,8 @@ import pytest
 from issuesuite.quality_gates import Gate, QualityGateError, run_gates
 
 
-def _completed(
-    returncode: int, stdout: str = "", stderr: str = ""
-) -> CompletedProcess[str]:
-    return CompletedProcess(
-        args=["dummy"], returncode=returncode, stdout=stdout, stderr=stderr
-    )
+def _completed(returncode: int, stdout: str = "", stderr: str = "") -> CompletedProcess[str]:
+    return CompletedProcess(args=["dummy"], returncode=returncode, stdout=stdout, stderr=stderr)
 
 
 def test_run_gates_success(tmp_path: Path) -> None:

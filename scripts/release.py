@@ -48,24 +48,18 @@ def parse_args() -> argparse.Namespace:
     g.add_argument("--major", action="store_true")
     g.add_argument("--minor", action="store_true")
     g.add_argument("--patch", action="store_true")
-    p.add_argument(
-        "version", nargs="?", help="Explicit version (overrides semantic flags)"
-    )
+    p.add_argument("version", nargs="?", help="Explicit version (overrides semantic flags)")
     p.add_argument("--no-tests", action="store_true", help="Skip running test suite")
     p.add_argument("--no-lint", action="store_true", help="Skip ruff & mypy checks")
     p.add_argument("--prerelease", help="Append prerelease tag (e.g. rc1, beta1)")
-    p.add_argument(
-        "--skip-changelog", action="store_true", help="Do not modify CHANGELOG"
-    )
+    p.add_argument("--skip-changelog", action="store_true", help="Do not modify CHANGELOG")
     p.add_argument("--push", action="store_true", help="Push commit and tag to origin")
     p.add_argument(
         "--create-github-release",
         action="store_true",
         help="Create GitHub release via gh CLI (requires gh auth)",
     )
-    p.add_argument(
-        "--dry-run", action="store_true", help="Do not write files or run git commands"
-    )
+    p.add_argument("--dry-run", action="store_true", help="Do not write files or run git commands")
     return p.parse_args()
 
 
@@ -184,9 +178,7 @@ def gh_release(version: str, dry_run: bool) -> None:
         print(f"[dry-run] Would create GitHub release v{version}")
         return
     try:
-        subprocess.check_call(
-            ["gh", "release", "create", f"v{version}", "--notes", notes]
-        )
+        subprocess.check_call(["gh", "release", "create", f"v{version}", "--notes", notes])
     except Exception as e:  # pragma: no cover
         print(f"Warning: failed to create GitHub release: {e}")
 

@@ -79,9 +79,7 @@ class Advisory:
             specifiers = SpecifierSet(str(specifiers_raw))
         else:
             specifiers = SpecifierSet()
-        vuln_id = str(
-            payload.get("id") or payload.get("vulnerability_id") or ""
-        ).strip()
+        vuln_id = str(payload.get("id") or payload.get("vulnerability_id") or "").strip()
         description = str(payload.get("description") or "").strip()
         severity = payload.get("severity")
         fixed_in_raw = payload.get("fixed_in") or payload.get("fixed_versions") or ()
@@ -89,9 +87,7 @@ class Advisory:
         if not fixed_in_raw:
             fixed_versions = ()
         elif isinstance(fixed_in_raw, (list, tuple, set)):
-            fixed_versions = cast(
-                tuple[str, ...], tuple(str(item) for item in fixed_in_raw)
-            )
+            fixed_versions = cast(tuple[str, ...], tuple(str(item) for item in fixed_in_raw))
         else:
             fixed_versions = cast(tuple[str, ...], (str(fixed_in_raw),))
         reference = payload.get("reference") or payload.get("url")
@@ -107,10 +103,7 @@ class Advisory:
 
     def matches(self, package: InstalledPackage) -> bool:
         try:
-            return (
-                package.canonical_name == self.package
-                and package.version in self.specifiers
-            )
+            return package.canonical_name == self.package and package.version in self.specifiers
         except Exception:  # pragma: no cover - defensive for packaging edge cases
             return False
 
@@ -142,13 +135,9 @@ class AllowlistedAdvisory:
     @classmethod
     def from_json(cls, payload: dict[str, Any]) -> AllowlistedAdvisory:
         package = str(payload.get("package", "")).strip().lower().replace("_", "-")
-        vulnerability_id = str(
-            payload.get("id") or payload.get("vulnerability_id") or ""
-        ).strip()
+        vulnerability_id = str(payload.get("id") or payload.get("vulnerability_id") or "").strip()
         specifiers_raw = payload.get("specifiers") or payload.get("spec")
-        specifiers = (
-            SpecifierSet(str(specifiers_raw)) if specifiers_raw else SpecifierSet()
-        )
+        specifiers = SpecifierSet(str(specifiers_raw)) if specifiers_raw else SpecifierSet()
         reason = str(payload.get("reason") or "Accepted risk").strip()
         expires_raw = payload.get("expires")
         expires: date | None
@@ -159,10 +148,7 @@ class AllowlistedAdvisory:
                 expires = None
         else:
             expires = None
-        owner = (
-            str(payload.get("owner") or payload.get("approved_by") or "").strip()
-            or None
-        )
+        owner = str(payload.get("owner") or payload.get("approved_by") or "").strip() or None
         reference = payload.get("reference") or payload.get("url")
         return cls(
             package=package,
@@ -432,13 +418,9 @@ def _print(msg: str) -> None:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Dependency audit helper")
-    parser.add_argument(
-        "--advisories", type=str, help="Path to advisories JSON", default=None
-    )
+    parser.add_argument("--advisories", type=str, help="Path to advisories JSON", default=None)
     parser.add_argument("--offline-only", action="store_true", help="Skip online audit")
-    parser.add_argument(
-        "--output-json", action="store_true", help="Emit findings as JSON"
-    )
+    parser.add_argument("--output-json", action="store_true", help="Emit findings as JSON")
     args = parser.parse_args(list(argv or []))
 
     advisories = load_advisories(args.advisories)
@@ -472,9 +454,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "vulnerability_id": item.finding.vulnerability_id,
                     "reason": item.allowlisted.reason,
                     "expires": (
-                        item.allowlisted.expires.isoformat()
-                        if item.allowlisted.expires
-                        else None
+                        item.allowlisted.expires.isoformat() if item.allowlisted.expires else None
                     ),
                     "owner": item.allowlisted.owner,
                     "reference": item.allowlisted.reference,

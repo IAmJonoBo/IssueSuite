@@ -40,9 +40,7 @@ MIN_CONFIG = textwrap.dedent(
 
 
 def _run(cmd, cwd, env=None):
-    result = subprocess.run(
-        cmd, cwd=cwd, capture_output=True, text=True, env=env, check=False
-    )
+    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, env=env, check=False)
     return result.returncode, result.stdout + result.stderr
 
 
@@ -50,9 +48,7 @@ def test_agent_apply_defaults_respect_status_and_dryrun(tmp_path):
     (tmp_path / "ISSUES.md").write_text(SAMPLE_ISSUES)
     (tmp_path / "issue_suite.config.yaml").write_text(MIN_CONFIG)
 
-    updates = {
-        "updates": [{"slug": "done-item", "completed": True, "summary": "All done."}]
-    }
+    updates = {"updates": [{"slug": "done-item", "completed": True, "summary": "All done."}]}
     updates_path = tmp_path / "updates.json"
     updates_path.write_text(json.dumps(updates))
 
@@ -130,9 +126,7 @@ def test_agent_apply_requires_explicit_approval(tmp_path):
     (tmp_path / "ISSUES.md").write_text(SAMPLE_ISSUES)
     (tmp_path / "issue_suite.config.yaml").write_text(MIN_CONFIG)
     updates_path = tmp_path / "updates.json"
-    updates_path.write_text(
-        json.dumps({"updates": [{"slug": "done-item", "completed": True}]})
-    )
+    updates_path.write_text(json.dumps({"updates": [{"slug": "done-item", "completed": True}]}))
 
     env = os.environ.copy()
     env["ISSUES_SUITE_MOCK"] = "1"

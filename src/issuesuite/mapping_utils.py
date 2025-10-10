@@ -25,9 +25,7 @@ def load_mapping_snapshot(cfg: SuiteConfig) -> dict[str, int]:
         try:
             out[str(slug)] = int(issue_value)
         except Exception as exc:
-            logger.debug(
-                "Skipping non-numeric mapping value %s=%s: %s", slug, entry, exc
-            )
+            logger.debug("Skipping non-numeric mapping value %s=%s: %s", slug, entry, exc)
     return out
 
 

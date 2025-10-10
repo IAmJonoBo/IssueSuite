@@ -260,9 +260,7 @@ def test_cli_security_scopes_disable_flag(
     monkeypatch.setattr("issuesuite.cli.run_resilient_pip_audit", _fake_run)
     monkeypatch.delenv("ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE", raising=False)
 
-    rc = main(
-        ["security", "--offline-only", "--pip-audit", "--pip-audit-disable-online"]
-    )
+    rc = main(["security", "--offline-only", "--pip-audit", "--pip-audit-disable-online"])
     captured = capsys.readouterr()
 
     assert rc == 0
@@ -462,13 +460,9 @@ def test_cli_projects_status_respects_quiet(
     assert captured.out == ""
 
 
-def test_cli_projects_sync_apply_requires_token(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-):
+def test_cli_projects_sync_apply_requires_token(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
     next_steps_path = tmp_path / "Next Steps.md"
-    next_steps_path.write_text(
-        "# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8"
-    )
+    next_steps_path.write_text("# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8")
     coverage_path = tmp_path / "coverage_projects_payload.json"
     coverage_path.write_text(json.dumps({"status": "on_track"}), encoding="utf-8")
 

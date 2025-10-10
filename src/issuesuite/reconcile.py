@@ -96,9 +96,7 @@ def _build_live_drift(
                 {
                     "kind": "live_only",
                     "number": (
-                        issue.get("number")
-                        if isinstance(issue.get("number"), int)
-                        else None
+                        issue.get("number") if isinstance(issue.get("number"), int) else None
                     ),
                     "title": issue.get("title"),
                     "slug": _extract_slug_from_body(issue.get("body")),
@@ -113,9 +111,7 @@ def _build_live_drift(
                     "kind": "diff",
                     "slug": spec.external_id,
                     "number": (
-                        issue.get("number")
-                        if isinstance(issue.get("number"), int)
-                        else None
+                        issue.get("number") if isinstance(issue.get("number"), int) else None
                     ),
                     "title": spec.title,
                     "changes": changes,

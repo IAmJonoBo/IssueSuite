@@ -49,9 +49,7 @@ class _DummySession:
         params: dict[str, Any] | None = None,
         timeout: float | None = None,
     ) -> _DummyResponse:
-        self.request_log.append(
-            (method, url, {"headers": headers, "json": json, "params": params})
-        )
+        self.request_log.append((method, url, {"headers": headers, "json": json, "params": params}))
         if not self._responses:
             raise AssertionError("No response queued for request")
         return self._responses.pop(0)
@@ -66,9 +64,7 @@ def test_rest_client_creates_issue_with_milestone_resolution():
     )
     client = GitHubRestClient(token="tkn", repo="acme/widgets", session=session)
 
-    number = client.create_issue(
-        title="Demo", body="Body", labels=["bug"], milestone="Sprint 1"
-    )
+    number = client.create_issue(title="Demo", body="Body", labels=["bug"], milestone="Sprint 1")
 
     assert number == 321
     assert session.request_log[0][0] == "GET"
@@ -146,9 +142,7 @@ def test_issues_client_rest_client_trims_env_values(monkeypatch):
     cfg = IssuesClientConfig(repo=" acme/widgets ", dry_run=False, mock=False)
     monkeypatch.setenv("ISSUESUITE_GITHUB_TOKEN", "  padded-token \n")
     monkeypatch.setenv("ISSUESUITE_GITHUB_API", " https://enterprise.example/api ")
-    monkeypatch.setenv(
-        "ISSUESUITE_GITHUB_GRAPHQL", "\nhttps://enterprise.example/graphql\n"
-    )
+    monkeypatch.setenv("ISSUESUITE_GITHUB_GRAPHQL", "\nhttps://enterprise.example/graphql\n")
 
     client = IssuesClient(cfg, rest_client=None)
 

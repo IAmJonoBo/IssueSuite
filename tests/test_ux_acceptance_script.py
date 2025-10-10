@@ -24,9 +24,7 @@ def ux_acceptance_module() -> ModuleType:
 
 class DummyProcess(CompletedProcess[str]):
     def __init__(self, stdout: str, returncode: int = 0) -> None:
-        super().__init__(
-            args=["issuesuite"], returncode=returncode, stdout=stdout, stderr=""
-        )
+        super().__init__(args=["issuesuite"], returncode=returncode, stdout=stdout, stderr="")
 
 
 def test_run_checks_passes(tmp_path: Path, ux_acceptance_module: ModuleType) -> None:
@@ -42,9 +40,7 @@ def test_run_checks_passes(tmp_path: Path, ux_acceptance_module: ModuleType) -> 
     assert payload["checks"][0]["status"] == "pass"
 
 
-def test_run_checks_detects_failures(
-    tmp_path: Path, ux_acceptance_module: ModuleType
-) -> None:
+def test_run_checks_detects_failures(tmp_path: Path, ux_acceptance_module: ModuleType) -> None:
     long_line = "Usage: issuesuite " + "x" * 150
     process = DummyProcess(stdout=long_line)
     report = ux_acceptance_module.run_checks(

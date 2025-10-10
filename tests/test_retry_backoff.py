@@ -38,11 +38,7 @@ def test_retry_honors_retry_after(monkeypatch: Any) -> None:
     res = run_with_retries(fn, cfg=RetryConfig(attempts=3, base_sleep=0.01))
     assert res == "ok"
     assert len(sleeps) == 1  # exactly one retry
-    assert (
-        (RETRY_AFTER_SECONDS - FLOAT_TOL)
-        <= sleeps[0]
-        <= (RETRY_AFTER_SECONDS + FLOAT_TOL)
-    )
+    assert (RETRY_AFTER_SECONDS - FLOAT_TOL) <= sleeps[0] <= (RETRY_AFTER_SECONDS + FLOAT_TOL)
 
 
 def test_retry_max_sleep_cap(monkeypatch: Any) -> None:

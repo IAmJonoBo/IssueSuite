@@ -45,9 +45,7 @@ MIN_CONFIG = textwrap.dedent(
 
 
 def _run(cmd, cwd, env=None):
-    result = subprocess.run(
-        cmd, cwd=cwd, capture_output=True, text=True, env=env, check=False
-    )
+    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, env=env, check=False)
     return result.returncode, result.stdout + result.stderr
 
 

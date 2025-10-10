@@ -107,7 +107,9 @@ def generate_report(
 
 def main() -> int:
     report = generate_report()
-    summary = f"Strict mypy clean modules: {report['modules_strict_clean']} / {report['modules_total']}"
+    summary = (
+        f"Strict mypy clean modules: {report['modules_strict_clean']} / {report['modules_total']}"
+    )
     print(summary)
     return 0
 
