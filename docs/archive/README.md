@@ -21,6 +21,10 @@ This directory contains legacy documentation that was relevant during developmen
 ### Governance (In-Development Blueprints)
 - `governance/frontier_apex.md` - Governance evolution blueprint (draft)
 
+### Documentation Process Artifacts (Completed)
+- `DOCUMENTATION_BEFORE_AFTER.md` - Before/after comparison of 2025-10-09 documentation optimization
+- `DOCUMENTATION_OPTIMIZATION_SUMMARY.md` - Summary of documentation restructuring completed 2025-10-09
+
 ## Current Documentation
 
 For up-to-date documentation, see:

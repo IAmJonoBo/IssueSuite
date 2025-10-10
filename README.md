@@ -147,6 +147,8 @@ IssueSuite documentation uses the [Diátaxis framework](https://diataxis.fr/) an
 - **Reference**: Authoritative technical specs → [CLI commands](docs/starlight/src/content/docs/reference/cli.mdx), [Configuration](docs/starlight/src/content/docs/reference/configuration.mdx), [Environment variables](docs/starlight/src/content/docs/reference/environment-variables.mdx)
 - **Explanations**: Design decisions and context → [Architecture](docs/starlight/src/content/docs/explanations/architecture.mdx), [Index mapping](docs/starlight/src/content/docs/explanations/index-mapping-design.mdx)
 
+**Online documentation**: Visit [https://iamjonobo.github.io/IssueSuite/](https://iamjonobo.github.io/IssueSuite/) for the latest published version.
+
 **Build documentation locally**:
 
 ```bash
