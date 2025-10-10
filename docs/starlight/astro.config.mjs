@@ -1,6 +1,7 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import mdx from "@astrojs/mdx";
+import sitemap from "@astrojs/sitemap";
 
 const DEFAULT_SITE = "https://issuesuite.io/docs";
 const isGitHubPages = process.env.GITHUB_PAGES === "true";
@@ -32,11 +33,26 @@ export default defineConfig({
       title: "IssueSuite Documentation",
       description: "Declarative GitHub Issues automation with governance-driven quality gates, deterministic sync, and observable roadmap health.",
       favicon: "/favicon.svg",
-      customCss: ["./src/styles/theme.css"],
+      customCss: ["./src/styles/tokens.css", "./src/styles/theme.css"],
       components: {
         Footer: "./src/components/Footer.astro",
       },
       head: [
+        {
+          tag: "link",
+          attrs: {
+            rel: "preconnect",
+            href: "https://fonts.gstatic.com",
+            crossorigin: "",
+          },
+        },
+        {
+          tag: "link",
+          attrs: {
+            rel: "stylesheet",
+            href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap",
+          },
+        },
         {
           tag: "meta",
           attrs: {
@@ -83,5 +99,9 @@ export default defineConfig({
       },
     }),
     mdx(),
+    sitemap(),
   ],
+  redirects: {
+    // Add legacy URL mappings here if needed in the future
+  },
 });

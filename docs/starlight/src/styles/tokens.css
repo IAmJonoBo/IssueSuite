@@ -1,0 +1,57 @@
+:root {
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, Segoe UI, Roboto,
+    "Helvetica Neue", Arial, "Noto Sans";
+  --font-head: "Space Grotesk", var(--font-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+
+  /* Type scale */
+  --size-root: 16px;
+  --h1: clamp(28px, 3.2vw, 40px);
+  --h2: 28px;
+  --h2-lh: 34px;
+  --h3: 22px;
+  --h3-lh: 28px;
+  --h4: 18px;
+  --h4-lh: 24px;
+  --body: 16px;
+  --body-lh: 26px;
+  --body-l: 18px;
+  --body-l-lh: 28px;
+  --small: 14px;
+  --small-lh: 22px;
+
+  /* Colour */
+  --ink-900: #0a0a0a;
+  --ink-700: #2b2b2b;
+  --ink-500: #525252;
+  --bg-0: #ffffff;
+  --bg-50: #f8f9fb;
+  --bg-100: #f2f4f7;
+  --accent-600: #3b5bdb;
+  --accent-700: #364fc7;
+
+  /* Spacing / radii */
+  --r-1: 8px;
+  --r-2: 12px;
+  --r-pill: 999px;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  /* Shadows */
+  --card-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  --header-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+
+  /* Layout */
+  --container-max: 1280px;
+  --gutter-desktop: 24px;
+  --gutter-tablet: 20px;
+  --gutter-mobile: 16px;
+}
