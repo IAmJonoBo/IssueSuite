@@ -967,13 +967,29 @@ are no longer supported and will raise a `ValueError` (`Legacy numeric issue for
 
 The parser will auto-insert the hidden marker `<!-- issuesuite:slug=<slug> -->` into the body if absent, ensuring idempotent matching.
 
-## Roadmap (Selected)
+## Roadmap
 
+### v1.x (Completed) ✅
 - GitHub Project (v2) assignment integration
 - Concurrency for large roadmaps
 - GitHub App token integration
 - Performance benchmarking harness
 - Two-way reconcile / import
+
+### v2.0 Vision 🚀
+IssueSuite 2.0 transforms the production-ready CLI into a comprehensive **AI-powered, multi-repository automation platform** with:
+- 🌐 Multi-repo workspace orchestration (manage 100+ repos)
+- 🤖 AI-assisted spec generation and smart suggestions
+- 🖥️ Server mode with webhooks and REST API
+- 🔌 Plugin marketplace and rich ecosystem
+- 🏢 Enterprise features (SAML/SSO, audit logs, SOC 2)
+
+**📚 Read More:**
+- [Comprehensive Gap Analysis & 2.0 Roadmap](docs/GAP_ANALYSIS_2.0_ROADMAP.md) — 39-page deep dive
+- [Executive Summary](docs/EXECUTIVE_SUMMARY_2.0.md) — Stakeholder-focused overview
+- [Quick Reference](docs/QUICK_REFERENCE_2.0.md) — One-page summary
+
+**Timeline:** 15 months (Q1 2026 - Q1 2027) | **Status:** Strategic planning, RFC coming soon
 
 ## Versioning
 
