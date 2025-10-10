@@ -35,11 +35,11 @@ from issuesuite.dependency_audit import (
     SuppressedFinding,
     collect_installed_packages,
     render_findings_table,
+    apply_allowlist as apply_security_allowlist,
+    load_advisories as load_security_advisories,
+    load_allowlist as load_security_allowlist,
+    perform_audit as run_dependency_audit,
 )
-from issuesuite.dependency_audit import apply_allowlist as apply_security_allowlist
-from issuesuite.dependency_audit import load_advisories as load_security_advisories
-from issuesuite.dependency_audit import load_allowlist as load_security_allowlist
-from issuesuite.dependency_audit import perform_audit as run_dependency_audit
 from issuesuite.env_auth import create_env_auth_manager
 from issuesuite.github_issues import IssuesClient, IssuesClientConfig
 from issuesuite.github_projects_sync import (
