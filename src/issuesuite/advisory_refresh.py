@@ -7,10 +7,10 @@ import json
 import sys
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+
 from pathlib import Path
 from typing import Any, cast
-
+from datetime import datetime, timedelta, timezone
 import requests
 
 from .dependency_audit import Finding
