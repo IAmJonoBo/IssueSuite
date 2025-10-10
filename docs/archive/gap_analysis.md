@@ -1,5 +1,11 @@
 # Gap Analysis & Frontier Recommendations
 
+> **📚 ARCHIVED DOCUMENT**
+>
+> This gap analysis was superseded by the comprehensive 2025 gap analysis. All gaps have been remediated.
+>
+> **See:** [gap_analysis_2025.md](gap_analysis_2025.md)
+
 ## Executive Summary
 
 - All previously identified architecture, observability, and governance gaps have been remediated: IssueSuite now prefers the native REST client while retaining GitHub CLI fallbacks, signs index snapshots with optional mirroring, and version-locks every emitted schema through a central registry.【F:src/issuesuite/github_issues.py†L1-L203】【F:src/issuesuite/index_store.py†L1-L80】【F:src/issuesuite/schema_registry.py†L1-L64】【F:src/issuesuite/schemas.py†L1-L108】

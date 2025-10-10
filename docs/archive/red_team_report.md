@@ -1,5 +1,13 @@
 # Red Team Assessment — IssueSuite
 
+> **📚 ARCHIVED DOCUMENT**
+>
+> This security assessment was completed on 2025-10-06. All identified risks have been remediated.
+>
+> **See current documentation:**
+> - [Environment Variables Reference](../starlight/src/content/docs/reference/environment-variables.mdx) for security configuration
+> - [Release Checklist](../RELEASE_CHECKLIST.md) for security gates
+
 _Date: 2025-10-06_
 
 ## Executive Summary

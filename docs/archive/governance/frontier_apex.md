@@ -1,5 +1,13 @@
 # Frontier Apex Governance Blueprint
 
+> **📚 ARCHIVED DOCUMENT**
+>
+> This governance blueprint is a draft planning document. For current governance practices, see the release checklist and contributing guide.
+>
+> **See current documentation:**
+> - [CONTRIBUTING.md](../../../CONTRIBUTING.md) for current governance
+> - [Release Checklist](../../RELEASE_CHECKLIST.md) for quality gates
+
 The Frontier Apex layer evolves IssueSuite's "Frontier Elite" guardrails into a
 programmatic standard covering code quality, UX governance, portfolio planning,
 and release provenance. This document codifies the next wave of requirements so
