@@ -59,7 +59,9 @@ def _run_command(gate: Gate) -> CompletedProcess[str]:
 
 
 def _load_coverage_percentage(report_path: Path) -> float:
-    tree = ElementTree.parse(report_path)  # nosec B314 - report is generated locally by coverage.py
+    tree = ElementTree.parse(
+        report_path
+    )  # nosec B314 - report is generated locally by coverage.py
     root = tree.getroot()
     rate = root.attrib.get("line-rate")
     if rate is None:
@@ -102,7 +104,8 @@ def format_summary(results: Sequence[GateResult]) -> str:
         status = "PASS" if result.success else "FAIL"
         coverage_note = (
             f" (coverage {result.coverage:.2f}% >= {result.gate.coverage_threshold:.2f}%)"
-            if result.coverage is not None and result.gate.coverage_threshold is not None
+            if result.coverage is not None
+            and result.gate.coverage_threshold is not None
             else ""
         )
         lines.append(f"[{status}] {result.gate.name}{coverage_note}")

@@ -26,7 +26,9 @@ def test_prepare_config_requires_config_attribute() -> None:
 
 
 def test_prepare_config_applies_repo_and_project_number() -> None:
-    args = SimpleNamespace(cmd="sync", config="config.yml", repo="owner/repo", project_number="12")
+    args = SimpleNamespace(
+        cmd="sync", config="config.yml", repo="owner/repo", project_number="12"
+    )
 
     def loader(path: str) -> StubConfig:
         assert path == "config.yml"
@@ -45,10 +47,14 @@ def test_execute_command_success(monkeypatch: pytest.MonkeyPatch) -> None:
     plugin_calls: list[tuple[str, dict[str, object]]] = []
     telemetry_calls: list[tuple[str, int, float]] = []
 
-    def fake_invoke(config: StubConfig | None, command: str, payload: dict[str, object]) -> None:
+    def fake_invoke(
+        config: StubConfig | None, command: str, payload: dict[str, object]
+    ) -> None:
         plugin_calls.append((command, payload))
 
-    def fake_emit(config: StubConfig | None, command: str, exit_code: int, duration: float) -> None:
+    def fake_emit(
+        config: StubConfig | None, command: str, exit_code: int, duration: float
+    ) -> None:
         telemetry_calls.append((command, exit_code, duration))
 
     monkeypatch.setattr(runtime.plugins, "invoke_plugins", fake_invoke)
@@ -67,10 +73,14 @@ def test_execute_command_propagates_exceptions(monkeypatch: pytest.MonkeyPatch) 
     cfg = StubConfig()
     plugin_calls: list[int] = []
 
-    def fake_invoke(config: StubConfig | None, command: str, payload: dict[str, object]) -> None:
+    def fake_invoke(
+        config: StubConfig | None, command: str, payload: dict[str, object]
+    ) -> None:
         plugin_calls.append(payload["exit_code"])  # type: ignore[index]
 
-    def fake_emit(config: StubConfig | None, command: str, exit_code: int, duration: float) -> None:
+    def fake_emit(
+        config: StubConfig | None, command: str, exit_code: int, duration: float
+    ) -> None:
         plugin_calls.append(exit_code)
 
     monkeypatch.setattr(runtime.plugins, "invoke_plugins", fake_invoke)

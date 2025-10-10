@@ -10,7 +10,9 @@ from issuesuite.coverage_trends import export_trends
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Export coverage trends for dashboards")
+    parser = argparse.ArgumentParser(
+        description="Export coverage trends for dashboards"
+    )
     parser.add_argument(
         "--summary-path",
         default=None,

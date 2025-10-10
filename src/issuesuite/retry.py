@@ -98,7 +98,9 @@ def _handle_called_process_error(
     if attempt >= attempts or not is_transient(out):
         return False
     sleep_for = _compute_sleep(attempt, cfg, out)
-    print(f"[retry] transient error, attempt {attempt}/{attempts}, sleeping {sleep_for:.2f}s")
+    print(
+        f"[retry] transient error, attempt {attempt}/{attempts}, sleeping {sleep_for:.2f}s"
+    )
     time.sleep(sleep_for)
     return True
 

@@ -37,7 +37,9 @@ class ProjectAssigner(Protocol):  # pragma: no cover - interface only
 
 
 class NoopProjectAssigner:
-    def assign(self, issue_number: int, spec: Any) -> None:  # pragma: no cover - trivial
+    def assign(
+        self, issue_number: int, spec: Any
+    ) -> None:  # pragma: no cover - trivial
         return
 
 
@@ -73,8 +75,13 @@ class GitHubProjectAssigner:
             raw = json.loads(p.read_text())
             if isinstance(raw, dict):
                 return raw
-        except (OSError, json.JSONDecodeError) as exc:  # pragma: no cover - cache corruption
-            self.logger.log_error("Failed to load project cache", error=str(exc), path=str(p))
+        except (
+            OSError,
+            json.JSONDecodeError,
+        ) as exc:  # pragma: no cover - cache corruption
+            self.logger.log_error(
+                "Failed to load project cache", error=str(exc), path=str(p)
+            )
             return None
         return None
 
@@ -197,7 +204,9 @@ class GitHubProjectAssigner:
             self.logger.info(f"Added issue #{issue_number} to project", item_id=item_id)
             return item_id
         except Exception as e:  # pragma: no cover - defensive
-            self.logger.log_error(f"Failed to add issue #{issue_number} to project", error=str(e))
+            self.logger.log_error(
+                f"Failed to add issue #{issue_number} to project", error=str(e)
+            )
             return None
 
     def _get_issue_id(self, issue_number: int) -> str | None:
@@ -228,14 +237,19 @@ class GitHubProjectAssigner:
             )
             issue_id = result.stdout.strip()
             if issue_id:
-                self.logger.debug("Got issue ID", issue_number=issue_number, issue_id=issue_id)
+                self.logger.debug(
+                    "Got issue ID", issue_number=issue_number, issue_id=issue_id
+                )
             return issue_id or None
         except subprocess.CalledProcessError as e:  # pragma: no cover - defensive
-            self.logger.log_error(f"Failed to get issue ID for #{issue_number}", error=str(e))
+            self.logger.log_error(
+                f"Failed to get issue ID for #{issue_number}", error=str(e)
+            )
             return None
         except OSError as exc:  # pragma: no cover - filesystem / permission edge
             self.logger.log_error(
-                f"Failed to execute GitHub CLI for issue #{issue_number}", error=str(exc)
+                f"Failed to execute GitHub CLI for issue #{issue_number}",
+                error=str(exc),
             )
             return None
 
@@ -252,7 +266,11 @@ class GitHubProjectAssigner:
             options: dict[str, str] = info.get("options", {})
             if options:
                 match_id = next(
-                    (oid for name, oid in options.items() if name.lower() == field_value.lower()),
+                    (
+                        oid
+                        for name, oid in options.items()
+                        if name.lower() == field_value.lower()
+                    ),
                     None,
                 )
                 if not match_id:

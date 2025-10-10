@@ -5,6 +5,7 @@
 This comprehensive gap analysis identifies critical architectural, operational, and security gaps in IssueSuite's dependency management, orchestration, and release processes. While previous analyses addressed core architecture gaps, this assessment focuses on dependency synchronization, ephemeral runner reliability, and regression prevention.
 
 **Key Findings:**
+
 - **CRITICAL**: No CI enforcement of lockfile synchronization (uv.lock, package-lock.json) creates drift risk
 - **HIGH**: Dependency refresh script exists but has no automated enforcement or validation in CI
 - **HIGH**: No regression tests for dependency synchronization mechanisms
@@ -18,11 +19,13 @@ This comprehensive gap analysis identifies critical architectural, operational, 
 **Gap**: While `scripts/refresh-deps.sh` exists and Renovate is configured to call it, there is no CI workflow that validates lockfiles are synchronized with manifests. Developers can commit pyproject.toml changes without running refresh-deps, causing CI failures later.
 
 **Evidence**:
+
 - No `.github/workflows/` job calls `refresh-deps.sh --check`
 - Manual testing shows the check works, but it's not automated
 - Renovate config exists but doesn't prevent manual drift
 
-**Impact**: 
+**Impact**:
+
 - Developers may commit dependency changes that break builds for other contributors
 - Renovate PRs may be green while manual changes break
 - Runtime dependency mismatches in production
@@ -36,11 +39,13 @@ This comprehensive gap analysis identifies critical architectural, operational, 
 **Gap**: The packaging workflow doesn't validate that distributions work in offline/hermetic environments where pip-audit, uv, or npm might not be accessible.
 
 **Evidence**:
+
 - `test-build.yml` validates wheel installation but doesn't test offline scenarios
 - No validation that optional dependencies can be skipped gracefully
 - `sitecustomize.py` helps but isn't tested in isolation scenarios
 
 **Impact**:
+
 - Package may fail to install in air-gapped environments
 - Optional features may hard-fail instead of degrading gracefully
 - Hermetic CI runners may unexpectedly break
@@ -54,11 +59,13 @@ This comprehensive gap analysis identifies critical architectural, operational, 
 **Gap**: Quality gates in `scripts/quality_gates.py` are comprehensive but don't validate that the development environment matches the CI environment for critical tools.
 
 **Evidence**:
+
 - No pre-commit hook automatically runs `refresh-deps.sh --check`
 - Git hooks directory exists (`.githooks/`) but isn't documented or enforced
 - Developers might have different versions of ruff, mypy, etc. than CI
 
 **Impact**:
+
 - "Works on my machine" failures
 - Wasted CI cycles from preventable failures
 - Inconsistent code quality standards
@@ -70,16 +77,19 @@ This comprehensive gap analysis identifies critical architectural, operational, 
 ### 4. Regression Testing Coverage (MEDIUM)
 
 **Gap**: No automated regression tests validate that:
+
 - `scripts/refresh-deps.sh` correctly updates both Python and Node.js lockfiles
 - Lockfile drift detection works correctly
 - Renovate post-upgrade tasks actually execute
 
 **Evidence**:
+
 - No tests in `tests/` directory covering `refresh-deps.sh`
 - No CI validation that lockfiles stay synchronized
 - Manual testing required to validate changes
 
 **Impact**:
+
 - Changes to dependency tooling might break silently
 - Renovate automation could fail without detection
 - No confidence in lockfile integrity
@@ -91,16 +101,19 @@ This comprehensive gap analysis identifies critical architectural, operational, 
 ### 5. Supply Chain Security Posture (MEDIUM)
 
 **Gap**: While `pip-audit` and `bandit` are integrated, there's no:
+
 - Automated verification that security advisories are up-to-date
 - SBOM generation in test builds (only in publish workflow)
 - Validation that all transitive dependencies are tracked
 
 **Evidence**:
+
 - `advisory_refresh.py` exists but freshness check is only in quality gates
 - No pre-publish validation of dependency provenance
 - SBOM generation happens at publish time, not during development
 
 **Impact**:
+
 - Stale security advisories may miss vulnerabilities
 - Supply chain attacks could go undetected until publication
 - No dev-time visibility into transitive dependency risks
@@ -112,16 +125,19 @@ This comprehensive gap analysis identifies critical architectural, operational, 
 ### 6. Documentation & Governance Gaps (LOW)
 
 **Gap**: Dependency management processes are implemented but not well-documented:
+
 - No contributor guide for dependency updates
 - ADR process exists but no ADRs for dependency management decisions
 - `refresh-deps.sh` usage not documented in CONTRIBUTING.md
 
 **Evidence**:
+
 - README mentions `nox -s lock` but doesn't explain when to use it
 - No guidance on when to update dependencies vs. when to wait
 - Renovate configuration is sophisticated but undocumented
 
 **Impact**:
+
 - Contributors may not follow best practices
 - Inconsistent approaches to dependency updates
 - Tribal knowledge not captured
@@ -138,6 +154,7 @@ This comprehensive gap analysis identifies critical architectural, operational, 
 **Vector**: Developer commits `pyproject.toml` changes without running `refresh-deps.sh`, causing `uv.lock` to become stale. CI passes because it installs from manifest, not lockfile.
 
 **Proof of Concept**:
+
 ```bash
 # Attacker modifies pyproject.toml to add malicious dependency
 echo "malicious-package>=1.0" >> pyproject.toml
@@ -155,7 +172,8 @@ git commit -m "Add feature dependency"
 **Severity**: MEDIUM  
 **Vector**: While unlikely, if Renovate's `postUpgradeTasks.commands` execution is compromised, the script runs with repo write access.
 
-**Current Mitigation**: 
+**Current Mitigation**:
+
 - Script is under version control
 - Runs in isolated branch context
 - No external inputs processed
@@ -169,7 +187,8 @@ git commit -m "Add feature dependency"
 **Severity**: MEDIUM  
 **Vector**: No validation that private dependencies (if any) are pulled from correct registries.
 
-**Current State**: 
+**Current State**:
+
 - All dependencies are public PyPI/npm
 - No private package index configured
 - uv/npm default to public registries
@@ -181,6 +200,7 @@ git commit -m "Add feature dependency"
 ## Prioritized Remediation Plan
 
 ### Phase 1: Critical Fixes (This Sprint) ✅ COMPLETE
+
 1. ✅ **Add lockfile synchronization CI check** — Prevents RT-04 and Gap #1
    - Created `.github/workflows/dependencies.yml`
    - Runs `refresh-deps.sh --check` on every PR
@@ -191,10 +211,11 @@ git commit -m "Add feature dependency"
 
 3. ✅ **Add regression tests for refresh-deps.sh** — Validates Gap #4
    - Tests uv lock updates correctly
-   - Tests npm lock updates correctly  
+   - Tests npm lock updates correctly
    - Tests --check flag correctly detects drift
 
 ### Phase 2: High Priority (Next Sprint) ✅ COMPLETE
+
 4. ✅ **Enhance packaging tests for hermetic scenarios** — Addresses Gap #2
    - Tests wheel installation without network
    - Validates optional dependencies degrade gracefully
@@ -207,6 +228,7 @@ git commit -m "Add feature dependency"
    - Added dev setup section to README.md
 
 ### Phase 3: Medium Priority (Q1 2025) ✅ COMPLETE
+
 6. ✅ **Enhance security validation** — Addresses Gap #5
    - SBOM generation exists in publish workflow
    - Advisory freshness validated in quality gates
@@ -223,13 +245,15 @@ git commit -m "Add feature dependency"
 ## Proposed ADRs
 
 ### ADR-0002: Automated Dependency Synchronization Enforcement
+
 - **Status**: ✅ Accepted & Implemented
 - **Context**: Manual dependency updates cause lockfile drift
 - **Decision**: Enforce lockfile synchronization via CI check
 - **Implementation**: GitHub Actions workflow + refresh-deps validation + Renovate integration
 - **Documentation**: docs/how-to/renovate-integration.mdx
 
-### ADR-0003: Hermetic Packaging Validation  
+### ADR-0003: Hermetic Packaging Validation
+
 - **Status**: ✅ Accepted & Implemented
 - **Context**: Packages must work in air-gapped environments
 - **Decision**: Add offline installation tests to CI
@@ -237,6 +261,7 @@ git commit -m "Add feature dependency"
 - **Documentation**: docs/reference/environment-variables.mdx
 
 ### ADR-0004: Development Environment Parity
+
 - **Status**: ✅ Accepted & Implemented
 - **Context**: Local vs CI environment mismatches cause failures
 - **Decision**: Standardize via lockfile-based tools + pre-commit hooks + setup script
@@ -248,12 +273,14 @@ git commit -m "Add feature dependency"
 ## Metrics & Success Criteria
 
 **Coverage Goals**:
+
 - Dependency synchronization: 100% automated validation
 - Hermetic packaging: All optional dependencies gracefully degrade
 - Security scanning: <24h advisory staleness
 - Documentation: All workflows documented in ADRs
 
 **Leading Indicators**:
+
 - Zero lockfile drift incidents in PRs
 - Zero "works locally but fails in CI" issues related to dependencies
 - Advisory refresh runs automatically weekly
@@ -272,6 +299,7 @@ IssueSuite's dependency management is now **fully implemented and documented**. 
 The primary risk of lockfile drift (RT-04) has been **eliminated** through automated CI enforcement. All architectural decisions are documented in ADRs with complete implementation and cross-referenced documentation.
 
 **Key Deliverables**:
+
 - `.github/workflows/dependencies.yml` — Automated lockfile validation
 - `scripts/setup-dev-env.sh` — Developer environment setup
 - `docs/RELEASE_CHECKLIST.md` — Comprehensive release validation

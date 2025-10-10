@@ -373,7 +373,9 @@ def test_get_performance_recommendations():
     assert any("slow_operation" in rec for rec in recommendations)
 
     # Should note high variance in variable_operation
-    assert any("variable_operation" in rec and "variance" in rec for rec in recommendations)
+    assert any(
+        "variable_operation" in rec and "variance" in rec for rec in recommendations
+    )
 
     # Should suggest concurrency for long total time
     assert any("concurrency" in rec for rec in recommendations)

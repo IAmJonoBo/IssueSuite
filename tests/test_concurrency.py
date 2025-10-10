@@ -105,7 +105,9 @@ def test_concurrent_processor_batch_processing() -> None:
 
         items = ["item1", "item2", "item3", "item4", "item5"]
         results = await processor.process_specs_concurrent(items, simple_processor)
-        assert len(results) == 5 and all(f"processed_item{i + 1}" in results for i in range(5))
+        assert len(results) == 5 and all(
+            f"processed_item{i + 1}" in results for i in range(5)
+        )
 
     asyncio.run(_run())
 
@@ -139,7 +141,9 @@ def test_run_concurrent_sync() -> None:
 
         items = ["spec1", "spec2", "spec3"]
         results = await run_concurrent_sync(items, processor, config, mock=True)
-        assert len(results) == 3 and all(f"synced_spec{i + 1}" in results for i in range(3))
+        assert len(results) == 3 and all(
+            f"synced_spec{i + 1}" in results for i in range(3)
+        )
 
     asyncio.run(_run())
 
@@ -182,7 +186,9 @@ def test_concurrent_processor_disabled() -> None:
 
         items = ["item1", "item2", "item3"]
         results = await processor.process_specs_concurrent(items, simple_processor)
-        assert len(results) == 3 and all(f"processed_item{i + 1}" in results for i in range(3))
+        assert len(results) == 3 and all(
+            f"processed_item{i + 1}" in results for i in range(3)
+        )
 
     asyncio.run(_run())
 

@@ -59,7 +59,8 @@ def get_ai_context(cfg: SuiteConfig, *, preview: int = 5) -> AIContextDoc:
             and len(mapping_snapshot) <= MAPPING_SNAPSHOT_THRESHOLD,
             "snapshot": (
                 mapping_snapshot
-                if mapping_snapshot and len(mapping_snapshot) <= MAPPING_SNAPSHOT_THRESHOLD
+                if mapping_snapshot
+                and len(mapping_snapshot) <= MAPPING_SNAPSHOT_THRESHOLD
                 else None
             ),
         },

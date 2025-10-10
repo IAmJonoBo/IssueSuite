@@ -84,14 +84,18 @@ def test_sync_with_github_app_enabled(monkeypatch: MonkeyPatch, tmp_path: Path) 
     assert suite._github_app_manager is not None
 
     # Run sync - should work with GitHub App auth
-    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
+    summary = suite.sync(
+        dry_run=True, update=False, respect_status=False, preflight=False
+    )
 
     # Should complete successfully
     assert summary["totals"]["specs"] == 1
     assert summary["totals"]["created"] == 1
 
 
-def test_sync_with_github_app_disabled(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+def test_sync_with_github_app_disabled(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
     """Test sync with GitHub App authentication disabled."""
     cfg_path = tmp_path / "issue_suite.config.yaml"
     (tmp_path / "ISSUES.md").write_text(ISSUES)
@@ -108,7 +112,9 @@ def test_sync_with_github_app_disabled(monkeypatch: MonkeyPatch, tmp_path: Path)
     assert suite._github_app_config.enabled is False
 
     # Run sync - should still work without GitHub App auth
-    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
+    summary = suite.sync(
+        dry_run=True, update=False, respect_status=False, preflight=False
+    )
 
     # Should complete successfully
     assert summary["totals"]["specs"] == 1
@@ -158,7 +164,9 @@ ai: {}
     assert cfg.github_app_installation_id is None
 
 
-def test_github_app_with_existing_private_key(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+def test_github_app_with_existing_private_key(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
     """Test GitHub App integration with an actual private key file."""
     # Create a dummy private key file
     key_path = tmp_path / "test-key.pem"
@@ -206,7 +214,9 @@ logging:
     assert suite._github_app_config.private_key_path == str(key_path)
 
     # In mock mode, authentication should work
-    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
+    summary = suite.sync(
+        dry_run=True, update=False, respect_status=False, preflight=False
+    )
     assert summary["totals"]["specs"] == 1
 
 
@@ -251,7 +261,9 @@ logging:
 
     # Should handle GitHub App setup errors gracefully
     # The sync should still work (falling back to regular auth)
-    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
+    summary = suite.sync(
+        dry_run=True, update=False, respect_status=False, preflight=False
+    )
     assert summary["totals"]["specs"] == 1
 
     # Check for error logs

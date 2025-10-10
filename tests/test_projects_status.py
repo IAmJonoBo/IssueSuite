@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+import json
 from datetime import date, datetime, timezone
 from pathlib import Path
-
-import json
 
 from issuesuite.projects_status import (
     TaskEntry,
@@ -53,7 +52,11 @@ def test_summarize_tasks_counts_due_windows() -> None:
         ),
         TaskEntry(raw="", completed=False, owner=None, due=None, description="Backlog"),
         TaskEntry(
-            raw="", completed=True, owner="Assistant", due=date(2025, 10, 9), description="Finished"
+            raw="",
+            completed=True,
+            owner="Assistant",
+            due=date(2025, 10, 9),
+            description="Finished",
         ),
     ]
 

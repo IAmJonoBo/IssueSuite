@@ -108,11 +108,13 @@ IssueSuite supports air-gapped and hermetic environments:
 **For offline deployment**:
 
 1. Build the wheel:
+
    ```bash
    python -m build
    ```
 
 2. Download all dependencies to a local directory:
+
    ```bash
    mkdir -p offline-wheels
    pip download --dest offline-wheels dist/*.whl
@@ -121,6 +123,7 @@ IssueSuite supports air-gapped and hermetic environments:
 3. Transfer the `dist/` directory and `offline-wheels/` to target environment
 
 4. Install without network:
+
    ```bash
    pip install --no-index --find-links ./offline-wheels issuesuite
    ```
@@ -133,6 +136,7 @@ IssueSuite supports air-gapped and hermetic environments:
    ```
 
 **Environment variables for offline operation**:
+
 - `ISSUES_SUITE_MOCK=1` — Mock GitHub API calls (no network)
 - `ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1` — Disable pip-audit network requests
 - `ISSUESUITE_PROJECT_CACHE_DISABLE=1` — Disable GitHub Projects cache
@@ -144,6 +148,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for full offline development workflow.
 For contributors working on IssueSuite itself, follow these steps to ensure your local environment matches CI:
 
 1. **Clone and install with all development dependencies**:
+
    ```bash
    git clone https://github.com/IAmJonoBo/IssueSuite.git
    cd IssueSuite
@@ -151,10 +156,11 @@ For contributors working on IssueSuite itself, follow these steps to ensure your
    ```
 
 2. **Configure development environment** (recommended):
+
    ```bash
    ./scripts/setup-dev-env.sh
    ```
-   
+
    This automated setup script:
    - Installs Git pre-commit hooks for format/lockfile checks
    - Validates lockfile synchronization
@@ -168,11 +174,13 @@ For contributors working on IssueSuite itself, follow these steps to ensure your
    ```
 
 **Before committing changes**:
+
 - Pre-commit hooks automatically run format checks and lockfile validation
 - Update lockfiles after dependency changes: `./scripts/refresh-deps.sh`
 - Run full quality gates: `nox -s tests lint typecheck security`
 
 **Tool versions** should match CI (automatically handled by `pip install -e .[dev]`):
+
 - Python: 3.10+ (CI tests 3.10, 3.11, 3.12, 3.13)
 - ruff: 0.14 (pinned exact version)
 - mypy: 1.8+
@@ -248,16 +256,16 @@ IssueSuite documentation now lives in an [Astro Starlight workspace](docs/starli
 
 Observability quick start: run `issuesuite upgrade --json` to see recommended configuration defaults and add a `telemetry` block, e.g.
 
-  ```yaml
-  telemetry:
-    enabled: true
-    store_path: .issuesuite/telemetry.jsonl
-  extensions:
-    enabled: true
-    disabled: []
-  ```
+```yaml
+telemetry:
+  enabled: true
+  store_path: .issuesuite/telemetry.jsonl
+extensions:
+  enabled: true
+  disabled: []
+```
 
-  With telemetry enabled you can tail `telemetry.jsonl` to monitor command usage, while entry-point or environment-defined plugins receive the same payload for custom workflows.
+With telemetry enabled you can tail `telemetry.jsonl` to monitor command usage, while entry-point or environment-defined plugins receive the same payload for custom workflows.
 
 ### Authentication quick check
 

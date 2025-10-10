@@ -15,6 +15,7 @@ tags:
 ## Context
 
 IssueSuite is designed to work in various deployment environments, including:
+
 - Air-gapped/hermetic CI runners without external network access
 - Enterprise environments with restrictive firewalls
 - Ephemeral runners that may have inconsistent tool availability
@@ -49,64 +50,64 @@ We will validate hermetic packaging through automated CI tests that simulate off
 Add a new job to `.github/workflows/test-build.yml`:
 
 ```yaml
-  offline-installation:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      
-      - name: Build package
-        run: |
-          python -m pip install --upgrade pip build
-          python -m build
-      
-      - name: Create offline environment
-        run: |
-          # Download all required dependencies to a local directory
-          mkdir -p /tmp/offline-wheels
-          pip download --dest /tmp/offline-wheels dist/*.whl
-      
-      - name: Test offline installation
-        run: |
-          # Create fresh venv and install without network
-          python -m venv /tmp/offline-venv
-          /tmp/offline-venv/bin/pip install \
-            --no-index \
-            --find-links /tmp/offline-wheels \
-            issuesuite
-      
-      - name: Test core functionality offline
-        run: |
-          # Verify basic CLI works in offline mode
-          /tmp/offline-venv/bin/python -m issuesuite --help
-          /tmp/offline-venv/bin/python -m issuesuite schema
-        env:
-          ISSUES_SUITE_MOCK: "1"
-          ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE: "1"
-      
-      - name: Test without optional dependencies
-        run: |
-          # Install only core dependencies
-          python -m venv /tmp/minimal-venv
-          /tmp/minimal-venv/bin/pip install dist/*.whl
-          
-          # Verify degradation is graceful
-          /tmp/minimal-venv/bin/python -c "
-          import issuesuite
-          # Should work without opentelemetry, psutil, etc.
-          print('Core import successful')
-          "
+offline-installation:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Build package
+      run: |
+        python -m pip install --upgrade pip build
+        python -m build
+
+    - name: Create offline environment
+      run: |
+        # Download all required dependencies to a local directory
+        mkdir -p /tmp/offline-wheels
+        pip download --dest /tmp/offline-wheels dist/*.whl
+
+    - name: Test offline installation
+      run: |
+        # Create fresh venv and install without network
+        python -m venv /tmp/offline-venv
+        /tmp/offline-venv/bin/pip install \
+          --no-index \
+          --find-links /tmp/offline-wheels \
+          issuesuite
+
+    - name: Test core functionality offline
+      run: |
+        # Verify basic CLI works in offline mode
+        /tmp/offline-venv/bin/python -m issuesuite --help
+        /tmp/offline-venv/bin/python -m issuesuite schema
+      env:
+        ISSUES_SUITE_MOCK: "1"
+        ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE: "1"
+
+    - name: Test without optional dependencies
+      run: |
+        # Install only core dependencies
+        python -m venv /tmp/minimal-venv
+        /tmp/minimal-venv/bin/pip install dist/*.whl
+
+        # Verify degradation is graceful
+        /tmp/minimal-venv/bin/python -c "
+        import issuesuite
+        # Should work without opentelemetry, psutil, etc.
+        print('Core import successful')
+        "
 ```
 
 ### Regression Tests
 
 Create `tests/test_hermetic_installation.py` to validate offline behavior:
 
-```python
+````python
 """Test hermetic/offline installation scenarios."""
 
 import subprocess
@@ -122,7 +123,7 @@ def test_core_imports_without_optional_deps(monkeypatch):
         "psutil": None,
         "keyring": None,
     })
-    
+
     # Core imports should still work
     from issuesuite import load_config, IssueSuite
     assert load_config is not None
@@ -132,10 +133,10 @@ def test_cli_works_in_mock_mode_offline(tmp_path):
     """Verify CLI functions in offline mock mode."""
     config = tmp_path / "config.yaml"
     config.write_text("version: 1\nsource:\n  file: ISSUES.md\n")
-    
+
     issues = tmp_path / "ISSUES.md"
     issues.write_text("# Issues\n\n## [slug: test]\n\n```yaml\ntitle: Test\n```\n")
-    
+
     # Should work without network
     result = subprocess.run(
         [sys.executable, "-m", "issuesuite", "validate", "--config", str(config)],
@@ -143,7 +144,7 @@ def test_cli_works_in_mock_mode_offline(tmp_path):
         capture_output=True,
     )
     assert result.returncode == 0
-```
+````
 
 ### Documentation Updates
 
@@ -159,6 +160,7 @@ IssueSuite supports air-gapped and hermetic environments:
 - **Offline testing** is validated in CI via hermetic installation tests
 
 For offline deployment:
+
 1. Build the wheel: `python -m build`
 2. Transfer `dist/*.whl` to target environment
 3. Install: `pip install --no-index --find-links ./dist issuesuite`

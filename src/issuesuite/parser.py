@@ -44,7 +44,9 @@ class _IssueYAML(TypedDict, total=False):
     project: dict[str, Any]
 
 
-def _parse_single(slug: str, block: list[str]) -> IssueSpec:  # noqa: C901 - acceptable explicit mapping
+def _parse_single(
+    slug: str, block: list[str]
+) -> IssueSpec:  # noqa: C901 - acceptable explicit mapping
     if _yaml is None:  # pragma: no cover - validated earlier
         raise RuntimeError("PyYAML is required for parsing")
     try:
@@ -111,7 +113,9 @@ def parse_issues(lines: Iterable[str]) -> list[IssueSpec]:  # noqa: C901
         m = _slug_re.match(line)
         if not m:
             if re.match(r"^##\s+\d{3}\s*\|", line):
-                raise ParseError("Legacy numeric issue format detected. Use slug+YAML format.")
+                raise ParseError(
+                    "Legacy numeric issue format detected. Use slug+YAML format."
+                )
             i += 1
             continue
         slug = m.group(1)

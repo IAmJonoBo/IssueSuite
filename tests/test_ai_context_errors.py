@@ -10,7 +10,9 @@ def test_ai_context_includes_errors_section(tmp_path: Path, monkeypatch):
     (tmp_path / "ISSUES.md").write_text(
         "## [slug: ex]\n\n```yaml\ntitle: Example\nlabels: [x]\n```\n"
     )
-    (tmp_path / "issue_suite.config.yaml").write_text("version: 1\nsource:\n  file: ISSUES.md\n")
+    (tmp_path / "issue_suite.config.yaml").write_text(
+        "version: 1\nsource:\n  file: ISSUES.md\n"
+    )
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("ISSUESUITE_RETRY_ATTEMPTS", "5")
     monkeypatch.setenv("ISSUESUITE_RETRY_BASE", "0.75")

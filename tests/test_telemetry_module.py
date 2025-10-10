@@ -30,7 +30,9 @@ def test_resolve_config_honours_environment(
     assert resolved.store_path.name == "custom.log"
 
 
-def test_emit_writes_line_when_enabled(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_emit_writes_line_when_enabled(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     target = tmp_path / "telemetry.jsonl"
     cfg = SimpleNamespace(telemetry_enabled=True, telemetry_store_path=str(target))
 

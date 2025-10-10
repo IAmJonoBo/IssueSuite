@@ -11,7 +11,9 @@ import pytest
 
 @pytest.fixture(scope="module")
 def type_coverage_module() -> ModuleType:
-    script_path = Path(__file__).resolve().parents[1] / "scripts" / "type_coverage_report.py"
+    script_path = (
+        Path(__file__).resolve().parents[1] / "scripts" / "type_coverage_report.py"
+    )
     spec = importlib.util.spec_from_file_location("type_coverage_report", script_path)
     if spec is None or spec.loader is None:  # pragma: no cover - defensive
         pytest.skip("unable to load type_coverage_report.py")
@@ -22,7 +24,9 @@ def type_coverage_module() -> ModuleType:
 
 class DummyProcess(CompletedProcess[str]):
     def __init__(self, stdout: str, stderr: str, returncode: int = 0) -> None:
-        super().__init__(args=["mypy"], returncode=returncode, stdout=stdout, stderr=stderr)
+        super().__init__(
+            args=["mypy"], returncode=returncode, stdout=stdout, stderr=stderr
+        )
 
 
 @pytest.fixture()

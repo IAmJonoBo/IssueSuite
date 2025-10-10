@@ -38,7 +38,8 @@ export default defineConfig({
         },
       ],
       editLink: {
-        baseUrl: "https://github.com/IAmJonoBo/IssueSuite/tree/main/docs/starlight/src/content/docs",
+        baseUrl:
+          "https://github.com/IAmJonoBo/IssueSuite/tree/main/docs/starlight/src/content/docs",
       },
     }),
     mdx(),

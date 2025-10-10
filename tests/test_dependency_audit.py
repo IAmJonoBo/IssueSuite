@@ -166,7 +166,9 @@ def test_render_table_formats_rows() -> None:
     assert "pip-audit" in table
 
 
-def test_main_outputs_json_when_requested(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_main_outputs_json_when_requested(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     advisories = [
         {
             "package": "demo",
@@ -247,7 +249,9 @@ def test_main_applies_allowlist(
         "issuesuite.dependency_audit.collect_installed_packages",
         lambda: [InstalledPackage(name="demo", version=Version("1.0"))],
     )
-    monkeypatch.setattr("issuesuite.dependency_audit.load_advisories", lambda path=None: [])
+    monkeypatch.setattr(
+        "issuesuite.dependency_audit.load_advisories", lambda path=None: []
+    )
     monkeypatch.setattr(
         "issuesuite.dependency_audit.perform_audit",
         lambda advisories, packages, online_probe=True, online_collector=None: (
@@ -264,7 +268,9 @@ def test_main_applies_allowlist(
             None,
         ),
     )
-    monkeypatch.setattr("issuesuite.dependency_audit.load_allowlist", lambda path=None: [allow])
+    monkeypatch.setattr(
+        "issuesuite.dependency_audit.load_allowlist", lambda path=None: [allow]
+    )
 
     exit_code = main([])
     captured = capsys.readouterr()

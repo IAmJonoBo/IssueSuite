@@ -70,7 +70,9 @@ class _SpanLike(Protocol):
 
 
 class _TracerLike(Protocol):
-    def start_as_current_span(self, name: str) -> contextlib.AbstractContextManager[_SpanLike]: ...
+    def start_as_current_span(
+        self, name: str
+    ) -> contextlib.AbstractContextManager[_SpanLike]: ...
 
 
 class _SpanContext(contextlib.AbstractContextManager[_SpanLike]):
@@ -141,7 +143,9 @@ class ResilientPyPIService:
         self.fallback_events: list[str] = []
         self.session = _Session()
 
-    def _evaluate_offline(self, dependency: ResolvedDependencyType) -> list[_ServiceFinding]:
+    def _evaluate_offline(
+        self, dependency: ResolvedDependencyType
+    ) -> list[_ServiceFinding]:
         name = str(getattr(dependency, "name", "")).lower().replace("_", "-")
         version_value = getattr(dependency, "version", "0")
         try:
@@ -152,11 +156,15 @@ class ResilientPyPIService:
         findings = evaluate_advisories([package], self._advisories)
         return [_ServiceFinding.from_finding(finding) for finding in findings]
 
-    def _record_fallback(self, dependency: ResolvedDependencyType, error: Exception) -> None:
+    def _record_fallback(
+        self, dependency: ResolvedDependencyType, error: Exception
+    ) -> None:
         self.fallback_events.append(str(error))
         tracer = _get_tracer("issuesuite.pip_audit")
         with tracer.start_as_current_span("issuesuite.pip_audit.fallback") as span:
-            span.set_attribute("issuesuite.package", str(getattr(dependency, "name", "unknown")))
+            span.set_attribute(
+                "issuesuite.package", str(getattr(dependency, "name", "unknown"))
+            )
             span.set_attribute("issuesuite.error", str(error))
 
     def query(
@@ -164,7 +172,9 @@ class ResilientPyPIService:
     ) -> tuple[ResolvedDependencyType, list[_ServiceFinding]]:
         tracer = _get_tracer("issuesuite.pip_audit")
         with tracer.start_as_current_span("issuesuite.pip_audit.query") as span:
-            span.set_attribute("issuesuite.package", str(getattr(dependency, "name", "unknown")))
+            span.set_attribute(
+                "issuesuite.package", str(getattr(dependency, "name", "unknown"))
+            )
         results: list[_ServiceFinding] = []
         try:
             response = self.session.get(

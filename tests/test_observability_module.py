@@ -33,7 +33,9 @@ def test_configure_telemetry_uses_fallback(monkeypatch: pytest.MonkeyPatch) -> N
     assert observability._telemetry_configured["configured"] is True
 
 
-def test_configure_telemetry_with_otlp_exporter(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_configure_telemetry_with_otlp_exporter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     exporter_calls: dict[str, object] = {}
 
     class DummyResource:
@@ -62,7 +64,9 @@ def test_configure_telemetry_with_otlp_exporter(monkeypatch: pytest.MonkeyPatch)
             exporter_calls["endpoint"] = endpoint
 
     dummy_trace = SimpleNamespace(
-        set_tracer_provider=lambda provider: exporter_calls.update({"provider": provider}),
+        set_tracer_provider=lambda provider: exporter_calls.update(
+            {"provider": provider}
+        ),
         get_tracer=lambda name: exporter_calls.update({"tracer": name}),
     )
 

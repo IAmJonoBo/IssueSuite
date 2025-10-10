@@ -58,7 +58,9 @@ def test_check_dataset_age_raises_when_stale(tmp_path: Path) -> None:
     path = tmp_path / "advisories.json"
     payload = {
         "version": 1,
-        "generated": (datetime.now(UTC) - timedelta(days=45)).isoformat().replace("+00:00", "Z"),
+        "generated": (datetime.now(UTC) - timedelta(days=45))
+        .isoformat()
+        .replace("+00:00", "Z"),
         "source": "tests",
         "advisories": [],
     }
@@ -99,5 +101,8 @@ def test_refresh_advisories_merges_existing(
 
     written = json.loads(output.read_text(encoding="utf-8"))
     assert any(entry["id"] == "GHSA-xrqq-cpx3-44h2" for entry in written["advisories"])
-    assert any(entry["id"] == sample_finding.vulnerability_id for entry in written["advisories"])
+    assert any(
+        entry["id"] == sample_finding.vulnerability_id
+        for entry in written["advisories"]
+    )
     assert dataset["advisories"] == written["advisories"]

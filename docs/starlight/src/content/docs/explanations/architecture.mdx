@@ -29,16 +29,16 @@ ISSUES.md  -> parser -> plan builder -> GitHub client
 
 ## Key modules
 
-| Module | Responsibility |
-| --- | --- |
-| `parser.py` | Validates spec format and converts Markdown into structured issues. |
-| `core.py` | Compares desired state with live issues and computes mutations. |
-| `orchestrator.py` | Applies the plan, updates mappings, and returns enriched summaries. |
-| `runtime.py` | Provides `prepare_config` and `execute_command` helpers so the CLI stays thin. |
-| `telemetry.py` | Emits JSONL events when enabled, without affecting command success. |
-| `plugins.py` | Discovers entry points/environment hooks and invokes them safely. |
-| `schemas.py` | Generates JSON Schemas for exports and telemetry consumers. |
-| `scaffold.py` | Implements the `issuesuite init` scaffolder. |
+| Module            | Responsibility                                                                 |
+| ----------------- | ------------------------------------------------------------------------------ |
+| `parser.py`       | Validates spec format and converts Markdown into structured issues.            |
+| `core.py`         | Compares desired state with live issues and computes mutations.                |
+| `orchestrator.py` | Applies the plan, updates mappings, and returns enriched summaries.            |
+| `runtime.py`      | Provides `prepare_config` and `execute_command` helpers so the CLI stays thin. |
+| `telemetry.py`    | Emits JSONL events when enabled, without affecting command success.            |
+| `plugins.py`      | Discovers entry points/environment hooks and invokes them safely.              |
+| `schemas.py`      | Generates JSON Schemas for exports and telemetry consumers.                    |
+| `scaffold.py`     | Implements the `issuesuite init` scaffolder.                                   |
 
 ## Configuration lifecycle
 

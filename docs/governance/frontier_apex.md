@@ -7,14 +7,14 @@ teams can forecast the rollout, wire automation, and measure success.
 
 ## Outcomes & Success Metrics
 
-| Track | Target | Measurement |
-| ----- | ------ | ----------- |
-| Coverage | ≥ 85% line coverage with critical modules ≥ 90% | `pytest --cov=issuesuite` enforced via `scripts/quality_gates.py` with per-module thresholds surfaced in `coverage.json`. |
-| Type Safety | ≥ 90% of modules included in `mypy` strict mode with drift telemetry | `python -m mypy src --strict` baseline plus `scripts/type_coverage_report.py` (to be implemented) uploaded as PR check artifact. |
-| UX & Accessibility | All CLI commands & docs validated by automated UX acceptance harness | `python scripts/ux_acceptance.py` verifying accessibility heuristics, terminal help formatting, and docs navigability. |
-| GitHub Projects Automation | Declarative project sync with status SLIs | Nightly workflow posts project health metrics (open vs closed, SLA) to GitHub Projects dashboards. |
-| Dependency Hygiene | Offline + online advisory parity, SBOM & provenance gating | `issuesuite security --pip-audit` + curated advisories; SBOM hashed and attested in release pipelines. |
-| Program Management Traceability | Next Steps, Projects, and Releases linked bidirectionally | Automation reconciles `/Next Steps.md`, GitHub Projects, and release notes each cycle. |
+| Track                           | Target                                                               | Measurement                                                                                                                      |
+| ------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Coverage                        | ≥ 85% line coverage with critical modules ≥ 90%                      | `pytest --cov=issuesuite` enforced via `scripts/quality_gates.py` with per-module thresholds surfaced in `coverage.json`.        |
+| Type Safety                     | ≥ 90% of modules included in `mypy` strict mode with drift telemetry | `python -m mypy src --strict` baseline plus `scripts/type_coverage_report.py` (to be implemented) uploaded as PR check artifact. |
+| UX & Accessibility              | All CLI commands & docs validated by automated UX acceptance harness | `python scripts/ux_acceptance.py` verifying accessibility heuristics, terminal help formatting, and docs navigability.           |
+| GitHub Projects Automation      | Declarative project sync with status SLIs                            | Nightly workflow posts project health metrics (open vs closed, SLA) to GitHub Projects dashboards.                               |
+| Dependency Hygiene              | Offline + online advisory parity, SBOM & provenance gating           | `issuesuite security --pip-audit` + curated advisories; SBOM hashed and attested in release pipelines.                           |
+| Program Management Traceability | Next Steps, Projects, and Releases linked bidirectionally            | Automation reconciles `/Next Steps.md`, GitHub Projects, and release notes each cycle.                                           |
 
 ## Capability Pillars
 
@@ -62,7 +62,7 @@ teams can forecast the rollout, wire automation, and measure success.
 - Expose the same automation as `issuesuite projects-status` so operators can
   generate artifacts without invoking standalone scripts.
 - Prototype landed: `scripts/projects_status_report.py` and `issuesuite
-  projects-status` now generate `projects_status_report.json` and a Markdown
+projects-status` now generate `projects_status_report.json` and a Markdown
   summary by merging coverage telemetry with `/Next Steps.md`, paving the way
   for nightly automation.
 - Introduce `issuesuite projects-sync` backed by

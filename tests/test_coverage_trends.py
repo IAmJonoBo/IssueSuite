@@ -136,8 +136,12 @@ def test_export_trends_computes_deltas_from_history(tmp_path: Path) -> None:
     assert pytest.approx(entry["overall"]["coverage"], rel=1e-6) == 0.915
     assert pytest.approx(entry["overall"]["delta"], rel=1e-6) == -0.004999999999999893
 
-    core_entry = next(m for m in entry["modules"] if m["module"] == "src/issuesuite/core.py")
-    cli_entry = next(m for m in entry["modules"] if m["module"] == "src/issuesuite/cli.py")
+    core_entry = next(
+        m for m in entry["modules"] if m["module"] == "src/issuesuite/core.py"
+    )
+    cli_entry = next(
+        m for m in entry["modules"] if m["module"] == "src/issuesuite/cli.py"
+    )
 
     assert pytest.approx(core_entry["delta"], rel=1e-6) == 0.020000000000000018
     assert pytest.approx(cli_entry["delta"], rel=1e-6) == -0.029999999999999916

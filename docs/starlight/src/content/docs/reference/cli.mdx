@@ -15,55 +15,55 @@ The `issuesuite` CLI orchestrates validation, synchronization, and tooling tasks
 
 Only `--quiet` is available at the top level. Most subcommands accept `--config` and `--repo` overrides individually so each workflow can target a different repository or configuration file.
 
-| Flag | Description |
-| --- | --- |
+| Flag      | Description                                         |
+| --------- | --------------------------------------------------- |
 | `--quiet` | Suppress informational logs (`ISSUESUITE_QUIET=1`). |
 
 ## Subcommands
 
-| Command | Purpose | Key options |
-| --- | --- | --- |
-| `issuesuite init` | Scaffold configuration, specs, workflows, and editor tasks. | `--all-extras`, `--include`, `--force`, `--directory`, `--config-name`, `--issues-name` |
-| `issuesuite validate` | Parse specs and enforce slug patterns. | `--config`, `--repo` |
-| `issuesuite summary` | Print a quick backlog overview. | `--limit`, `--config`, `--repo` |
-| `issuesuite sync` | Create/update/close issues against GitHub. | `--update`, `--apply`, `--dry-run`, `--respect-status`, `--preflight`, `--summary-json`, `--plan-json`, `--prune`, `--project-owner`, `--project-number`, `--config`, `--repo` |
-| `issuesuite export` | Emit parsed issues as JSON. | `--output`, `--pretty`, `--config`, `--repo` |
-| `issuesuite import` | Draft `ISSUES.md` from live issues. | `--output`, `--limit`, `--config`, `--repo` |
-| `issuesuite reconcile` | Compare local specs with live issues without mutating. | `--limit`, `--config`, `--repo` |
-| `issuesuite schema` | Generate JSON schemas for exports, summaries, and AI context payloads. | `--stdout`, `--config`, `--repo` |
-| `issuesuite ai-context` | Produce machine-readable context for AI tooling. | `--preview`, `--output`, `--quiet`, `--config`, `--repo` |
-| `issuesuite agent-apply` | Apply AI agent suggestions and optionally sync. | `--updates-json`, `--apply`, `--no-sync`, `--respect-status` / `--no-respect-status`, `--dry-run-sync`, `--summary-json`, `--require-approval`, `--approve`, `--config` |
-| `issuesuite doctor` | Diagnose authentication, repo access, and environment flags. | `--config`, `--repo` |
-| `issuesuite security` | Audit dependencies with offline-aware fallbacks. | `--offline-only`, `--output-json`, `--refresh-offline`, `--pip-audit`, `--pip-audit-arg`, `--pip-audit-disable-online`, `--config` |
-| `issuesuite setup` | Generate VS Code assets, run auth checks, or guided setup. | `--create-env`, `--check-auth`, `--vscode`, `--guided`, `--config` |
-| `issuesuite upgrade` | Recommend config migrations and governance follow-ups. | `--json`, `--config`, `--repo` |
-| `issuesuite projects-status` | Emit GitHub Projects payloads and Markdown summary. | `--next-steps`, `--coverage`, `--output`, `--comment-output`, `--lookahead-days`, `--config`, `--repo` |
+| Command                      | Purpose                                                                | Key options                                                                                                                                                                    |
+| ---------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `issuesuite init`            | Scaffold configuration, specs, workflows, and editor tasks.            | `--all-extras`, `--include`, `--force`, `--directory`, `--config-name`, `--issues-name`                                                                                        |
+| `issuesuite validate`        | Parse specs and enforce slug patterns.                                 | `--config`, `--repo`                                                                                                                                                           |
+| `issuesuite summary`         | Print a quick backlog overview.                                        | `--limit`, `--config`, `--repo`                                                                                                                                                |
+| `issuesuite sync`            | Create/update/close issues against GitHub.                             | `--update`, `--apply`, `--dry-run`, `--respect-status`, `--preflight`, `--summary-json`, `--plan-json`, `--prune`, `--project-owner`, `--project-number`, `--config`, `--repo` |
+| `issuesuite export`          | Emit parsed issues as JSON.                                            | `--output`, `--pretty`, `--config`, `--repo`                                                                                                                                   |
+| `issuesuite import`          | Draft `ISSUES.md` from live issues.                                    | `--output`, `--limit`, `--config`, `--repo`                                                                                                                                    |
+| `issuesuite reconcile`       | Compare local specs with live issues without mutating.                 | `--limit`, `--config`, `--repo`                                                                                                                                                |
+| `issuesuite schema`          | Generate JSON schemas for exports, summaries, and AI context payloads. | `--stdout`, `--config`, `--repo`                                                                                                                                               |
+| `issuesuite ai-context`      | Produce machine-readable context for AI tooling.                       | `--preview`, `--output`, `--quiet`, `--config`, `--repo`                                                                                                                       |
+| `issuesuite agent-apply`     | Apply AI agent suggestions and optionally sync.                        | `--updates-json`, `--apply`, `--no-sync`, `--respect-status` / `--no-respect-status`, `--dry-run-sync`, `--summary-json`, `--require-approval`, `--approve`, `--config`        |
+| `issuesuite doctor`          | Diagnose authentication, repo access, and environment flags.           | `--config`, `--repo`                                                                                                                                                           |
+| `issuesuite security`        | Audit dependencies with offline-aware fallbacks.                       | `--offline-only`, `--output-json`, `--refresh-offline`, `--pip-audit`, `--pip-audit-arg`, `--pip-audit-disable-online`, `--config`                                             |
+| `issuesuite setup`           | Generate VS Code assets, run auth checks, or guided setup.             | `--create-env`, `--check-auth`, `--vscode`, `--guided`, `--config`                                                                                                             |
+| `issuesuite upgrade`         | Recommend config migrations and governance follow-ups.                 | `--json`, `--config`, `--repo`                                                                                                                                                 |
+| `issuesuite projects-status` | Emit GitHub Projects payloads and Markdown summary.                    | `--next-steps`, `--coverage`, `--output`, `--comment-output`, `--lookahead-days`, `--config`, `--repo`                                                                         |
 
 ## Exit codes
 
-| Code | Meaning |
-| --- | --- |
-| `0` | Command succeeded. |
-| `1` | Validation error, exception, or recommendations produced by `upgrade`. |
-| `2` | Drift detected (used by `reconcile`, doctor guards, and some gate scripts). |
+| Code | Meaning                                                                     |
+| ---- | --------------------------------------------------------------------------- |
+| `0`  | Command succeeded.                                                          |
+| `1`  | Validation error, exception, or recommendations produced by `upgrade`.      |
+| `2`  | Drift detected (used by `reconcile`, doctor guards, and some gate scripts). |
 
 ## Environment variables
 
-| Variable | Effect |
-| --- | --- |
-| `ISSUESUITE_QUIET=1` | Suppress info logs (same as `--quiet`). |
-| `ISSUESUITE_AI_MODE=1` | Force dry-run mode (no mutations). |
-| `ISSUES_SUITE_MOCK=1` | Use mock integrations for offline development. |
-| `ISSUESUITE_DRY_FORCE=1` | Impose dry-run mode regardless of CLI flags. |
-| `ISSUESUITE_TELEMETRY=1` | Force telemetry on (`0` to force off). |
-| `ISSUESUITE_TELEMETRY_PATH` | Override the telemetry JSONL destination. |
-| `ISSUESUITE_PLUGINS` | Provide ad-hoc plugin callables (`module:function`). |
-| `ISSUESUITE_GITHUB_TOKEN` | Supply a GitHub token (fallback to `GITHUB_TOKEN`/`GH_TOKEN`). |
-| `ISSUESUITE_GITHUB_API` / `ISSUESUITE_GITHUB_GRAPHQL` | Override GitHub REST/GraphQL endpoints. |
-| `ISSUESUITE_REST_DISABLED=1` | Skip REST mutations (useful when testing packaging). |
-| `ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1` | Disable remote vulnerability feeds and rely on curated advisories. |
-| `ISSUESUITE_PIP_AUDIT_TIMEOUT` | Cap pip-audit execution time in seconds. |
-| `ISSUESUITE_PIP_AUDIT_SUPPRESS_TABLE=1` | Hide tabular pip-audit output to keep logs concise. |
+| Variable                                              | Effect                                                             |
+| ----------------------------------------------------- | ------------------------------------------------------------------ |
+| `ISSUESUITE_QUIET=1`                                  | Suppress info logs (same as `--quiet`).                            |
+| `ISSUESUITE_AI_MODE=1`                                | Force dry-run mode (no mutations).                                 |
+| `ISSUES_SUITE_MOCK=1`                                 | Use mock integrations for offline development.                     |
+| `ISSUESUITE_DRY_FORCE=1`                              | Impose dry-run mode regardless of CLI flags.                       |
+| `ISSUESUITE_TELEMETRY=1`                              | Force telemetry on (`0` to force off).                             |
+| `ISSUESUITE_TELEMETRY_PATH`                           | Override the telemetry JSONL destination.                          |
+| `ISSUESUITE_PLUGINS`                                  | Provide ad-hoc plugin callables (`module:function`).               |
+| `ISSUESUITE_GITHUB_TOKEN`                             | Supply a GitHub token (fallback to `GITHUB_TOKEN`/`GH_TOKEN`).     |
+| `ISSUESUITE_GITHUB_API` / `ISSUESUITE_GITHUB_GRAPHQL` | Override GitHub REST/GraphQL endpoints.                            |
+| `ISSUESUITE_REST_DISABLED=1`                          | Skip REST mutations (useful when testing packaging).               |
+| `ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1`               | Disable remote vulnerability feeds and rely on curated advisories. |
+| `ISSUESUITE_PIP_AUDIT_TIMEOUT`                        | Cap pip-audit execution time in seconds.                           |
+| `ISSUESUITE_PIP_AUDIT_SUPPRESS_TABLE=1`               | Hide tabular pip-audit output to keep logs concise.                |
 
 :::note[Planned features]
 We plan to expose `issuesuite pipelines` to orchestrate multi-stage workflows, surfacing pipeline definitions in this reference once stabilized.

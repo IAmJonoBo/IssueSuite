@@ -16,7 +16,9 @@ from typing import Any
 class JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:  # noqa: D401
         entry: dict[str, Any] = {
-            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
+            "timestamp": datetime.fromtimestamp(
+                record.created, tz=timezone.utc
+            ).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -148,7 +150,9 @@ class StructuredLogger:
             candidates.append(report_path)
         else:
             candidates.append(Path.cwd() / "type_coverage.json")
-            candidates.append(Path(__file__).resolve().parents[2] / "type_coverage.json")
+            candidates.append(
+                Path(__file__).resolve().parents[2] / "type_coverage.json"
+            )
         for candidate in candidates:
             try:
                 data = json.loads(candidate.read_text(encoding="utf-8"))
@@ -176,7 +180,9 @@ class StructuredLogger:
         self.debug("type coverage report not found", report="type_coverage.json")
 
     @contextmanager
-    def timed_operation(self, operation: str, **kw: Any) -> Iterator[None]:  # noqa: D401
+    def timed_operation(
+        self, operation: str, **kw: Any
+    ) -> Iterator[None]:  # noqa: D401
         start = time.perf_counter()
         self.log_operation(f"{operation}_start", **kw)
         try:
@@ -197,7 +203,9 @@ def get_logger() -> StructuredLogger:
     return _GLOBAL
 
 
-def configure_logging(json_logging: bool = False, level: str = "INFO") -> StructuredLogger:
+def configure_logging(
+    json_logging: bool = False, level: str = "INFO"
+) -> StructuredLogger:
     global _GLOBAL  # noqa: PLW0603
     _GLOBAL = StructuredLogger(json_logging=json_logging, level=level)
     try:

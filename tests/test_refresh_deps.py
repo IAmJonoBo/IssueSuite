@@ -73,7 +73,9 @@ def refresh_script(temp_repo: Path) -> Path:
     return script_path
 
 
-def test_refresh_deps_check_detects_modified_pyproject(temp_repo: Path, refresh_script: Path):
+def test_refresh_deps_check_detects_modified_pyproject(
+    temp_repo: Path, refresh_script: Path
+):
     """Verify --check flag detects when pyproject.toml is modified but uv.lock is not."""
     # Modify pyproject.toml
     pyproject = temp_repo / "pyproject.toml"
@@ -102,7 +104,9 @@ def test_refresh_deps_check_detects_modified_pyproject(temp_repo: Path, refresh_
     assert result.returncode in (0, 1, 2, 6)  # 2 = parse error, 6 = network error
 
 
-def test_refresh_deps_check_detects_modified_package_json(temp_repo: Path, refresh_script: Path):
+def test_refresh_deps_check_detects_modified_package_json(
+    temp_repo: Path, refresh_script: Path
+):
     """Verify --check flag detects when package.json is modified but package-lock.json is not."""
     # Modify package.json
     package_json = temp_repo / "docs" / "starlight" / "package.json"
@@ -123,7 +127,9 @@ def test_refresh_deps_check_detects_modified_package_json(temp_repo: Path, refre
     assert result.returncode in (0, 1, 2, 6, 127)
 
 
-def test_refresh_deps_updates_python_lock(temp_repo: Path, refresh_script: Path, monkeypatch):
+def test_refresh_deps_updates_python_lock(
+    temp_repo: Path, refresh_script: Path, monkeypatch
+):
     """Verify script updates uv.lock when pyproject.toml changes."""
     # Mock uv command to just update the lock file
     mock_uv = temp_repo / "mock_uv"
@@ -193,7 +199,9 @@ def test_refresh_deps_unknown_option(refresh_script: Path):
     assert "error" in result.stdout.lower() or "unknown" in result.stdout.lower()
 
 
-def test_refresh_deps_check_passes_when_synchronized(temp_repo: Path, refresh_script: Path):
+def test_refresh_deps_check_passes_when_synchronized(
+    temp_repo: Path, refresh_script: Path
+):
     """Verify --check passes when lockfiles are already synchronized."""
     # Don't modify any files - lockfiles should be "in sync" (or check will be skipped)
     result = subprocess.run(

@@ -12,8 +12,7 @@ import requests
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
-from issuesuite.dependency_audit import Advisory
-from issuesuite.dependency_audit import Finding
+from issuesuite.dependency_audit import Advisory, Finding
 from issuesuite.pip_audit_integration import (
     PipAuditError,
     ResilientPyPIService,
@@ -112,7 +111,9 @@ def test_resilient_service_records_telemetry(monkeypatch: pytest.MonkeyPatch) ->
 
             return _manager()
 
-    monkeypatch.setattr("issuesuite.pip_audit_integration._get_tracer", lambda *_: _Tracer())
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration._get_tracer", lambda *_: _Tracer()
+    )
 
     service = _build_service()
 
@@ -209,13 +210,17 @@ def test_run_resilient_pip_audit_falls_back_on_error(
         lambda *args, **kwargs: (_ for _ in ()).throw(PipAuditError("timeout")),
     )
     monkeypatch.setattr("issuesuite.pip_audit_integration.load_advisories", lambda: [])
-    monkeypatch.setattr("issuesuite.pip_audit_integration.collect_installed_packages", lambda: [])
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.collect_installed_packages", lambda: []
+    )
 
     def _mock_perform_audit(**kwargs: object) -> tuple[list[Finding], str]:
         assert kwargs["online_probe"] is False
         return ([], "offline-only")
 
-    monkeypatch.setattr("issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit)
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit
+    )
     monkeypatch.setattr(
         "issuesuite.pip_audit_integration.render_findings_table",
         lambda findings: "offline table",
@@ -237,7 +242,9 @@ def test_run_resilient_pip_audit_handles_nonzero_exit(
         lambda *args, **kwargs: subprocess.CompletedProcess(args, returncode=2),
     )
     monkeypatch.setattr("issuesuite.pip_audit_integration.load_advisories", lambda: [])
-    monkeypatch.setattr("issuesuite.pip_audit_integration.collect_installed_packages", lambda: [])
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.collect_installed_packages", lambda: []
+    )
 
     def _mock_perform_audit(
         **kwargs: object,
@@ -256,7 +263,9 @@ def test_run_resilient_pip_audit_handles_nonzero_exit(
             None,
         )
 
-    monkeypatch.setattr("issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit)
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit
+    )
     monkeypatch.setattr(
         "issuesuite.pip_audit_integration.render_findings_table",
         lambda findings: "offline finding",
@@ -279,13 +288,17 @@ def test_run_resilient_pip_audit_honours_disable_flag(
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should not run")),
     )
     monkeypatch.setattr("issuesuite.pip_audit_integration.load_advisories", lambda: [])
-    monkeypatch.setattr("issuesuite.pip_audit_integration.collect_installed_packages", lambda: [])
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.collect_installed_packages", lambda: []
+    )
 
     def _mock_perform_audit(**kwargs: object) -> tuple[list[Finding], str]:
         assert kwargs["online_probe"] is False
         return ([], "offline-only")
 
-    monkeypatch.setattr("issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit)
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit
+    )
     monkeypatch.setattr(
         "issuesuite.pip_audit_integration.render_findings_table",
         lambda findings: "offline table",
@@ -308,7 +321,9 @@ def test_run_resilient_pip_audit_passthrough_outputs(
         stdout="audit summary",
         stderr="deprecation warning",
     )
-    monkeypatch.setattr("issuesuite.pip_audit_integration._run_pip_audit", lambda *_, **__: result)
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration._run_pip_audit", lambda *_, **__: result
+    )
 
     rc = run_resilient_pip_audit(["--strict"])
     captured = capsys.readouterr()
@@ -327,15 +342,21 @@ def test_run_resilient_pip_audit_detects_ssl_in_stdout(
         stdout="HTTPSConnectionPool(host='example.com')",
         stderr="",
     )
-    monkeypatch.setattr("issuesuite.pip_audit_integration._run_pip_audit", lambda *_, **__: result)
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration._run_pip_audit", lambda *_, **__: result
+    )
     monkeypatch.setattr("issuesuite.pip_audit_integration.load_advisories", lambda: [])
-    monkeypatch.setattr("issuesuite.pip_audit_integration.collect_installed_packages", lambda: [])
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.collect_installed_packages", lambda: []
+    )
 
     def _mock_perform_audit(**kwargs: object) -> tuple[list[Finding], str | None]:
         assert kwargs["online_probe"] is False
         return ([], "offline-only")
 
-    monkeypatch.setattr("issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit)
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit
+    )
     monkeypatch.setattr(
         "issuesuite.pip_audit_integration.render_findings_table",
         lambda findings: "offline table",
@@ -358,15 +379,21 @@ def test_run_resilient_pip_audit_handles_missing_dependency(
         stdout="",
         stderr="Dependency not found on PyPI and could not be audited: issuesuite (0.1.13)",
     )
-    monkeypatch.setattr("issuesuite.pip_audit_integration._run_pip_audit", lambda *_, **__: result)
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration._run_pip_audit", lambda *_, **__: result
+    )
     monkeypatch.setattr("issuesuite.pip_audit_integration.load_advisories", lambda: [])
-    monkeypatch.setattr("issuesuite.pip_audit_integration.collect_installed_packages", lambda: [])
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.collect_installed_packages", lambda: []
+    )
 
     def _mock_perform_audit(**kwargs: object) -> tuple[list[Finding], str | None]:
         assert kwargs["online_probe"] is False
         return ([], "offline-only")
 
-    monkeypatch.setattr("issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit)
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit
+    )
     monkeypatch.setattr(
         "issuesuite.pip_audit_integration.render_findings_table",
         lambda findings: "offline table",
@@ -407,7 +434,9 @@ def test_get_audit_timeout_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_online_collection_disabled_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test _online_collection_disabled with various environment values."""
-    from issuesuite.pip_audit_integration import _online_collection_disabled  # noqa: PLC0415
+    from issuesuite.pip_audit_integration import (  # noqa: PLC0415
+        _online_collection_disabled,
+    )
 
     # Test with no env var set
     monkeypatch.delenv("ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE", raising=False)
@@ -426,7 +455,10 @@ def test_online_collection_disabled_env(monkeypatch: pytest.MonkeyPatch) -> None
 
 def test_parse_findings_with_invalid_payload() -> None:
     """Test _iter_entries and _extract_findings with invalid payload types."""
-    from issuesuite.pip_audit_integration import _extract_findings, _iter_entries  # noqa: PLC0415
+    from issuesuite.pip_audit_integration import (  # noqa: PLC0415
+        _extract_findings,
+        _iter_entries,
+    )
 
     # Test with non-dict payload
     findings = list(_iter_entries("not a dict"))
@@ -463,7 +495,9 @@ def test_extract_alias_with_various_types() -> None:
     assert _extract_alias({"aliases": ("GHSA-5678",)}) == "GHSA-5678"
 
     # Test with set
-    assert _extract_alias({"aliases": {"GHSA-9012"}}) != ""  # Set order is unpredictable
+    assert (
+        _extract_alias({"aliases": {"GHSA-9012"}}) != ""
+    )  # Set order is unpredictable
 
     # Test with non-iterable
     assert _extract_alias({"aliases": "not-a-list"}) == ""
@@ -477,11 +511,15 @@ def test_iter_vulns_with_edge_cases() -> None:
     from issuesuite.pip_audit_integration import _iter_vulns  # noqa: PLC0415
 
     # Test with non-list vulns
-    findings = list(_iter_vulns({"name": "pkg", "version": "1.0", "vulns": "not-a-list"}))
+    findings = list(
+        _iter_vulns({"name": "pkg", "version": "1.0", "vulns": "not-a-list"})
+    )
     assert findings == []
 
     # Test with non-dict vuln entries
-    findings = list(_iter_vulns({"name": "pkg", "version": "1.0", "vulns": ["string", 123]}))
+    findings = list(
+        _iter_vulns({"name": "pkg", "version": "1.0", "vulns": ["string", 123]})
+    )
     assert findings == []
 
     # Test with vuln having fixed_versions as non-iterable

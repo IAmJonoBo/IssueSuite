@@ -17,7 +17,9 @@ def test_gh_auth_skips_when_cli_missing(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setattr("issuesuite.core.shutil.which", lambda _: None)
 
     def _fail(*_: object, **__: object) -> str:
-        raise AssertionError("subprocess.check_output should not be invoked when gh is absent")
+        raise AssertionError(
+            "subprocess.check_output should not be invoked when gh is absent"
+        )
 
     monkeypatch.setattr("issuesuite.core.subprocess.check_output", _fail)
 
@@ -27,7 +29,9 @@ def test_gh_auth_skips_when_cli_missing(monkeypatch: pytest.MonkeyPatch) -> None
 def test_invoke_plugins_logs_failures(monkeypatch: pytest.MonkeyPatch) -> None:
     """Plugin failures should be logged so operators can diagnose them."""
 
-    def _broken_plugin(context: object) -> None:  # pragma: no cover - intentional failure path
+    def _broken_plugin(
+        context: object,
+    ) -> None:  # pragma: no cover - intentional failure path
         raise RuntimeError("boom")
 
     monkeypatch.setattr(

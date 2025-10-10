@@ -28,7 +28,9 @@ def test_sitecustomize_disable_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert module._patch_pip_audit() is False
 
 
-def test_sitecustomize_installs_resilient_service(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_sitecustomize_installs_resilient_service(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     module = _load_sitecustomize()
     monkeypatch.setattr(module, "_load_advisories", lambda: ("advisory",))
     called: dict[str, tuple[object, ...]] = {}
@@ -60,14 +62,18 @@ def test_sitecustomize_load_advisories_success(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(
         module,
         "import_module",
-        lambda name: MockDependencyAudit() if name == "issuesuite.dependency_audit" else None,
+        lambda name: (
+            MockDependencyAudit() if name == "issuesuite.dependency_audit" else None
+        ),
     )
 
     result = module._load_advisories()
     assert tuple(result) == tuple(mock_advisories)
 
 
-def test_sitecustomize_load_advisories_missing_module(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_sitecustomize_load_advisories_missing_module(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Test _load_advisories when dependency_audit module is missing."""
     module = _load_sitecustomize()
 
@@ -81,7 +87,9 @@ def test_sitecustomize_load_advisories_missing_module(monkeypatch: pytest.Monkey
     assert tuple(result) == ()
 
 
-def test_sitecustomize_install_resilient_service_success(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_sitecustomize_install_resilient_service_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Test _install_resilient_service when pip_audit_integration is available."""
     module = _load_sitecustomize()
 
@@ -100,7 +108,9 @@ def test_sitecustomize_install_resilient_service_success(monkeypatch: pytest.Mon
     monkeypatch.setattr(
         module,
         "import_module",
-        lambda name: MockIntegration() if name == "issuesuite.pip_audit_integration" else None,
+        lambda name: (
+            MockIntegration() if name == "issuesuite.pip_audit_integration" else None
+        ),
     )
 
     result = module._install_resilient_service([{"id": "test"}])
@@ -135,14 +145,18 @@ def test_sitecustomize_install_resilient_service_missing_installer(
     monkeypatch.setattr(
         module,
         "import_module",
-        lambda name: MockIntegration() if name == "issuesuite.pip_audit_integration" else None,
+        lambda name: (
+            MockIntegration() if name == "issuesuite.pip_audit_integration" else None
+        ),
     )
 
     result = module._install_resilient_service([])
     assert result is False
 
 
-def test_sitecustomize_patch_pip_audit_integration(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_sitecustomize_patch_pip_audit_integration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Test end-to-end _patch_pip_audit integration."""
     module = _load_sitecustomize()
 
@@ -163,9 +177,13 @@ def test_sitecustomize_patch_pip_audit_integration(monkeypatch: pytest.MonkeyPat
         return restore() if advisories else False
 
     monkeypatch.setattr(module, "_load_advisories", mock_load_advisories)
-    monkeypatch.setattr(module, "_install_resilient_service", mock_install_resilient_service)
+    monkeypatch.setattr(
+        module, "_install_resilient_service", mock_install_resilient_service
+    )
     monkeypatch.delenv("ISSUESUITE_DISABLE_PIP_AUDIT_SITE_PATCH", raising=False)
 
     result = module._patch_pip_audit()
-    assert result is False  # Because mock_install_resilient_service returns restore() which is None
+    assert (
+        result is False
+    )  # Because mock_install_resilient_service returns restore() which is None
     assert len(advisories_loaded) == 1

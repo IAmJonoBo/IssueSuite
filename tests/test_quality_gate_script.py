@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
-import sys
 
 import pytest
 
@@ -161,7 +161,9 @@ def test_persist_coverage_artifacts_exports_trends(tmp_path, quality_gate_script
 
     project_payload = json.loads(project_payload_path.read_text(encoding="utf-8"))
     assert project_payload["recorded_at"] == entry["recorded_at"]
-    assert project_payload["overall_coverage"] == pytest.approx(entry["overall"]["coverage"])
+    assert project_payload["overall_coverage"] == pytest.approx(
+        entry["overall"]["coverage"]
+    )
 
 
 def test_export_trends_failure_raises_custom_error(tmp_path, quality_gate_script):

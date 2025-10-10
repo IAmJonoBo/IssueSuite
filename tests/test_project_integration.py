@@ -53,7 +53,9 @@ def test_sync_with_project_assignment(monkeypatch, tmp_path):
     assert cfg.project_field_mappings == {"labels": "Status", "milestone": "Priority"}
 
     # Run sync to test project assignment integration
-    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
+    summary = suite.sync(
+        dry_run=True, update=False, respect_status=False, preflight=False
+    )
 
     # Should complete without errors
     assert summary["totals"]["specs"] == 1
@@ -78,7 +80,9 @@ def test_sync_without_project_assignment(monkeypatch, tmp_path):
     assert cfg.project_enable is False
 
     # Run sync to ensure it still works when project assignment is disabled
-    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
+    summary = suite.sync(
+        dry_run=True, update=False, respect_status=False, preflight=False
+    )
 
     # Should complete without errors
     assert summary["totals"]["specs"] == 1

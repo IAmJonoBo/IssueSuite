@@ -55,14 +55,18 @@ def test_validate_next_steps_accepts_compliant_tracker(tmp_path: Path) -> None:
 
 
 def test_validate_next_steps_rejects_missing_quality_gate(tmp_path: Path) -> None:
-    tracker = _write_tracker(tmp_path, _baseline_content().replace("ruff format --check", "ruff"))
+    tracker = _write_tracker(
+        tmp_path, _baseline_content().replace("ruff format --check", "ruff")
+    )
     with pytest.raises(ValueError) as exc:
         validate_next_steps([tracker])
     assert "ruff format --check" in str(exc.value)
 
 
 def test_validate_next_steps_requires_github_projects_reference(tmp_path: Path) -> None:
-    tracker = _write_tracker(tmp_path, _baseline_content().replace("GitHub Projects", "roadmap"))
+    tracker = _write_tracker(
+        tmp_path, _baseline_content().replace("GitHub Projects", "roadmap")
+    )
     with pytest.raises(ValueError) as exc:
         validate_next_steps([tracker])
     assert "GitHub Projects" in str(exc.value)
@@ -86,7 +90,9 @@ def test_validate_next_steps_accepts_table_tracker(tmp_path: Path) -> None:
 
 def test_validate_next_steps_rejects_table_missing_keywords(tmp_path: Path) -> None:
     table_path = tmp_path / "Next_Steps.md"
-    table_path.write_text(_table_content().replace("coverage ≥80", "coverage"), encoding="utf-8")
+    table_path.write_text(
+        _table_content().replace("coverage ≥80", "coverage"), encoding="utf-8"
+    )
     with pytest.raises(ValueError) as exc:
         validate_next_steps([table_path])
     assert "coverage ≥80" in str(exc.value)

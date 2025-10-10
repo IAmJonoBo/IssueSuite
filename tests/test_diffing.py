@@ -63,7 +63,9 @@ def test_needs_update_body_changed() -> None:
 
 
 def test_compute_diff_labels_and_body() -> None:
-    spec = _spec(labels=["one", "three"], body="<!-- issuesuite:slug=abc -->\n\nNew body\n")
+    spec = _spec(
+        labels=["one", "three"], body="<!-- issuesuite:slug=abc -->\n\nNew body\n"
+    )
     issue: dict[str, Any] = {
         "labels": [{"name": "one"}, {"name": "two"}],
         "body": "<!-- issuesuite:slug=abc -->\n\nOld body\n",

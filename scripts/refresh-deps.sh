@@ -36,7 +36,7 @@ while [[ $# -gt 0 ]]; do
 		CHECK_ONLY=1
 		shift
 		;;
-	-h|--help)
+	-h | --help)
 		usage
 		exit 0
 		;;
@@ -86,7 +86,7 @@ update_docs_lock() {
 update_python_lock
 update_docs_lock
 
-if (( CHECK_ONLY )); then
+if ((CHECK_ONLY)); then
 	log "Verifying generated artifacts are current"
 	if ! git -C "${PROJECT_ROOT}" diff --quiet -- uv.lock docs/starlight/package-lock.json; then
 		log "dependency artifacts are stale; run scripts/refresh-deps.sh to update"

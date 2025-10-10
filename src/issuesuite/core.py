@@ -57,7 +57,9 @@ class PlanEntry(TypedDict, total=False):
     changes: dict[str, int] | None
 
 
-def _plan_match_issue(spec: IssueSpec, existing: list[dict[str, Any]]) -> dict[str, Any] | None:
+def _plan_match_issue(
+    spec: IssueSpec, existing: list[dict[str, Any]]
+) -> dict[str, Any] | None:
     for issue in existing:
         title = issue.get("title")
         if title == spec.title:
@@ -142,7 +144,8 @@ def _build_plan(
     respect_status: bool,
 ) -> list[PlanEntry]:
     return [
-        _plan_entry_for_spec(spec, existing, prev_hashes, update, respect_status) for spec in specs
+        _plan_entry_for_spec(spec, existing, prev_hashes, update, respect_status)
+        for spec in specs
     ]
 
 
@@ -170,7 +173,9 @@ class BenchmarkProtocol(Protocol):  # minimal protocol to appease type checker
     def generate_report(self) -> None: ...  # pragma: no cover
 
 
-class _ConcurrentProcessorProtocol(Protocol):  # narrow structural type for concurrency helper
+class _ConcurrentProcessorProtocol(
+    Protocol
+):  # narrow structural type for concurrency helper
     async def process_specs_concurrent(  # pragma: no cover - runtime provided
         self,
         specs: list[IssueSpec],
@@ -258,20 +263,28 @@ class IssueSuite:
         try:
             # Try to configure GitHub CLI with environment token
             if self._env_auth_manager.configure_github_cli():
-                self._logger.log_operation("env_auth_configured", source="environment_variables")
+                self._logger.log_operation(
+                    "env_auth_configured", source="environment_variables"
+                )
 
             # Log authentication recommendations if needed
-            recommendations = self._env_auth_manager.get_authentication_recommendations()
+            recommendations = (
+                self._env_auth_manager.get_authentication_recommendations()
+            )
             # Suppress recommendation noise when quiet mode requested
             if recommendations and os.environ.get("ISSUESUITE_QUIET") != "1":
-                self._logger.info("Authentication recommendations: " + "; ".join(recommendations))
+                self._logger.info(
+                    "Authentication recommendations: " + "; ".join(recommendations)
+                )
 
             # Detect online environment
             if self._env_auth_manager.is_online_environment():
                 self._logger.log_operation("online_environment_detected")
 
         except Exception as e:
-            self._logger.log_error("Environment authentication setup failed", error=str(e))
+            self._logger.log_error(
+                "Environment authentication setup failed", error=str(e)
+            )
 
     def _setup_github_app_auth(self) -> None:
         """Setup GitHub App authentication."""
@@ -288,9 +301,13 @@ class IssueSuite:
                         app_id=self._github_app_config.app_id,
                     )
                 else:
-                    self._logger.log_error("Failed to configure GitHub App authentication")
+                    self._logger.log_error(
+                        "Failed to configure GitHub App authentication"
+                    )
         except Exception as e:
-            self._logger.log_error("GitHub App authentication setup failed", error=str(e))
+            self._logger.log_error(
+                "GitHub App authentication setup failed", error=str(e)
+            )
 
     def _log(self, *parts: Any) -> None:  # lightweight internal debug logger
         if self._debug:
@@ -361,7 +378,9 @@ class IssueSuite:
                 prev_hashes = self._load_hash_state()
                 plan: list[PlanEntry] | None = None
                 if dry_run:
-                    plan = _build_plan(specs, existing, prev_hashes, update, respect_status)
+                    plan = _build_plan(
+                        specs, existing, prev_hashes, update, respect_status
+                    )
                 results = self._sync_process_specs(
                     specs,
                     existing,
@@ -480,9 +499,14 @@ class IssueSuite:
         project_assigner: ProjectAssignerProtocol,
     ) -> list[dict[str, Any]]:
         # Sequential fast path (default) unless concurrency explicitly enabled in config.
-        if not self._concurrency_config.enabled or len(specs) < _concurrency_threshold_default:
+        if (
+            not self._concurrency_config.enabled
+            or len(specs) < _concurrency_threshold_default
+        ):
             results: list[dict[str, Any]] = []
-            with self._benchmark.measure("process_specs", spec_count=len(specs), mode="sequential"):
+            with self._benchmark.measure(
+                "process_specs", spec_count=len(specs), mode="sequential"
+            ):
                 for spec in specs:
                     result = self._process_spec(
                         spec=spec,
@@ -498,7 +522,9 @@ class IssueSuite:
 
         # Concurrency path: leverage concurrent processor to parallelize _process_spec.
         async def _run() -> list[dict[str, Any]]:
-            processor = create_concurrent_processor(self._concurrency_config, mock=self._mock)
+            processor = create_concurrent_processor(
+                self._concurrency_config, mock=self._mock
+            )
 
             def _wrapper(spec: IssueSpec) -> dict[str, Any]:  # executed in threads
                 return self._process_spec(
@@ -517,7 +543,9 @@ class IssueSuite:
                 for spec, result in zip(specs, processed, strict=False)
             ]
 
-        with self._benchmark.measure("process_specs", spec_count=len(specs), mode="concurrent"):
+        with self._benchmark.measure(
+            "process_specs", spec_count=len(specs), mode="concurrent"
+        ):
             try:
                 # If already in an event loop (e.g., when called from async tests),
                 # fall back to explicit sequential processing to avoid recursion.
@@ -621,7 +649,9 @@ class IssueSuite:
             if isinstance(created_number, int):
                 result["mapped"] = created_number
             # Attempt project assignment (mock + non-dry-run only; real issue number unknown until GH returns it)
-            self._maybe_assign_project_on_create(spec, project_assigner, result, dry_run)
+            self._maybe_assign_project_on_create(
+                spec, project_assigner, result, dry_run
+            )
             return result
         number = match.get("number") if match else None
         if isinstance(number, int):
@@ -630,9 +660,15 @@ class IssueSuite:
                 project_assigner.assign(number, spec)
             except Exception as exc:  # pragma: no cover - defensive
                 self._logger.log_error(
-                    "Project assignment failed", error=str(exc), external_id=spec.external_id
+                    "Project assignment failed",
+                    error=str(exc),
+                    external_id=spec.external_id,
                 )
-        if respect_status and spec.status == "closed" and match.get("state") != "CLOSED":
+        if (
+            respect_status
+            and spec.status == "closed"
+            and match.get("state") != "CLOSED"
+        ):
             self._close(match, dry_run)
             result["closed"] = {
                 "external_id": spec.external_id,
@@ -666,7 +702,9 @@ class IssueSuite:
             return True
         except subprocess.CalledProcessError as exc:
             self._logger.log_error(
-                "GitHub CLI auth status failed", error=exc.output or str(exc), executable=gh_path
+                "GitHub CLI auth status failed",
+                error=exc.output or str(exc),
+                executable=gh_path,
             )
         except OSError as exc:  # pragma: no cover - filesystem / permission edge
             self._logger.log_error(
@@ -683,7 +721,9 @@ class IssueSuite:
             existing.append(e)
         return existing
 
-    def _match(self, spec: IssueSpec, existing: list[dict[str, Any]]) -> dict[str, Any] | None:
+    def _match(
+        self, spec: IssueSpec, existing: list[dict[str, Any]]
+    ) -> dict[str, Any] | None:
         def _norm(text: str) -> str:
             return re.sub(r"\s+", " ", text.lower())
 
@@ -695,7 +735,9 @@ class IssueSuite:
             title = issue.get("title")
             if title == spec.title:
                 return issue
-            if spec.external_id in (title or "") and _norm(title or "") == _norm(spec.title):
+            if spec.external_id in (title or "") and _norm(title or "") == _norm(
+                spec.title
+            ):
                 return issue
         return None
 
@@ -715,8 +757,12 @@ class IssueSuite:
 
     def _update(self, spec: IssueSpec, issue: dict[str, Any], dry_run: bool) -> None:
         number = int(issue["number"])
-        self._log("update", spec.external_id, f"#{number}", "dry_run" if dry_run else "")
-        self._logger.log_issue_action("update", spec.external_id, number, dry_run=dry_run)
+        self._log(
+            "update", spec.external_id, f"#{number}", "dry_run" if dry_run else ""
+        )
+        self._logger.log_issue_action(
+            "update", spec.external_id, number, dry_run=dry_run
+        )
         client = self._build_issues_client(dry_run=dry_run)
         body_with_marker = _ensure_marker(spec.body, spec.external_id)
         client.update_issue(
@@ -748,7 +794,11 @@ class IssueSuite:
         matched_numbers: set[int] = set()
         for entry in processed:
             res = entry.get("result")
-            if isinstance(res, dict) and "mapped" in res and isinstance(res["mapped"], int):
+            if (
+                isinstance(res, dict)
+                and "mapped" in res
+                and isinstance(res["mapped"], int)
+            ):
                 matched_numbers.add(res["mapped"])
         for issue in existing:
             num = issue.get("number")
@@ -820,7 +870,8 @@ class IssueSuite:
     def _save_hash_state(self, specs: list[IssueSpec]) -> None:
         p = self._hash_state_path()
         p.write_text(
-            json.dumps({"hashes": {s.external_id: s.hash for s in specs}}, indent=2) + "\n"
+            json.dumps({"hashes": {s.external_id: s.hash for s in specs}}, indent=2)
+            + "\n"
         )
 
     # --- preflight helpers (label & milestone ensure) ---
@@ -842,7 +893,8 @@ class IssueSuite:
             self._logger.log_error("GitHub CLI unavailable for label ensure step")
             return
         desired = sorted(
-            {label for spec in specs for label in spec.labels} | set(self.cfg.inject_labels)
+            {label for spec in specs for label in spec.labels}
+            | set(self.cfg.inject_labels)
         )
         try:
             out = subprocess.check_output(  # nosec B603 - command uses resolved gh path and static args
@@ -861,7 +913,9 @@ class IssueSuite:
             )
             existing: set[str] = set(out.strip().splitlines())
         except Exception as exc:
-            self._logger.log_error("Failed to list labels", error=str(exc), executable=gh_path)
+            self._logger.log_error(
+                "Failed to list labels", error=str(exc), executable=gh_path
+            )
             existing = set()
         for lbl in desired:
             if lbl in existing:
@@ -882,7 +936,9 @@ class IssueSuite:
                     stderr=subprocess.DEVNULL,
                 )
             except Exception as exc:
-                self._logger.log_error("Failed to ensure label", error=str(exc), label=lbl)
+                self._logger.log_error(
+                    "Failed to ensure label", error=str(exc), label=lbl
+                )
 
     def _ensure_milestones(self) -> None:  # pragma: no cover - network side-effects
         if self._mock:
@@ -905,7 +961,9 @@ class IssueSuite:
             )
             existing: set[str] = set(out.strip().splitlines())
         except Exception as exc:
-            self._logger.log_error("Failed to list milestones", error=str(exc), executable=gh_path)
+            self._logger.log_error(
+                "Failed to list milestones", error=str(exc), executable=gh_path
+            )
             existing = set()
         for ms in self.cfg.ensure_milestones_list:
             if ms in existing:
@@ -925,7 +983,9 @@ class IssueSuite:
                     stderr=subprocess.DEVNULL,
                 )
             except Exception as exc:
-                self._logger.log_error("Failed to ensure milestone", error=str(exc), milestone=ms)
+                self._logger.log_error(
+                    "Failed to ensure milestone", error=str(exc), milestone=ms
+                )
 
     # Concurrency support methods
     async def _get_existing_issues_async(self) -> list[dict[str, Any]]:
@@ -980,7 +1040,9 @@ class IssueSuite:
                 self._preflight(specs)
             project_assigner = self._build_project_assigner()
             existing = await self._fetch_existing_async()
-            self._logger.log_operation("fetch_existing_issues", issue_count=len(existing))
+            self._logger.log_operation(
+                "fetch_existing_issues", issue_count=len(existing)
+            )
             prev_hashes = self._load_hash_state()
             results = await self._process_specs_async(
                 specs,
@@ -1005,8 +1067,13 @@ class IssueSuite:
             return summary
 
     def _adjust_concurrency_if_needed(self, spec_count: int) -> None:
-        if self.cfg.concurrency_enabled and spec_count >= _concurrency_threshold_default:
-            optimal_workers = get_optimal_worker_count(spec_count, self.cfg.concurrency_max_workers)
+        if (
+            self.cfg.concurrency_enabled
+            and spec_count >= _concurrency_threshold_default
+        ):
+            optimal_workers = get_optimal_worker_count(
+                spec_count, self.cfg.concurrency_max_workers
+            )
             self._concurrency_config.max_workers = optimal_workers
             self._logger.log_operation(
                 "concurrency_adjusted", spec_count=spec_count, workers=optimal_workers
@@ -1033,15 +1100,17 @@ class IssueSuite:
             processor: _ConcurrentProcessorProtocol = create_concurrent_processor(
                 self._concurrency_config, self._mock
             )
-            concurrent_results: list[dict[str, Any]] = await processor.process_specs_concurrent(
-                specs,
-                self._process_spec_wrapper,
-                existing,
-                prev_hashes,
-                dry_run,
-                update,
-                respect_status,
-                project_assigner,
+            concurrent_results: list[dict[str, Any]] = (
+                await processor.process_specs_concurrent(
+                    specs,
+                    self._process_spec_wrapper,
+                    existing,
+                    prev_hashes,
+                    dry_run,
+                    update,
+                    respect_status,
+                    project_assigner,
+                )
             )
             return concurrent_results
         # Sequential fallback

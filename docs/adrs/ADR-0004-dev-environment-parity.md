@@ -15,6 +15,7 @@ tags:
 ## Context
 
 IssueSuite enforces quality gates through multiple tools:
+
 - `ruff` for linting and formatting
 - `mypy` for type checking
 - `pytest` for testing
@@ -29,6 +30,7 @@ These tools are invoked both locally (via `nox` sessions) and in CI (via GitHub 
 - Pre-commit hooks exist in `.githooks/` but aren't documented or enforced
 
 **Current Gap**: While CI enforces quality gates consistently, there's no mechanism to ensure local development environments match CI configuration. This leads to:
+
 - Wasted CI cycles from preventable failures
 - Developer frustration when CI rejects passing local builds
 - Inconsistent code quality enforcement
@@ -53,6 +55,7 @@ We will establish development environment parity through:
 ### 1. Tool Version Pinning
 
 Already done in `pyproject.toml`:
+
 ```toml
 optional-dependencies.dev = [
   "ruff==0.14",  # Pinned exact version
@@ -121,13 +124,13 @@ Expand existing setup wizard in `src/issuesuite/setup_wizard.py`:
 def check_environment_parity() -> list[str]:
     """Validate local environment matches CI expectations."""
     issues = []
-    
+
     # Check tool versions
     expected_ruff = "0.14"
     actual_ruff = _get_tool_version("ruff")
     if not actual_ruff.startswith(expected_ruff):
         issues.append(f"ruff version mismatch: expected {expected_ruff}, got {actual_ruff}")
-    
+
     # Check lockfile sync
     result = subprocess.run(
         ["./scripts/refresh-deps.sh", "--check"],
@@ -135,7 +138,7 @@ def check_environment_parity() -> list[str]:
     )
     if result.returncode != 0:
         issues.append("Lockfiles out of sync with manifests")
-    
+
     # Check Git hooks
     hooks_path = subprocess.run(
         ["git", "config", "core.hooksPath"],
@@ -144,7 +147,7 @@ def check_environment_parity() -> list[str]:
     ).stdout.strip()
     if hooks_path != ".githooks":
         issues.append("Git hooks not configured (run scripts/setup-dev-env.sh)")
-    
+
     return issues
 ```
 
@@ -182,7 +185,7 @@ echo "✓ Pre-commit checks passed"
 
 Add to CONTRIBUTING.md:
 
-```markdown
+````markdown
 ## Development Environment Setup
 
 1. **Clone and install dependencies**:
@@ -191,18 +194,21 @@ Add to CONTRIBUTING.md:
    cd IssueSuite
    pip install -e .[dev,all]
    ```
+````
 
 2. **Configure development environment**:
+
    ```bash
    ./scripts/setup-dev-env.sh
    ```
-   
+
    This script:
    - Installs Git pre-commit hooks
    - Validates lockfile synchronization
    - Checks tool version parity with CI
 
 3. **Verify setup**:
+
    ```bash
    issuesuite doctor  # Validates environment
    nox -s tests lint typecheck  # Runs quality gates locally
@@ -216,12 +222,14 @@ Add to CONTRIBUTING.md:
 ## Tool Versions
 
 Local development should use the same tool versions as CI:
+
 - **Python**: 3.10+ (CI tests 3.10, 3.11, 3.12, 3.13)
 - **ruff**: 0.14 (pinned exact version)
 - **mypy**: 1.8+
 - **Node.js**: 20+ (for documentation)
 
 These are automatically installed when you run `pip install -e .[dev]`.
+
 ```
 
 ## Consequences
@@ -254,7 +262,7 @@ These are automatically installed when you run `pip install -e .[dev]`.
 
 **Considered**: Would provide perfect parity but high complexity. May adopt in future.
 
-**Pros**: Complete environment reproducibility, no local tool installation  
+**Pros**: Complete environment reproducibility, no local tool installation
 **Cons**: Requires Docker, slower iteration, complex setup
 
 **Decision**: Document as future enhancement, focus on lightweight approach first
@@ -292,3 +300,4 @@ These are automatically installed when you run `pip install -e .[dev]`.
 - **Quality Gates**: scripts/quality_gates.py — Tools that must match between local and CI
 - **Setup Wizard**: src/issuesuite/setup_wizard.py — Existing environment validation foundation
 - **Nox Sessions**: noxfile.py — Local quality gate execution
+```

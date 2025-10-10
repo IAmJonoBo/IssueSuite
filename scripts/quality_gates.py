@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-
 from xml.etree import ElementTree
 
 # ruff: noqa: I001 - sys.path manipulation is required before importing project modules
@@ -20,6 +19,8 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from issuesuite.coverage_trends import (  # noqa: E402
     CoverageTrendError as CoverageTrendRuntimeError,
+)
+from issuesuite.coverage_trends import (
     export_trends,
 )
 from issuesuite.quality_gates import (  # noqa: E402
@@ -177,7 +178,9 @@ def main() -> int:
     module_coverages: dict[str, float] | None = None
     try:
         results = run_gates(build_default_gates())
-        module_coverages = _enforce_module_thresholds(COVERAGE_REPORT, CRITICAL_MODULE_THRESHOLDS)
+        module_coverages = _enforce_module_thresholds(
+            COVERAGE_REPORT, CRITICAL_MODULE_THRESHOLDS
+        )
     except ModuleCoverageError as exc:
         module_coverages = exc.coverages
         print(format_summary(results), file=sys.stderr)

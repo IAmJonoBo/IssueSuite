@@ -153,7 +153,9 @@ def test_token_caching_with_keyring(tmp_path: Path) -> None:
 
     mock_keyring = MagicMock()
     mock_keyring.set_password.side_effect = capture_set_password
-    mock_keyring.get_password.side_effect = lambda service, key: stored_payload.get("value")
+    mock_keyring.get_password.side_effect = lambda service, key: stored_payload.get(
+        "value"
+    )
 
     with (
         patch("issuesuite.github_auth.keyring", mock_keyring),
@@ -241,7 +243,9 @@ def test_jwt_generation_with_key_file(tmp_path: Path) -> None:
     """Test JWT generation with existing private key file."""
     # Create a dummy private key file
     key_path = tmp_path / "test_key.pem"
-    key_path.write_text("-----BEGIN PRIVATE KEY-----\ntest_key_content\n-----END PRIVATE KEY-----")
+    key_path.write_text(
+        "-----BEGIN PRIVATE KEY-----\ntest_key_content\n-----END PRIVATE KEY-----"
+    )
 
     config = GitHubAppConfig(
         enabled=True,
@@ -263,7 +267,9 @@ def test_jwt_generation_with_key_file(tmp_path: Path) -> None:
 def test_jwt_generation_without_pyjwt(tmp_path: Path) -> None:
     """Fallback JWT is generated when PyJWT is unavailable."""
     key_path = tmp_path / "test_key.pem"
-    key_path.write_text("-----BEGIN PRIVATE KEY-----\ntest_key_content\n-----END PRIVATE KEY-----")
+    key_path.write_text(
+        "-----BEGIN PRIVATE KEY-----\ntest_key_content\n-----END PRIVATE KEY-----"
+    )
 
     config = GitHubAppConfig(
         enabled=True,
@@ -283,7 +289,9 @@ def test_jwt_generation_without_pyjwt(tmp_path: Path) -> None:
 def test_jwt_generation_with_pyjwt_bytes(tmp_path: Path) -> None:
     """PyJWT integration decodes byte responses to string."""
     key_path = tmp_path / "test_key.pem"
-    key_path.write_text("-----BEGIN PRIVATE KEY-----\ntest_key_content\n-----END PRIVATE KEY-----")
+    key_path.write_text(
+        "-----BEGIN PRIVATE KEY-----\ntest_key_content\n-----END PRIVATE KEY-----"
+    )
 
     config = GitHubAppConfig(
         enabled=True,
@@ -321,7 +329,9 @@ def test_jwt_generation_invalid_key_fallback(tmp_path: Path) -> None:
             raise DummyInvalidKeyError("bad key material")
 
     key_path = tmp_path / "test_key.pem"
-    key_path.write_text("-----BEGIN PRIVATE KEY-----\ntest_key_content\n-----END PRIVATE KEY-----")
+    key_path.write_text(
+        "-----BEGIN PRIVATE KEY-----\ntest_key_content\n-----END PRIVATE KEY-----"
+    )
 
     config = GitHubAppConfig(
         enabled=True,
@@ -358,11 +368,16 @@ def test_should_fallback_to_unsigned_for_pyjwt_error() -> None:
 
     with patch("issuesuite.github_auth.jwt", dummy_jwt):
         assert (
-            manager._should_fallback_to_unsigned(DummyPyJWTError("Could not deserialize key"))
+            manager._should_fallback_to_unsigned(
+                DummyPyJWTError("Could not deserialize key")
+            )
             is True
         )
         assert (
-            manager._should_fallback_to_unsigned(DummyPyJWTError("key format is invalid")) is True
+            manager._should_fallback_to_unsigned(
+                DummyPyJWTError("key format is invalid")
+            )
+            is True
         )
 
 
@@ -452,7 +467,9 @@ def test_installation_token_success(mock_run: MagicMock) -> None:
 def test_installation_token_failure(mock_run: MagicMock) -> None:
     """Test installation token retrieval failure."""
     # Mock failed API response
-    mock_run.side_effect = subprocess.CalledProcessError(1, "gh", stderr="Authentication failed")
+    mock_run.side_effect = subprocess.CalledProcessError(
+        1, "gh", stderr="Authentication failed"
+    )
 
     config = GitHubAppConfig(
         enabled=True,
@@ -566,7 +583,9 @@ def test_setup_github_app_auth_success() -> None:
 
 def test_setup_github_app_auth_failure() -> None:
     """Test convenience function failure."""
-    with patch.object(GitHubAppTokenManager, "configure_github_cli", return_value=False):
+    with patch.object(
+        GitHubAppTokenManager, "configure_github_cli", return_value=False
+    ):
         try:
             setup_github_app_auth(
                 app_id="12345",

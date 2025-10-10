@@ -13,9 +13,7 @@
           "docs/starlight",
           "tests/test_documentation_structure.py"
         ],
-        "follow_up": [
-          "Next Steps.md#quality-gates"
-        ]
+        "follow_up": ["Next Steps.md#quality-gates"]
       }
     },
     {
@@ -37,9 +35,7 @@
           "docs/starlight/src/content/docs/how-to/renovate-integration.mdx",
           "docs/RELEASE_CHECKLIST.md"
         ],
-        "follow_up": [
-          "Next Steps.md#quality-gates"
-        ]
+        "follow_up": ["Next Steps.md#quality-gates"]
       },
       "related": ["ADR-0003", "ADR-0004"]
     },
@@ -60,9 +56,7 @@
           "docs/starlight/src/content/docs/reference/environment-variables.mdx",
           "docs/RELEASE_CHECKLIST.md"
         ],
-        "follow_up": [
-          "Next Steps.md#quality-gates"
-        ]
+        "follow_up": ["Next Steps.md#quality-gates"]
       },
       "related": ["ADR-0002", "ADR-0004"]
     },
@@ -84,9 +78,7 @@
           "README.md#developer-environment-setup",
           "docs/RELEASE_CHECKLIST.md"
         ],
-        "follow_up": [
-          "Next Steps.md#quality-gates"
-        ]
+        "follow_up": ["Next Steps.md#quality-gates"]
       },
       "related": ["ADR-0002", "ADR-0003"]
     }

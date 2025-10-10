@@ -61,7 +61,9 @@ def _run(
     cwd: Path,
     env: Mapping[str, str] | None = None,
 ) -> tuple[int, str]:
-    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, env=env, check=False)
+    result = subprocess.run(
+        cmd, cwd=cwd, capture_output=True, text=True, env=env, check=False
+    )
     return result.returncode, result.stdout + result.stderr
 
 

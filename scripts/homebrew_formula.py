@@ -79,7 +79,9 @@ def _format_formula(sha256: str, url: str) -> str:
     )
 
 
-def generate_formula(dist_dir: Path, output: Path, package_init: Path, url_template: str) -> Path:
+def generate_formula(
+    dist_dir: Path, output: Path, package_init: Path, url_template: str
+) -> Path:
     version = _read_version(package_init)
     sdist = _find_sdist(dist_dir, version)
     sha256 = _hash_file(sdist)
@@ -91,7 +93,9 @@ def generate_formula(dist_dir: Path, output: Path, package_init: Path, url_templ
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate Homebrew formula for IssueSuite")
+    parser = argparse.ArgumentParser(
+        description="Generate Homebrew formula for IssueSuite"
+    )
     parser.add_argument(
         "--dist-dir",
         type=Path,
@@ -120,7 +124,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    output = generate_formula(args.dist_dir, args.output, args.package_init, args.url_template)
+    output = generate_formula(
+        args.dist_dir, args.output, args.package_init, args.url_template
+    )
     print(f"Wrote formula -> {output}")
 
 

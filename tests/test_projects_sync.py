@@ -172,7 +172,9 @@ def test_apply_project_update_with_mocked_http(
                             },
                         ]
                     },
-                    "items": {"nodes": [{"id": "ITEM_123", "title": "IssueSuite Health"}]},
+                    "items": {
+                        "nodes": [{"id": "ITEM_123", "title": "IssueSuite Health"}]
+                    },
                 }
             }
         }
@@ -185,10 +187,16 @@ def test_apply_project_update_with_mocked_http(
         "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "ITEM_123"}}}
     }
 
-    mock_session.post.side_effect = [metadata_response, update_response, update_response]
+    mock_session.post.side_effect = [
+        metadata_response,
+        update_response,
+        update_response,
+    ]
 
     next_steps_path = tmp_path / "Next Steps.md"
-    next_steps_path.write_text("# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8")
+    next_steps_path.write_text(
+        "# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8"
+    )
 
     coverage_payload = tmp_path / "coverage_projects_payload.json"
     coverage_payload.write_text(
@@ -239,7 +247,9 @@ def test_post_status_comment_with_mocked_http(
     mock_session.post.side_effect = [comment_response]
 
     next_steps_path = tmp_path / "Next Steps.md"
-    next_steps_path.write_text("# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8")
+    next_steps_path.write_text(
+        "# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8"
+    )
 
     coverage_payload = tmp_path / "coverage_projects_payload.json"
     coverage_payload.write_text(
@@ -275,7 +285,9 @@ def test_post_status_comment_with_mocked_http(
 
 
 @patch("requests.Session")
-def test_error_handling_http_failure(mock_session_class: MagicMock, tmp_path: Path) -> None:
+def test_error_handling_http_failure(
+    mock_session_class: MagicMock, tmp_path: Path
+) -> None:
     """Test error handling when HTTP requests fail."""
     # Setup mock session
     mock_session = MagicMock()
@@ -289,7 +301,9 @@ def test_error_handling_http_failure(mock_session_class: MagicMock, tmp_path: Pa
     mock_session.post.return_value = error_response
 
     next_steps_path = tmp_path / "Next Steps.md"
-    next_steps_path.write_text("# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8")
+    next_steps_path.write_text(
+        "# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8"
+    )
 
     coverage_payload = tmp_path / "coverage_projects_payload.json"
     coverage_payload.write_text(json.dumps({"status": "on_track"}), encoding="utf-8")
@@ -318,7 +332,9 @@ def test_error_handling_http_failure(mock_session_class: MagicMock, tmp_path: Pa
 
 
 @patch("requests.Session")
-def test_error_handling_missing_field(mock_session_class: MagicMock, tmp_path: Path) -> None:
+def test_error_handling_missing_field(
+    mock_session_class: MagicMock, tmp_path: Path
+) -> None:
     """Test error handling when required field is missing from project."""
     # Setup mock session
     mock_session = MagicMock()
@@ -333,10 +349,10 @@ def test_error_handling_missing_field(mock_session_class: MagicMock, tmp_path: P
                 "projectV2": {
                     "id": "PROJECT_123",
                     "title": "Test Project",
-                    "fields": {
-                        "nodes": []  # No fields
+                    "fields": {"nodes": []},  # No fields
+                    "items": {
+                        "nodes": [{"id": "ITEM_123", "title": "IssueSuite Health"}]
                     },
-                    "items": {"nodes": [{"id": "ITEM_123", "title": "IssueSuite Health"}]},
                 }
             }
         }
@@ -345,7 +361,9 @@ def test_error_handling_missing_field(mock_session_class: MagicMock, tmp_path: P
     mock_session.post.return_value = metadata_response
 
     next_steps_path = tmp_path / "Next Steps.md"
-    next_steps_path.write_text("# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8")
+    next_steps_path.write_text(
+        "# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8"
+    )
 
     coverage_payload = tmp_path / "coverage_projects_payload.json"
     coverage_payload.write_text(json.dumps({"status": "on_track"}), encoding="utf-8")

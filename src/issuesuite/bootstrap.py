@@ -60,7 +60,11 @@ def _append_or_write_tasks(
     for task in existing_data.get("tasks", []):
         if isinstance(task, dict):
             existing_tasks.append(task)
-    labels = {task.get("label") for task in existing_tasks if isinstance(task.get("label"), str)}
+    labels = {
+        task.get("label")
+        for task in existing_tasks
+        if isinstance(task.get("label"), str)
+    }
 
     merged = False
     for task in template.get("tasks", []):
@@ -103,12 +107,17 @@ class BootstrapResult:
     def summary_lines(self) -> list[str]:
         lines: list[str] = []
         if self.created:
-            lines.append("[setup] Created: " + ", ".join(str(path) for path in self.created))
+            lines.append(
+                "[setup] Created: " + ", ".join(str(path) for path in self.created)
+            )
         if self.merged:
-            lines.append("[setup] Updated: " + ", ".join(str(path) for path in self.merged))
+            lines.append(
+                "[setup] Updated: " + ", ".join(str(path) for path in self.merged)
+            )
         if self.skipped:
             lines.append(
-                "[setup] Skipped (exists): " + ", ".join(str(path) for path in self.skipped)
+                "[setup] Skipped (exists): "
+                + ", ".join(str(path) for path in self.skipped)
             )
         if not lines:
             lines.append("[setup] Nothing to do (all assets already present)")
@@ -130,7 +139,9 @@ def ensure_vscode_tasks(*, force: bool) -> BootstrapResult:
     else:
         skipped_paths.append(path)
 
-    return BootstrapResult(created=created_paths, skipped=skipped_paths, merged=merged_paths)
+    return BootstrapResult(
+        created=created_paths, skipped=skipped_paths, merged=merged_paths
+    )
 
 
 def ensure_issue_suite_config(config_path: Path, *, force: bool) -> BootstrapResult:

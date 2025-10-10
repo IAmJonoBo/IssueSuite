@@ -10,13 +10,14 @@ tags:
 template: doc
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+import { Aside } from "@astrojs/starlight/components";
 
 IssueSuite uses [Renovate](https://docs.renovatebot.com/) for automated dependency updates with built-in lockfile synchronization enforcement. This guide explains the integration and best practices.
 
 ## Overview
 
 Renovate automatically:
+
 - Detects dependency updates in `pyproject.toml` and `docs/starlight/package.json`
 - Creates pull requests for updates
 - **Runs `scripts/refresh-deps.sh`** to synchronize lockfiles
@@ -90,7 +91,8 @@ git commit -m "chore(deps): update ruff to 0.14.1"
 ```
 
 <Aside type="caution">
-Always run `refresh-deps.sh` after manually editing dependency manifests. The CI check will fail if lockfiles are out of sync.
+  Always run `refresh-deps.sh` after manually editing dependency manifests. The
+  CI check will fail if lockfiles are out of sync.
 </Aside>
 
 ## Security Model
@@ -100,7 +102,7 @@ Renovate's `postUpgradeTasks` execute with repository write access in an isolate
 ✅ **Script is version-controlled** — Changes to `refresh-deps.sh` require code review  
 ✅ **No external inputs processed** — Script only reads local manifests  
 ✅ **Isolated execution** — Runs in branch before merge  
-✅ **CI validation** — All changes validated by quality gates  
+✅ **CI validation** — All changes validated by quality gates
 
 See [ADR-0002](../../adrs/ADR-0002-dependency-sync-enforcement.md) for the full security assessment.
 
@@ -113,6 +115,7 @@ See [ADR-0002](../../adrs/ADR-0002-dependency-sync-enforcement.md) for the full 
 **Cause**: `postUpgradeTasks` didn't run or failed silently
 
 **Solution**:
+
 1. Check Renovate logs for task execution errors
 2. Manually run `./scripts/refresh-deps.sh` in the PR branch
 3. Push updated lockfiles
@@ -124,6 +127,7 @@ See [ADR-0002](../../adrs/ADR-0002-dependency-sync-enforcement.md) for the full 
 **Cause**: Multiple dependency PRs merged in different order
 
 **Solution**:
+
 1. Rebase the Renovate PR: Renovate will automatically rerun `refresh-deps.sh`
 2. Or manually resolve: Pull main, run `refresh-deps.sh`, force-push
 
@@ -132,6 +136,7 @@ See [ADR-0002](../../adrs/ADR-0002-dependency-sync-enforcement.md) for the full 
 **Symptom**: Expected dependency update not appearing
 
 **Possible causes**:
+
 - Dependency is pinned in manifest (`==` instead of `>=`)
 - Renovate schedule doesn't match your expectations
 - Package rule is excluding the update
@@ -145,14 +150,14 @@ See [ADR-0002](../../adrs/ADR-0002-dependency-sync-enforcement.md) for the full 
 ✅ **Let Renovate handle routine updates** — Don't manually bump versions for minor/patch updates  
 ✅ **Review security updates promptly** — Renovate flags these as high priority  
 ✅ **Test major updates locally** — Use `nox -s tests` before approving  
-✅ **Keep lockfiles synchronized** — Run `refresh-deps.sh` after manual changes  
+✅ **Keep lockfiles synchronized** — Run `refresh-deps.sh` after manual changes
 
 ### For Maintainers
 
 ✅ **Configure automerge carefully** — Consider enabling for patch/minor updates with passing tests  
 ✅ **Group related updates** — Use Renovate's `grouping` feature for related packages  
 ✅ **Schedule updates appropriately** — Avoid merge conflicts by scheduling outside active development windows  
-✅ **Monitor Renovate dashboard** — Track pending updates and rate limit status  
+✅ **Monitor Renovate dashboard** — Track pending updates and rate limit status
 
 ## Integration with ADRs
 

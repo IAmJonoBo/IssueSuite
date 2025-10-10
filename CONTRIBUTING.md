@@ -5,6 +5,7 @@ Thank you for contributing to IssueSuite! This guide will help you get set up an
 ## Quick Start
 
 1. **Clone and install dependencies**:
+
    ```bash
    git clone https://github.com/IAmJonoBo/IssueSuite.git
    cd IssueSuite
@@ -12,10 +13,11 @@ Thank you for contributing to IssueSuite! This guide will help you get set up an
    ```
 
 2. **Configure development environment**:
+
    ```bash
    ./scripts/setup-dev-env.sh
    ```
-   
+
    This script:
    - Installs Git pre-commit hooks
    - Validates lockfile synchronization
@@ -33,6 +35,7 @@ Thank you for contributing to IssueSuite! This guide will help you get set up an
 ### Making Changes
 
 1. **Create a feature branch**:
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -40,17 +43,19 @@ Thank you for contributing to IssueSuite! This guide will help you get set up an
 2. **Make your changes** following the coding standards below
 
 3. **Run quality gates** before committing:
+
    ```bash
    nox -s tests lint typecheck  # Fast local validation
    nox -s security secrets  # Additional checks
    ```
 
 4. **Commit your changes**:
+
    ```bash
    git add .
    git commit -m "Description of your changes"
    ```
-   
+
    Pre-commit hooks will automatically:
    - Check code formatting
    - Validate lockfile synchronization (if dependencies changed)
@@ -58,6 +63,7 @@ Thank you for contributing to IssueSuite! This guide will help you get set up an
 ### Dependency Management
 
 IssueSuite uses multiple dependency manifests:
+
 - `pyproject.toml` — Python dependencies
 - `uv.lock` — Reproducible Python environment
 - `docs/starlight/package.json` — Documentation dependencies
@@ -66,6 +72,7 @@ IssueSuite uses multiple dependency manifests:
 **When to update dependencies:**
 
 1. **Adding a new dependency**:
+
    ```bash
    # Edit pyproject.toml to add dependency
    ./scripts/refresh-deps.sh  # Update lockfiles
@@ -74,6 +81,7 @@ IssueSuite uses multiple dependency manifests:
    ```
 
 2. **Updating existing dependencies**:
+
    ```bash
    # Edit pyproject.toml with new version constraint
    ./scripts/refresh-deps.sh  # Update lockfiles
@@ -105,6 +113,7 @@ IssueSuite uses multiple dependency manifests:
 ### Testing
 
 **Run tests locally**:
+
 ```bash
 # All tests with coverage
 nox -s tests
@@ -117,11 +126,13 @@ ISSUES_SUITE_MOCK=1 pytest
 ```
 
 **Test coverage requirements**:
+
 - Overall coverage: ≥80%
 - New code: Aim for ≥85% coverage
 - Critical paths: 100% coverage expected
 
 **Writing tests**:
+
 - Use fixtures from `conftest.py`
 - Use `ISSUES_SUITE_MOCK=1` for offline tests
 - Follow existing test patterns in `tests/`
@@ -129,12 +140,14 @@ ISSUES_SUITE_MOCK=1 pytest
 ### Documentation
 
 **Build documentation locally**:
+
 ```bash
 nox -s docs  # Build and check documentation
 cd docs/starlight && npm run dev  # Live preview
 ```
 
 **Documentation structure** (Diátaxis framework):
+
 - `docs/starlight/src/content/docs/tutorials/` — Learning-oriented
 - `docs/starlight/src/content/docs/how-to/` — Problem-oriented
 - `docs/starlight/src/content/docs/reference/` — Information-oriented
@@ -145,6 +158,7 @@ cd docs/starlight && npm run dev  # Live preview
 For significant architectural changes:
 
 1. **Create new ADR**:
+
    ```bash
    cp docs/adrs/ADR-0001-starlight-migration.md docs/adrs/ADR-NNNN-your-decision.md
    # Edit with your decision context and consequences
@@ -163,12 +177,14 @@ See `docs/starlight/src/content/docs/how-to/adr-governance.mdx` for full workflo
 IssueSuite supports air-gapped development:
 
 **Offline mode**:
+
 ```bash
 export ISSUES_SUITE_MOCK=1  # Disable GitHub API calls
 export ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1  # Disable pip-audit network requests
 ```
 
 **Offline package installation**:
+
 ```bash
 # Build wheel
 python -m build
@@ -184,6 +200,7 @@ pip install --no-index --find-links offline-wheels issuesuite
 ## Pull Request Process
 
 1. **Ensure all tests pass locally**:
+
    ```bash
    nox -s tests lint typecheck security secrets
    ```
@@ -213,6 +230,7 @@ pip install --no-index --find-links offline-wheels issuesuite
 ## Tool Versions
 
 Match CI environment for consistency:
+
 - **Python**: 3.10+ (CI tests 3.10, 3.11, 3.12, 3.13)
 - **ruff**: 0.14 (pinned exact version)
 - **mypy**: 1.8+
@@ -220,6 +238,7 @@ Match CI environment for consistency:
 - **uv**: Latest (for lockfile management)
 
 Install via:
+
 ```bash
 pip install -e .[dev,all]  # Python tools
 npm install  # Node.js tools (in docs/starlight/)
@@ -229,27 +248,32 @@ pip install uv  # Lockfile manager
 ## Environment Variables
 
 **Development**:
+
 - `ISSUES_SUITE_MOCK=1` — Mock GitHub API calls
 - `ISSUESUITE_DEBUG=1` — Verbose logging
 - `ISSUESUITE_QUIET=1` — Suppress logs
 
 **Testing**:
+
 - `ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1` — Offline pip-audit
 - `ISSUESUITE_PROJECT_CACHE_DISABLE=1` — Disable project cache
 
 **CI/Production**:
+
 - `ISSUESUITE_AI_MODE=1` — Force dry-run mode for AI agents
 - `ISSUESUITE_RETRY_ATTEMPTS=N` — Retry attempts (default: 3)
 
 ## Troubleshooting
 
 ### Lockfiles out of sync
+
 ```bash
 ./scripts/refresh-deps.sh  # Fix lockfiles
 git add uv.lock docs/starlight/package-lock.json
 ```
 
 ### Pre-commit hooks failing
+
 ```bash
 ruff format  # Auto-fix formatting
 ./scripts/refresh-deps.sh  # Fix lockfiles
@@ -257,6 +281,7 @@ git add -u && git commit
 ```
 
 ### Tests failing locally but passing in CI
+
 ```bash
 # Ensure tools match CI versions
 pip install -e .[dev,all] --force-reinstall
@@ -266,6 +291,7 @@ issuesuite doctor
 ```
 
 ### Documentation build fails
+
 ```bash
 cd docs/starlight
 npm install  # Ensure dependencies are current

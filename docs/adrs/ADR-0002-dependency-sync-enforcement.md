@@ -15,6 +15,7 @@ tags:
 ## Context
 
 IssueSuite manages dependencies through multiple manifests:
+
 - `pyproject.toml` for Python dependencies
 - `uv.lock` for reproducible Python environments
 - `docs/starlight/package.json` for documentation tooling
@@ -23,6 +24,7 @@ IssueSuite manages dependencies through multiple manifests:
 The project includes a `scripts/refresh-deps.sh` script that synchronizes lockfiles after manifest changes, and Renovate is configured to automatically invoke this script during dependency updates. However, manual changes to manifests (especially `pyproject.toml`) can result in stale lockfiles if developers forget to run the refresh script.
 
 **Risk**: Lockfile drift creates environment inconsistencies between development, CI, and production. This can lead to:
+
 - Silent dependency version changes between environments
 - Build failures that are difficult to reproduce
 - Supply chain security vulnerabilities from untracked transitive dependencies
@@ -56,11 +58,11 @@ name: Dependency Synchronization
 on:
   pull_request:
     paths:
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - 'docs/starlight/package.json'
-      - 'docs/starlight/package-lock.json'
-      - 'scripts/refresh-deps.sh'
+      - "pyproject.toml"
+      - "uv.lock"
+      - "docs/starlight/package.json"
+      - "docs/starlight/package-lock.json"
+      - "scripts/refresh-deps.sh"
 
 permissions:
   contents: read
@@ -70,19 +72,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      
+          python-version: "3.11"
+
       - name: Install uv
         run: pip install --user uv
-      
+
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      
+          node-version: "20"
+
       - name: Validate lockfiles are synchronized
         run: ./scripts/refresh-deps.sh --check
 ```
@@ -90,6 +92,7 @@ jobs:
 ### Testing Strategy
 
 Add regression tests in `tests/test_refresh_deps.py` that validate:
+
 - `--check` flag correctly detects stale lockfiles
 - Script updates both Python and Node.js lockfiles
 - Exit codes are correct for success/failure scenarios

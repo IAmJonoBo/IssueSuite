@@ -18,10 +18,10 @@ VENV_PY=""
 for candidate in "${CANDIDATES[@]}"; do
 	candidate_py="${REPO_ROOT}/${candidate}/bin/python"
 	candidate_py3="${REPO_ROOT}/${candidate}/bin/python3"
-	if [[ -x "${candidate_py3}" ]]; then
+	if [[ -x ${candidate_py3} ]]; then
 		VENV_PY="${candidate_py3}"
 		break
-	elif [[ -x "${candidate_py}" ]]; then
+	elif [[ -x ${candidate_py} ]]; then
 		VENV_PY="${candidate_py}"
 		break
 	fi
@@ -36,7 +36,7 @@ ARGS=(
 	"$@"
 )
 
-if [[ -n "${VENV_PY}" ]]; then
+if [[ -n ${VENV_PY} ]]; then
 	VENV_BIN="$(dirname "${VENV_PY}")"
 	PATH="${VENV_BIN}:${PATH}"
 	exec "${VENV_PY}" -m pre_commit "${ARGS[@]}"

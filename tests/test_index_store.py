@@ -9,7 +9,9 @@ from issuesuite.index_store import (
 
 def test_index_persistence_round_trip(tmp_path):
     path = tmp_path / "index.json"
-    doc = IndexDocument(entries={"alpha": {"issue": 7, "hash": "abc"}}, repo="acme/widgets")
+    doc = IndexDocument(
+        entries={"alpha": {"issue": 7, "hash": "abc"}}, repo="acme/widgets"
+    )
     persist_index_document(path, doc)
 
     loaded = load_index_document(path)

@@ -111,11 +111,17 @@ def _collect_manual_validation_errors(updates: list[Any]) -> list[str]:
             if not isinstance(path, str) or not path.strip():
                 errors.append(f"{idx}/docs/{doc_idx}/path: must be a non-empty string")
             for key in ("append", "replace"):
-                if key in doc and doc[key] is not None and not isinstance(doc[key], str):
+                if (
+                    key in doc
+                    and doc[key] is not None
+                    and not isinstance(doc[key], str)
+                ):
                     errors.append(f"{idx}/docs/{doc_idx}/{key}: must be a string")
             extra = sorted(k for k in doc.keys() if k not in _DOC_ALLOWED_KEYS)
             if extra:
-                errors.append(f"{idx}/docs/{doc_idx}: unsupported keys {', '.join(extra)}")
+                errors.append(
+                    f"{idx}/docs/{doc_idx}: unsupported keys {', '.join(extra)}"
+                )
     return errors
 
 

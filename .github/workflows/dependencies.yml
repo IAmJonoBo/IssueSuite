@@ -3,20 +3,20 @@ name: Dependency Synchronization
 on:
   pull_request:
     paths:
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - 'docs/starlight/package.json'
-      - 'docs/starlight/package-lock.json'
-      - 'scripts/refresh-deps.sh'
-      - '.github/workflows/dependencies.yml'
+      - "pyproject.toml"
+      - "uv.lock"
+      - "docs/starlight/package.json"
+      - "docs/starlight/package-lock.json"
+      - "scripts/refresh-deps.sh"
+      - ".github/workflows/dependencies.yml"
   push:
     branches: [main]
     paths:
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - 'docs/starlight/package.json'
-      - 'docs/starlight/package-lock.json'
-      - 'scripts/refresh-deps.sh'
+      - "pyproject.toml"
+      - "uv.lock"
+      - "docs/starlight/package.json"
+      - "docs/starlight/package-lock.json"
+      - "scripts/refresh-deps.sh"
 
 permissions:
   contents: read
@@ -26,22 +26,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-      
+
       - name: Set up Python
         uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
         with:
-          python-version: '3.11'
-      
+          python-version: "3.11"
+
       - name: Install uv
         run: pip install --user uv
-      
+
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
-          node-version: '20'
-      
+          node-version: "20"
+
       - name: Validate lockfiles are synchronized
         run: ./scripts/refresh-deps.sh --check
-        
+
       - name: Show remediation instructions on failure
         if: failure()
         run: |

@@ -8,7 +8,9 @@ import pytest
 from issuesuite import plugins
 
 
-def test_load_plugins_respects_extensions_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_plugins_respects_extensions_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(
         plugins,
         "_load_entry_point_plugins",
@@ -16,7 +18,9 @@ def test_load_plugins_respects_extensions_disabled(monkeypatch: pytest.MonkeyPat
     )
     module = ModuleType("fake_mod")
 
-    def env_cb(ctx: plugins.PluginContext) -> None:  # pragma: no cover - invoked via invoke_plugins
+    def env_cb(
+        ctx: plugins.PluginContext,
+    ) -> None:  # pragma: no cover - invoked via invoke_plugins
         raise AssertionError("should not run")
 
     module.plugin_cb = env_cb  # type: ignore[attr-defined]

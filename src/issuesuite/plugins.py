@@ -42,7 +42,9 @@ def _load_entry_point_plugins() -> list[PluginHook]:
     if callable(selected):
         entries = cast(Iterable[Any], selected(group=PLUGIN_GROUP))
     else:  # Python <3.10 compatibility path
-        entries = cast(Iterable[Any], eps.get(PLUGIN_GROUP, []) if isinstance(eps, dict) else [])
+        entries = cast(
+            Iterable[Any], eps.get(PLUGIN_GROUP, []) if isinstance(eps, dict) else []
+        )
     for ep in entries:
         try:
             obj = ep.load()
@@ -90,10 +92,14 @@ def load_plugins(cfg: SuiteConfig | None) -> list[PluginHook]:
     return filtered
 
 
-def invoke_plugins(cfg: SuiteConfig | None, command: str, payload: dict[str, Any]) -> None:
+def invoke_plugins(
+    cfg: SuiteConfig | None, command: str, payload: dict[str, Any]
+) -> None:
     for hook in load_plugins(cfg):
         try:
             hook.callback(PluginContext(command=command, config=cfg, payload=payload))
         except Exception:  # pragma: no cover - plugins must not break core commands
-            logger.exception("Plugin execution failed for %s during %s", hook.name, command)
+            logger.exception(
+                "Plugin execution failed for %s during %s", hook.name, command
+            )
             continue

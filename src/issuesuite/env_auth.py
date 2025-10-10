@@ -80,7 +80,9 @@ class EnvironmentAuthManager:
                     if env_path.exists():
                         load_dotenv(str(env_path))
                         self._dotenv_loaded = True
-                        self.logger.debug(f"Loaded environment variables from {env_path}")
+                        self.logger.debug(
+                            f"Loaded environment variables from {env_path}"
+                        )
                         break
         except Exception as e:  # pragma: no cover - defensive
             self.logger.debug(f"Failed to load .env file: {e}")
@@ -152,7 +154,8 @@ class EnvironmentAuthManager:
         for var in vscode_env_vars:
             value = os.getenv(var)
             if value and (
-                var not in self._initial_vscode_vars or self._initial_vscode_vars[var] != value
+                var not in self._initial_vscode_vars
+                or self._initial_vscode_vars[var] != value
             ):
                 if should_redact:
                     vscode_secrets[var.lower()] = self._redacted_summary(value)

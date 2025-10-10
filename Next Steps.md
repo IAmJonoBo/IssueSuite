@@ -105,7 +105,6 @@
 - [x] Frontier Elite governance suite: Next Steps validator module, CLI wrapper, and extended unit coverage for scaffold + governance validation.【F:src/issuesuite/next_steps_validator.py†L1-L109】【F:scripts/verify_next_steps.py†L1-L33】【F:tests/test_next_steps_validator.py†L1-L66】【F:tests/test_scaffold.py†L1-L44】
 - [x] Frontier Apex prototypes: module coverage enforcement, type telemetry export, and UX acceptance harness with automation hooks.【F:scripts/quality_gates.py†L1-L193】【F:scripts/type_coverage_report.py†L1-L108】【F:scripts/ux_acceptance.py†L1-L117】【F:src/issuesuite/logging.py†L1-L167】
 
-
 ## Quality Gates
 
 - [x] Coverage ≥80%: `pytest --cov=issuesuite --cov-report=term --cov-report=xml` with enforcement aggregated through `python scripts/quality_gates.py` for CI and local workflows.【F:scripts/quality_gates.py†L21-L82】
