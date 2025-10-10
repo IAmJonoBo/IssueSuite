@@ -11,6 +11,29 @@ template: doc
 
 This tutorial takes you from zero to a functioning IssueSuite workspace in about ten minutes. You'll install the CLI, scaffold opinionated project assets, validate via the preflight bundle, and run a full sync once you're confident in the plan.
 
+## Workflow overview
+
+```mermaid
+graph TB
+    START([Start]) --> INSTALL[Install CLI]
+    INSTALL --> SCAFFOLD[Scaffold workspace]
+    SCAFFOLD --> EDIT[Edit ISSUES.md]
+    EDIT --> PREFLIGHT[Run preflight]
+    PREFLIGHT --> AUTH[Wire authentication]
+    AUTH --> DRY{Review dry-run?}
+    DRY -->|Issues found| EDIT
+    DRY -->|Looks good| SYNC[Full sync]
+    SYNC --> EXPLORE[Explore next steps]
+    EXPLORE --> END([Done])
+    
+    style START fill:#d4edda
+    style END fill:#d4edda
+    style SYNC fill:#fff3cd
+    style DRY fill:#e1f5ff
+```
+
+This flowchart shows the typical getting-started journey from installation through your first successful sync.
+
 ## Prerequisites
 
 - Python 3.11 or newer

@@ -1,5 +1,11 @@
 # Next Steps
 
+> **📚 ARCHIVED DOCUMENT**
+>
+> This legacy tracking file has been superseded by `/Next_Steps.md` in the repository root.
+>
+> **See:** [Next_Steps.md](../../Next_Steps.md)
+
 ## Tasks
 
 - [x] **Owner:** Assistant (Due: 2025-10-06) — Harden REST client environment handling so packaging preflight honours sanitized tokens, disable flags, and enterprise endpoints with regression coverage.【F:src/issuesuite/github_issues.py†L270-L316】【F:tests/test_github_rest_client.py†L120-L177】
