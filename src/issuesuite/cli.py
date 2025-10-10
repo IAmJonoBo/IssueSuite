@@ -902,6 +902,100 @@ def _doctor_token_check(warnings: list[str]) -> None:
         )
 
 
+def _doctor_tool_version_check(warnings: list[str]) -> None:
+    """Check if development tools are available (ADR-0004)."""
+    import subprocess
+    
+    tools = ["ruff", "mypy", "pytest", "nox"]
+    missing_tools = []
+    
+    for tool in tools:
+        try:
+            result = subprocess.run(
+                [tool, "--version"],
+                capture_output=True,
+                timeout=5,
+                check=False,
+            )
+            if result.returncode == 0:
+                version = result.stdout.decode().strip().split('\n')[0]
+                print(f"[doctor] {tool}: {version}")
+            else:
+                # Tool exists but version check failed
+                print(f"[doctor] {tool}: available but version check failed")
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            missing_tools.append(tool)
+    
+    if missing_tools:
+        warnings.append(
+            f"Development tools not found: {', '.join(missing_tools)} "
+            "(install with: pip install -e .[dev,all])"
+        )
+
+
+def _doctor_lockfile_check(warnings: list[str]) -> None:
+    """Check if lockfiles are synchronized (ADR-0004)."""
+    import subprocess
+    
+    # Find project root by looking for pyproject.toml
+    current = Path.cwd()
+    project_root = current
+    for parent in [current] + list(current.parents):
+        if (parent / "pyproject.toml").exists():
+            project_root = parent
+            break
+    
+    refresh_script = project_root / "scripts" / "refresh-deps.sh"
+    if not refresh_script.exists():
+        print("[doctor] lockfile check: refresh-deps.sh not found, skipping")
+        return
+    
+    try:
+        result = subprocess.run(
+            [str(refresh_script), "--check"],
+            capture_output=True,
+            timeout=30,
+            check=False,
+            cwd=str(project_root),
+        )
+        if result.returncode == 0:
+            print("[doctor] lockfiles: synchronized")
+        else:
+            warnings.append(
+                "Lockfiles out of sync with manifests (run: ./scripts/refresh-deps.sh)"
+            )
+    except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+        print(f"[doctor] lockfile check failed: {exc}")
+
+
+def _doctor_git_hooks_check(warnings: list[str]) -> None:
+    """Check if Git hooks are configured (ADR-0004)."""
+    import subprocess
+    
+    try:
+        result = subprocess.run(
+            ["git", "config", "core.hooksPath"],
+            capture_output=True,
+            timeout=5,
+            check=False,
+        )
+        if result.returncode == 0:
+            hooks_path = result.stdout.decode().strip()
+            print(f"[doctor] git hooks: {hooks_path}")
+            # Accept both relative and absolute paths ending in .githooks
+            if not hooks_path.endswith(".githooks"):
+                warnings.append(
+                    "Git hooks not configured correctly "
+                    "(run: ./scripts/setup-dev-env.sh)"
+                )
+        else:
+            warnings.append(
+                "Git hooks not configured (run: ./scripts/setup-dev-env.sh)"
+            )
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        print(f"[doctor] git hooks check failed: {exc}")
+
+
 def _doctor_env_flags() -> tuple[bool, bool]:
     mock = os.environ.get("ISSUES_SUITE_MOCK") == "1"
     dry = os.environ.get("ISSUESUITE_DRY_FORCE") == "1"
@@ -939,7 +1033,7 @@ def _doctor_emit_results(warnings: list[str], problems: list[str]) -> int:
 
 
 def _cmd_doctor(cfg: SuiteConfig, args: argparse.Namespace) -> int:
-    """Run lightweight diagnostics (auth, repo access, env flags)."""
+    """Run lightweight diagnostics (auth, repo access, env flags, environment parity)."""
     problems: list[str] = []
     warnings: list[str] = []
     repo = args.repo or cfg.github_repo
@@ -947,6 +1041,13 @@ def _cmd_doctor(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     _doctor_token_check(warnings)
     mock, _ = _doctor_env_flags()
     _doctor_issue_list(repo, mock, problems)
+    
+    # Environment parity checks (ADR-0004)
+    print("[doctor] checking environment parity...")
+    _doctor_tool_version_check(warnings)
+    _doctor_lockfile_check(warnings)
+    _doctor_git_hooks_check(warnings)
+    
     return _doctor_emit_results(warnings, problems)
 
 
