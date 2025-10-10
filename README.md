@@ -10,130 +10,287 @@ Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.
 
 ## Features
 
-- Single source of truth in Markdown (`ISSUES.md`), each item. Example:
+### Core Capabilities
 
-  ```markdown
-  ## [slug: api-timeouts]
-  ```
+- **Single source of truth**: Manage all issues from a single `ISSUES.md` file using slug-based headings and YAML blocks
+- **Idempotent sync**: Stable mappings ensure updates never create duplicates
+- **Dry-run mode**: Preview all changes before applying them to GitHub
+- **Human-readable diffs**: See exactly what will change (labels, milestones, body snippets)
+- **GitHub Projects (v2) integration**: Automatically sync issues to project boards with custom field mappings
+- **Offline-ready**: Works in air-gapped environments with mock mode
 
-  ```yaml
-  title: Investigate API timeouts
-  labels: [bug, backend]
-  milestone: Sprint 1
-  body: |
-    Requests intermittently exceed 5s …
-  ```
+### Issue Format
 
-  The parser requires this exact pattern: a level-2 heading with `[slug: <slug>]` followed immediately (allowing blank lines) by a fenced yaml block.
+Each issue uses a simple, readable format:
 
-- Idempotent create/update/close using stable external IDs & content hashes
-- Human & machine-readable diffs (labels, milestone, body snippet)
-- JSON export (`issues_export.json`) + change summary (`issues_summary.json`)
-- JSON Schemas for export/summary and AI context
-- Schema registry with explicit version metadata (`issuesuite.schema_registry`) to keep downstream consumers synchronized as artifacts evolve.
-- Configurable patterns (ID regex, milestone naming, global injected labels)
-- Optional preflight auto-create of labels & milestones (feature flags)
-- AI tooling: generated JSON Schemas for export, change summary, and AI context (+ `issuesuite.schemas.get_schemas()`)
-- AI mode (safety): `ISSUESUITE_AI_MODE=1` forces all syncs into dry-run (no mutations) even if `--dry-run` omitted
-- AI context export: `issuesuite ai-context` emits structured JSON (preview of spec, config hints, env suggestions) for assistant ingestion
-- Agent updates: `issuesuite agent-apply` ingests AI/agent completion summaries and updates `ISSUES.md` (and optional docs) before syncing
-- Quiet mode: `--quiet` or `ISSUESUITE_QUIET=1` suppresses informational logging (helpful when piping JSON to other tools)
-- Offline-ready dependency governance via `issuesuite.dependency_audit` with pip-audit integration and curated advisories for air-gapped runners
-- Resilient `pip-audit` wrapper and `issuesuite security` command merging curated offline advisories with live vulnerability feeds when available; tune the watchdog via `ISSUESUITE_PIP_AUDIT_TIMEOUT` to cap remote hangs or rely solely on offline advisories by setting `ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1` **or** passing `--pip-audit-disable-online`
-- Automated offline advisory refresh via `python -m issuesuite.advisory_refresh --refresh --check` and the CLI flag `issuesuite security --refresh-offline`
-- Telemetry breadcrumbs when resilient pip-audit falls back to offline advisories so operators can observe degraded remote feeds
-- Deterministic changelog updates with `scripts/update_changelog.py` (non-blocking lock) and `nox` developer sessions mirroring CI gates
-- Debug logging via `ISSUESUITE_DEBUG=1`
-- Mock mode (`ISSUES_SUITE_MOCK=1`) for offline tests w/out GitHub API
-  - In mock mode all GitHub CLI calls are suppressed (even without `--dry-run`) and operations are printed as `MOCK <action>`.
-  - Mock create operations fabricate deterministic incremental issue numbers so mapping persistence and tests remain stable.
-  - Dry-run planning: `issuesuite sync --dry-run` now returns a `plan` array in the summary showing proposed actions (`create|update|close|skip`) with label/milestone/body change counts.
-  - Plan artifacts: the CLI honours `--plan-json <file>` (or the config `output.plan_json`, default `issues_plan.json`) to write just the plan to disk for CI review.
-- Pluggable extensions and telemetry: configure `extensions` and `telemetry` blocks (or use `ISSUESUITE_PLUGINS` / `ISSUESUITE_TELEMETRY`) to emit structured events and trigger entry-point hooks after every CLI command. See [Extensions, Plugins, and Telemetry](docs/starlight/src/content/docs/explanations/extensions.mdx) for setup details.
+```markdown
+## [slug: api-timeouts]
+
+\`\`\`yaml
+title: Investigate API timeouts
+labels: [bug, backend]
+milestone: Sprint 1
+body: |
+  Requests intermittently exceed 5s …
+\`\`\`
+```
+
+The parser requires: a level-2 heading with `[slug: <slug>]` followed by a fenced YAML block.
+
+### Advanced Features
+
+- **JSON artifacts**: Export specs (`issues_export.json`) and change summaries (`issues_summary.json`) with versioned schemas
+- **AI/Agent integration**: Generate AI context and apply agent updates programmatically
+- **Extensible**: Plugin system with telemetry hooks for custom workflows
+- **Quality gates**: Built-in dependency scanning, security advisories, and compliance checks
+- **Mock mode**: Full offline testing without GitHub API calls (`ISSUES_SUITE_MOCK=1`)
+- **CI/CD ready**: Drift detection, automated preflight, and controlled apply pipelines
 
 ## Quick Start
 
-1. **Install the CLI (pipx recommended)**
+### Installation
+
+Install IssueSuite using `pipx` (recommended) or `pip`:
 
 ```bash
 pipx install issuesuite
-# or: pip install issuesuite
+# or
+pip install issuesuite
 ```
 
-1. **Scaffold a ready-to-run workspace**
+Verify the installation:
+
+```bash
+issuesuite --help
+```
+
+### Initialize Your Workspace
+
+Generate a ready-to-run workspace with configuration, documentation, and CI workflows:
 
 ```bash
 issuesuite init --all-extras
 ```
 
-This creates `issue_suite.config.yaml`, a starter `ISSUES.md`, `.vscode` tasks, a CI workflow, and a `.gitignore` snippet. Re-run with `--force` to regenerate.
+This creates:
+- `issue_suite.config.yaml` — Configuration file
+- `ISSUES.md` — Starter issue specifications
+- `.vscode/tasks.json` — VS Code tasks for common operations
+- `.github/workflows/` — CI workflow templates
+- `.gitignore` updates — Artifact exclusions
 
-1. **Run the preflight bundle**
+### Your First Sync
+
+1. **Edit your issue specs** in `ISSUES.md`:
+
+   ```markdown
+   ## [slug: welcome-issue]
+   
+   \`\`\`yaml
+   title: Welcome to IssueSuite!
+   labels: [documentation]
+   milestone: Getting Started
+   body: |
+     This is your first managed issue.
+   \`\`\`
+   ```
+
+2. **Run a dry-run** to preview changes:
+
+   ```bash
+   issuesuite sync --dry-run --config issue_suite.config.yaml
+   ```
+
+3. **Review the plan** in `issues_plan.json` and terminal output
+
+4. **Apply the sync** when ready:
+
+   ```bash
+   issuesuite sync --update --config issue_suite.config.yaml
+   ```
+
+   **Tip**: Add `--preflight` to auto-create labels and milestones on first sync.
+
+### Common Commands
 
 ```bash
-./scripts/issuesuite-preflight.sh
-```
+# Validate issue specifications
+issuesuite validate --config issue_suite.config.yaml
 
-The script validates specs and performs a dry-run sync, publishing `issues_summary.json` and `issues_plan.json` for inspection. Prefer the VS Code task **IssueSuite: Preflight** for one-click runs.
+# Export issues as JSON
+issuesuite export --pretty --config issue_suite.config.yaml
 
-1. **Promote to full sync when ready**
+# Generate a backlog summary
+issuesuite summary --config issue_suite.config.yaml
 
-```bash
-issuesuite sync --update --config issue_suite.config.yaml --summary-json issues_summary.json
-```
+# Check authentication
+issuesuite setup --check-auth
 
-Add the `--preflight` flag (or set `behavior.dry_run_default: true`) to auto-create labels/milestones before closing the dry-run loop.
-
-See the [Getting Started tutorial](docs/starlight/src/content/docs/tutorials/getting-started.mdx) for a narrated walkthrough, including troubleshooting tips and screenshots.
-
-Handy follow-up commands:
-
-```bash
-# Emit schemas to default files
+# Generate JSON Schemas
 issuesuite schema --config issue_suite.config.yaml
-
-# Offline dependency audit with resilient pip-audit fallback
-issuesuite security --offline-only
-issuesuite security --pip-audit --pip-audit-disable-online --pip-audit-arg --format --pip-audit-arg json
 ```
 
-### Offline/Hermetic Deployment
+### Next Steps
 
-IssueSuite supports air-gapped and hermetic environments:
+- 📖 **[Getting Started Tutorial](docs/starlight/src/content/docs/tutorials/getting-started.mdx)** — Detailed walkthrough with troubleshooting
+- ⚙️ **[Configuration Reference](docs/starlight/src/content/docs/reference/configuration.mdx)** — All configuration options
+- 🔧 **[CI/CD Automation](docs/starlight/src/content/docs/how-to/automation-ci.mdx)** — Wire IssueSuite into GitHub Actions
+- 📋 **[GitHub Projects Integration](docs/starlight/src/content/docs/how-to/github-projects.mdx)** — Sync issues to project boards
+- 🏗️ **[Architecture Overview](docs/starlight/src/content/docs/explanations/architecture.mdx)** — Understand how IssueSuite works
 
-- **Core functionality** works without network access when `ISSUES_SUITE_MOCK=1` is set
-- **Optional dependencies** gracefully degrade if unavailable
-- **Offline testing** is validated in CI via hermetic installation tests
+## Documentation
 
-**For offline deployment**:
+IssueSuite documentation uses the [Diátaxis framework](https://diataxis.fr/) and is built with [Astro Starlight](https://starlight.astro.build/):
 
-1. Build the wheel:
+- **Tutorials**: Learning-oriented guides for newcomers → [Getting started](docs/starlight/src/content/docs/tutorials/getting-started.mdx)
+- **How-to guides**: Task-oriented instructions → [CI/CD automation](docs/starlight/src/content/docs/how-to/automation-ci.mdx), [GitHub Projects](docs/starlight/src/content/docs/how-to/github-projects.mdx), [Renovate integration](docs/starlight/src/content/docs/how-to/renovate-integration.mdx)
+- **Reference**: Authoritative technical specs → [CLI commands](docs/starlight/src/content/docs/reference/cli.mdx), [Configuration](docs/starlight/src/content/docs/reference/configuration.mdx), [Environment variables](docs/starlight/src/content/docs/reference/environment-variables.mdx)
+- **Explanations**: Design decisions and context → [Architecture](docs/starlight/src/content/docs/explanations/architecture.mdx), [Index mapping](docs/starlight/src/content/docs/explanations/index-mapping-design.mdx)
+
+**Build documentation locally**:
+
+```bash
+cd docs/starlight
+npm install
+npm run dev  # Live preview at http://localhost:4321
+```
+
+Or use the nox session:
+
+```bash
+nox -s docs
+```
+
+## Contributing
+
+IssueSuite welcomes contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
+
+- Development workflow and environment setup
+- Quality gates and testing requirements
+- Code style and formatting guidelines
+- Documentation updates and ADR governance
+
+### Quick Developer Setup
+
+1. **Clone and install with development dependencies**:
 
    ```bash
-   python -m build
+   git clone https://github.com/IAmJonoBo/IssueSuite.git
+   cd IssueSuite
+   pip install -e .[dev,all]
    ```
 
-2. Download all dependencies to a local directory:
+2. **Configure development environment**:
 
    ```bash
-   mkdir -p offline-wheels
-   pip download --dest offline-wheels dist/*.whl
+   ./scripts/setup-dev-env.sh  # Installs hooks, validates setup
+   issuesuite doctor  # Verify environment health
    ```
 
-3. Transfer the `dist/` directory and `offline-wheels/` to target environment
-
-4. Install without network:
+3. **Run quality gates locally**:
 
    ```bash
-   pip install --no-index --find-links ./offline-wheels issuesuite
+   nox -s tests lint typecheck security
    ```
 
-5. Use mock mode for testing/validation:
+### Developer Tooling
+
+IssueSuite provides nox sessions for common development tasks:
+
+```bash
+nox -s tests          # Run test suite with coverage
+nox -s lint           # Run ruff linter
+nox -s typecheck      # Run mypy type checker
+nox -s security       # Run security scanners
+nox -s docs           # Build and check documentation
+nox -s lock           # Refresh lockfiles (uv.lock, package-lock.json)
+```
+
+**Pre-commit hooks** automatically run format checks and lockfile validation:
+
+```bash
+git config core.hooksPath .githooks  # Enable local hooks
+```
+
+### Tool Versions
+
+Development tools should match CI (handled by `pip install -e .[dev]`):
+
+- Python: 3.10+ (CI tests 3.10, 3.11, 3.12, 3.13)
+- ruff: 0.14 (pinned)
+- mypy: 1.8+
+- Node.js: 20+ (for docs)
+
+See [ADR-0004](docs/adrs/ADR-0004-dev-environment-parity.md) for environment parity rationale.
+
+## Authentication
+
+IssueSuite supports multiple authentication methods:
+
+### GitHub Personal Access Token (Classic)
+
+1. Create a token with `repo` scope at https://github.com/settings/tokens
+2. Export as environment variable:
    ```bash
-   export ISSUES_SUITE_MOCK=1
-   export ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1
-   issuesuite validate --config issue_suite.config.yaml
+   export GITHUB_TOKEN=ghp_your_token_here
    ```
+
+### GitHub App
+
+For organization-wide deployments:
+
+```yaml
+github:
+  app:
+    enabled: true
+    app_id: $GITHUB_APP_ID
+    installation_id: $GITHUB_APP_INSTALLATION_ID
+    private_key_path: $GITHUB_APP_PRIVATE_KEY_PATH
+```
+
+See [Environment Variables Reference](docs/starlight/src/content/docs/reference/environment-variables.mdx) for GitHub App configuration.
+
+### Verify Authentication
+
+Check authentication before syncing:
+
+```bash
+issuesuite setup --check-auth
+```
+
+Generate a starter `.env` file:
+
+```bash
+issuesuite setup --create-env
+```
+
+## Offline/Hermetic Deployment
+
+IssueSuite supports air-gapped and hermetic environments for secure deployments:
+
+**Core offline capabilities**:
+- Works without network access when `ISSUES_SUITE_MOCK=1` is set
+- Optional dependencies gracefully degrade if unavailable
+- Offline testing validated in CI
+
+**Offline installation**:
+
+```bash
+# 1. Build wheel
+python -m build
+
+# 2. Download dependencies
+mkdir -p offline-wheels
+pip download --dest offline-wheels dist/*.whl
+
+# 3. Transfer to target environment and install
+pip install --no-index --find-links ./offline-wheels issuesuite
+
+# 4. Use mock mode for validation
+export ISSUES_SUITE_MOCK=1
+export ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1
+issuesuite validate --config issue_suite.config.yaml
+```
 
 **Environment variables for offline operation**:
 
@@ -141,7 +298,58 @@ IssueSuite supports air-gapped and hermetic environments:
 - `ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1` — Disable pip-audit network requests
 - `ISSUESUITE_PROJECT_CACHE_DISABLE=1` — Disable GitHub Projects cache
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for full offline development workflow.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full offline development workflow and [Environment Variables Reference](docs/starlight/src/content/docs/reference/environment-variables.mdx) for all options.
+
+## Advanced Features
+
+### Agent Integration
+
+Use `agent-apply` to let AI agents update `ISSUES.md` and trigger syncs:
+
+```bash
+# Dry-run: apply updates and preview sync
+issuesuite agent-apply --updates-json updates.json
+
+# Apply updates and sync to GitHub
+issuesuite agent-apply --updates-json updates.json --apply
+
+# Only update files, skip sync
+issuesuite agent-apply --updates-json updates.json --no-sync
+```
+
+See [agent_updates.json](agent_updates.json) for JSON schema examples.
+
+### Telemetry and Plugins
+
+Enable observability with structured event logging:
+
+```yaml
+telemetry:
+  enabled: true
+  store_path: .issuesuite/telemetry.jsonl
+
+extensions:
+  enabled: true
+  disabled: []
+```
+
+Tail `telemetry.jsonl` to monitor command usage. Custom plugins can hook into the same event stream.
+
+See [Extensions and Telemetry](docs/starlight/src/content/docs/explanations/extensions.mdx) for details.
+
+### Guided Setup
+
+Run an interactive setup wizard:
+
+```bash
+issuesuite setup --guided
+```
+
+This inspects your workspace and recommends next steps for automation-ready configuration.
+
+---
+
+For additional configuration options, library usage, and advanced topics, see the sections below.
 
 ### Developer Environment Setup
 
