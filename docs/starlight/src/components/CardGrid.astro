@@ -1,5 +1,12 @@
 ---
-const { items = [] } = Astro.props;
+
+interface CardItem {
+  href: string;
+  title: string;
+  description?: string;
+}
+
+const { items = [] } = Astro.props as { items?: CardItem[] };
 ---
 
 <div class="sl-container" style="margin-top: var(--s-6);">
