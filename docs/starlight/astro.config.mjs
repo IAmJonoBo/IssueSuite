@@ -30,11 +30,28 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "IssueSuite Documentation",
+      description: "Declarative GitHub Issues automation with governance-driven quality gates, deterministic sync, and observable roadmap health.",
       favicon: "/favicon.svg",
       customCss: ["./src/styles/theme.css"],
       components: {
         Footer: "./src/components/Footer.astro",
       },
+      head: [
+        {
+          tag: "meta",
+          attrs: {
+            property: "og:image",
+            content: "https://issuesuite.io/og-image.png",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            name: "twitter:card",
+            content: "summary_large_image",
+          },
+        },
+      ],
       sidebar: [
         {
           label: "Start",

@@ -35,6 +35,8 @@ jobs:
           node-version: "20"
       - name: Build documentation
         run: nox -s docs
+        env:
+          GITHUB_PAGES: "true"
       - name: Upload preview artifact
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
