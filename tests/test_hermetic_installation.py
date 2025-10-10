@@ -91,7 +91,8 @@ def test_cli_validate_works_in_mock_mode_offline(tmp_path):
     # Run validate in mock mode
     result = subprocess.run(
         [sys.executable, "-m", "issuesuite", "validate", "--config", str(config)],
-        check=False, cwd=tmp_path,
+        check=False,
+        cwd=tmp_path,
         capture_output=True,
         text=True,
         env={**os.environ, "ISSUES_SUITE_MOCK": "1"},
@@ -107,7 +108,8 @@ def test_schema_command_works_offline():
     # Run schema command (should work completely offline)
     result = subprocess.run(
         [sys.executable, "-m", "issuesuite", "schema"],
-        check=False, capture_output=True,
+        check=False,
+        capture_output=True,
         text=True,
     )
 
@@ -164,7 +166,8 @@ def test_dependency_audit_works_offline():
     # Run dependency audit in offline mode
     result = subprocess.run(
         [sys.executable, "-m", "issuesuite.dependency_audit", "--offline-only"],
-        check=False, capture_output=True,
+        check=False,
+        capture_output=True,
         text=True,
         env={**os.environ},
     )

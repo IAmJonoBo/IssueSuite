@@ -209,9 +209,9 @@ For offline deployment:
 
 - [x] Add `offline-installation` job to `.github/workflows/test-build.yml`
 - [x] Create `tests/test_hermetic_installation.py` with regression tests
-- [ ] Update README.md with offline deployment guide
-- [ ] Document mock mode environment variables in reference docs
-- [ ] Add offline validation to release checklist
+- [x] Update README.md with offline deployment guide
+- [x] Document mock mode environment variables in reference docs (see docs/reference/environment-variables.mdx)
+- [x] Add offline validation to release checklist (see docs/RELEASE_CHECKLIST.md)
 - [ ] Consider Docker-based hermetic testing for future enhancement
 
 ## Related ADRs

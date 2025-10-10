@@ -30,7 +30,12 @@
         "implementation": [
           ".github/workflows/dependencies.yml",
           "scripts/refresh-deps.sh",
-          "tests/test_refresh_deps.py"
+          "tests/test_refresh_deps.py",
+          "renovate.json"
+        ],
+        "documentation": [
+          "docs/starlight/src/content/docs/how-to/renovate-integration.mdx",
+          "docs/RELEASE_CHECKLIST.md"
         ],
         "follow_up": [
           "Next Steps.md#quality-gates"
@@ -51,6 +56,10 @@
           ".github/workflows/test-build.yml",
           "tests/test_hermetic_installation.py"
         ],
+        "documentation": [
+          "docs/starlight/src/content/docs/reference/environment-variables.mdx",
+          "docs/RELEASE_CHECKLIST.md"
+        ],
         "follow_up": [
           "Next Steps.md#quality-gates"
         ]
@@ -70,6 +79,10 @@
           "scripts/setup-dev-env.sh",
           ".githooks/pre-commit",
           "CONTRIBUTING.md"
+        ],
+        "documentation": [
+          "README.md#developer-environment-setup",
+          "docs/RELEASE_CHECKLIST.md"
         ],
         "follow_up": [
           "Next Steps.md#quality-gates"

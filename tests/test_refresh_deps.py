@@ -91,7 +91,8 @@ def test_refresh_deps_check_detects_modified_pyproject(temp_repo: Path, refresh_
     # Run check - should fail because lock is stale
     result = subprocess.run(
         [str(refresh_script), "--check"],
-        check=False, cwd=temp_repo,
+        check=False,
+        cwd=temp_repo,
         capture_output=True,
         text=True,
     )
@@ -112,7 +113,8 @@ def test_refresh_deps_check_detects_modified_package_json(temp_repo: Path, refre
     # Run check
     result = subprocess.run(
         [str(refresh_script), "--check"],
-        check=False, cwd=temp_repo,
+        check=False,
+        cwd=temp_repo,
         capture_output=True,
         text=True,
     )
@@ -154,7 +156,8 @@ def test_refresh_deps_updates_python_lock(temp_repo: Path, refresh_script: Path,
     # Run without --check to update
     result = subprocess.run(
         [str(refresh_script)],
-        check=False, cwd=temp_repo,
+        check=False,
+        cwd=temp_repo,
         capture_output=True,
         text=True,
     )
@@ -167,7 +170,8 @@ def test_refresh_deps_help_flag(refresh_script: Path):
     """Verify --help flag displays usage information."""
     result = subprocess.run(
         [str(refresh_script), "--help"],
-        check=False, capture_output=True,
+        check=False,
+        capture_output=True,
         text=True,
     )
 
@@ -180,7 +184,8 @@ def test_refresh_deps_unknown_option(refresh_script: Path):
     """Verify script rejects unknown options."""
     result = subprocess.run(
         [str(refresh_script), "--unknown-flag"],
-        check=False, capture_output=True,
+        check=False,
+        capture_output=True,
         text=True,
     )
 
@@ -193,7 +198,8 @@ def test_refresh_deps_check_passes_when_synchronized(temp_repo: Path, refresh_sc
     # Don't modify any files - lockfiles should be "in sync" (or check will be skipped)
     result = subprocess.run(
         [str(refresh_script), "--check"],
-        check=False, cwd=temp_repo,
+        check=False,
+        cwd=temp_repo,
         capture_output=True,
         text=True,
     )
@@ -215,7 +221,8 @@ def test_refresh_deps_creates_cache_directory(temp_repo: Path, refresh_script: P
     # Run script
     subprocess.run(
         [str(refresh_script), "--check"],
-        check=False, cwd=temp_repo,
+        check=False,
+        cwd=temp_repo,
         capture_output=True,
     )
 
@@ -233,7 +240,8 @@ def test_refresh_deps_handles_missing_uv_gracefully(
 
     result = subprocess.run(
         [str(refresh_script), "--check"],
-        check=False, cwd=temp_repo,
+        check=False,
+        cwd=temp_repo,
         capture_output=True,
         text=True,
     )
@@ -251,7 +259,8 @@ def test_refresh_deps_handles_missing_npm_gracefully(
 
     result = subprocess.run(
         [str(refresh_script), "--check"],
-        check=False, cwd=temp_repo,
+        check=False,
+        cwd=temp_repo,
         capture_output=True,
         text=True,
     )
@@ -268,7 +277,8 @@ def test_refresh_deps_respects_project_root(temp_repo: Path, refresh_script: Pat
 
     result = subprocess.run(
         [str(refresh_script), "--check"],
-        check=False, cwd=subdir,
+        check=False,
+        cwd=subdir,
         capture_output=True,
         text=True,
     )

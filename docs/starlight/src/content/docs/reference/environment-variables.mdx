@@ -1,0 +1,247 @@
+---
+title: Environment variables reference
+sidebar:
+  label: Environment variables
+description: Complete reference for IssueSuite environment variables controlling behavior, offline operation, and debugging.
+tags:
+  - reference
+  - configuration
+  - environment
+template: doc
+---
+
+IssueSuite behavior can be controlled through environment variables for CI automation, offline operation, debugging, and security. These settings supplement or override configuration file values.
+
+## Core Behavior
+
+### `ISSUESUITE_AI_MODE`
+
+**Type**: Boolean (0 or 1)  
+**Default**: `0`
+
+Forces all sync operations into dry-run mode regardless of CLI flags. Designed for AI agent safety.
+
+```bash
+export ISSUESUITE_AI_MODE=1
+issuesuite sync --update  # Still runs as dry-run
+```
+
+### `ISSUESUITE_QUIET`
+
+**Type**: Boolean (0 or 1)  
+**Default**: `0`
+
+Suppresses informational logging, useful when piping JSON output to other tools.
+
+```bash
+ISSUESUITE_QUIET=1 issuesuite export --pretty > issues.json
+```
+
+### `ISSUESUITE_DEBUG`
+
+**Type**: Boolean (0 or 1)  
+**Default**: `0`
+
+Enables verbose debug logging for troubleshooting.
+
+```bash
+ISSUESUITE_DEBUG=1 issuesuite sync --dry-run
+```
+
+## Offline/Mock Mode (ADR-0003)
+
+### `ISSUES_SUITE_MOCK`
+
+**Type**: Boolean (0 or 1)  
+**Default**: `0`
+
+Enables mock mode for offline testing without GitHub API access. All GitHub operations are simulated and printed as `MOCK <action>`.
+
+```bash
+export ISSUES_SUITE_MOCK=1
+issuesuite validate --config issue_suite.config.yaml  # No network calls
+```
+
+**Use cases**:
+- Air-gapped/hermetic CI runners
+- Offline development and testing
+- Quick validation without API rate limits
+
+:::tip[Mock mode details]
+Mock mode generates deterministic incremental issue numbers for create operations, ensuring mapping persistence and test stability.
+:::
+
+### `ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE`
+
+**Type**: Boolean (0 or 1)  
+**Default**: `0`
+
+Disables online vulnerability database queries in pip-audit integration, relying solely on offline curated advisories.
+
+```bash
+ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1 issuesuite security --pip-audit
+```
+
+**Related CLI flag**: `--pip-audit-disable-online`
+
+### `ISSUESUITE_PIP_AUDIT_TIMEOUT`
+
+**Type**: Integer (seconds)  
+**Default**: `60`
+
+Maximum time to wait for pip-audit network operations before falling back to offline advisories.
+
+```bash
+ISSUESUITE_PIP_AUDIT_TIMEOUT=30 issuesuite security --pip-audit
+```
+
+### `ISSUESUITE_PROJECT_CACHE_DISABLE`
+
+**Type**: Boolean (0 or 1)  
+**Default**: `0`
+
+Disables GitHub Projects (v2) field metadata caching. Cache normally lives in `.issuesuite_cache/`.
+
+```bash
+ISSUESUITE_PROJECT_CACHE_DISABLE=1 issuesuite sync --update
+```
+
+### `ISSUESUITE_PROJECT_CACHE_TTL`
+
+**Type**: Integer (seconds)  
+**Default**: `3600` (1 hour)
+
+Time-to-live for cached GitHub Projects field metadata.
+
+```bash
+ISSUESUITE_PROJECT_CACHE_TTL=7200  # 2 hours
+```
+
+## Retry and Network Tuning
+
+### `ISSUESUITE_RETRY_ATTEMPTS`
+
+**Type**: Integer  
+**Default**: `3`
+
+Maximum number of retry attempts for transient GitHub API failures.
+
+```bash
+ISSUESUITE_RETRY_ATTEMPTS=5 issuesuite sync --update
+```
+
+### `ISSUESUITE_RETRY_BASE`
+
+**Type**: Float (seconds)  
+**Default**: `1.0`
+
+Base delay for exponential backoff between retry attempts.
+
+```bash
+ISSUESUITE_RETRY_BASE=2.0 issuesuite sync --update
+```
+
+### `ISSUESUITE_RETRY_MAX_SLEEP`
+
+**Type**: Float (seconds)  
+**Default**: `60.0` (optional)
+
+Maximum sleep duration between retries (caps exponential backoff).
+
+```bash
+ISSUESUITE_RETRY_MAX_SLEEP=30.0 issuesuite sync --update
+```
+
+## GitHub Authentication
+
+### `GITHUB_TOKEN`
+
+**Type**: String  
+**Required**: Yes (unless using GitHub App authentication)
+
+Personal access token or GitHub Actions token for API authentication.
+
+```bash
+export GITHUB_TOKEN="ghp_..."
+issuesuite sync --update
+```
+
+### `ISSUESUITE_GITHUB_APP_*`
+
+Alternative to token authentication when using GitHub App integration:
+- `ISSUESUITE_GITHUB_APP_ID`
+- `ISSUESUITE_GITHUB_APP_PRIVATE_KEY_PATH`
+- `ISSUESUITE_GITHUB_APP_INSTALLATION_ID`
+
+See [GitHub App authentication](../how-to/github-app-auth) for setup details.
+
+## Dependency Management (ADR-0002)
+
+Environment variables don't directly control dependency synchronization, but these commands use them:
+
+```bash
+# Validate lockfiles are synchronized (used in CI)
+./scripts/refresh-deps.sh --check
+
+# Update lockfiles after manifest changes
+./scripts/refresh-deps.sh
+```
+
+The CI workflow `.github/workflows/dependencies.yml` automatically validates lockfile synchronization on every PR.
+
+## Plugin and Extension Control
+
+### `ISSUESUITE_PLUGINS`
+
+**Type**: Comma-separated list  
+**Default**: Empty
+
+Explicitly enable specific plugins by entry-point name.
+
+```bash
+ISSUESUITE_PLUGINS="my_plugin,another_plugin" issuesuite sync
+```
+
+### `ISSUESUITE_TELEMETRY`
+
+**Type**: JSON string  
+**Default**: Empty
+
+Override telemetry configuration via environment.
+
+```bash
+ISSUESUITE_TELEMETRY='{"enabled": true}' issuesuite sync
+```
+
+## Summary
+
+For a complete offline/hermetic deployment, use:
+
+```bash
+export ISSUES_SUITE_MOCK=1
+export ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1
+export ISSUESUITE_PROJECT_CACHE_DISABLE=1
+export ISSUESUITE_QUIET=1
+
+issuesuite validate --config issue_suite.config.yaml
+```
+
+For AI agent safety:
+
+```bash
+export ISSUESUITE_AI_MODE=1
+issuesuite sync --update  # Always dry-run
+```
+
+For debugging:
+
+```bash
+export ISSUESUITE_DEBUG=1
+issuesuite sync --dry-run
+```
+
+## Related Documentation
+
+- [Configuration Reference](./configuration) — File-based configuration options
+- [ADR-0003: Hermetic Packaging](../../adrs/ADR-0003-hermetic-packaging.md) — Offline operation architecture
+- [Offline Deployment Guide](../how-to/offline-deployment) — Complete air-gapped setup
