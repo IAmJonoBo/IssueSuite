@@ -1,0 +1,31 @@
+---
+const { items = [] } = Astro.props;
+---
+
+<div class="sl-container" style="margin-top: var(--s-6);">
+  <div
+    style="display:grid; gap: var(--s-5); grid-template-columns: repeat(1, minmax(0,1fr));"
+  >
+    {
+      items.map(({ href, title, description }) => (
+        <a class="card" href={href}>
+          <div class="card__title">{title}</div>
+          <div class="card__meta">{description}</div>
+        </a>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  @media (min-width: 768px) {
+    div[style*="grid-template-columns"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1024px) {
+    div[style*="grid-template-columns"] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+</style>
