@@ -137,9 +137,7 @@ class GitHubAppTokenManager:
             decoded = base64.urlsafe_b64decode(padded.encode("utf-8"))
             data = json.loads(decoded.decode("utf-8"))
         except (binascii.Error, json.JSONDecodeError, UnicodeDecodeError) as exc:
-            self.logger.log_error(
-                "Failed to decode cached token", source=source, error=str(exc)
-            )
+            self.logger.log_error("Failed to decode cached token", source=source, error=str(exc))
             return False
 
         token_val = data.get("token")
@@ -152,9 +150,7 @@ class GitHubAppTokenManager:
         try:
             expires_at = datetime.fromisoformat(expires_str)
         except ValueError as exc:
-            self.logger.log_error(
-                "Cached token expiration invalid", source=source, error=str(exc)
-            )
+            self.logger.log_error("Cached token expiration invalid", source=source, error=str(exc))
             return False
 
         if expires_at.tzinfo is None:
@@ -294,9 +290,7 @@ class GitHubAppTokenManager:
             expires_str = installation_token.get("expires_at")
             if isinstance(expires_str, str) and expires_str:
                 # GitHub uses ISO format: 2025-01-01T10:00:00Z
-                self._token_expires_at = datetime.fromisoformat(
-                    expires_str.replace("Z", "+00:00")
-                )
+                self._token_expires_at = datetime.fromisoformat(expires_str.replace("Z", "+00:00"))
             else:
                 # Default to 1 hour if no expiration provided
                 self._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
@@ -304,9 +298,7 @@ class GitHubAppTokenManager:
             # Cache the token
             self._save_cached_token()
 
-            expires_iso = (
-                self._token_expires_at.isoformat() if self._token_expires_at else ""
-            )
+            expires_iso = self._token_expires_at.isoformat() if self._token_expires_at else ""
             self.logger.log_operation(
                 "github_app_token_generated",
                 app_id=self.config.app_id,
@@ -333,9 +325,7 @@ class GitHubAppTokenManager:
                 return None
             private_key = private_key_path.read_text(encoding="utf-8")
             if not private_key.strip():
-                self.logger.log_error(
-                    "Private key file is empty", path=str(private_key_path)
-                )
+                self.logger.log_error("Private key file is empty", path=str(private_key_path))
                 return None
 
             now = datetime.now(timezone.utc)
@@ -375,9 +365,7 @@ class GitHubAppTokenManager:
                 signed_jwt = signed_jwt.decode("utf-8")
 
             token_str: str = cast(str, signed_jwt)
-            self.logger.debug(
-                "Generated signed JWT for GitHub App", app_id=self.config.app_id
-            )
+            self.logger.debug("Generated signed JWT for GitHub App", app_id=self.config.app_id)
             return token_str
 
         except Exception as e:
@@ -420,12 +408,8 @@ class GitHubAppTokenManager:
     def _generate_unsigned_jwt(self, payload: dict[str, Any]) -> str:
         """Fallback unsigned JWT (legacy behaviour)."""
         header = {"typ": "JWT", "alg": "RS256"}
-        header_b64 = (
-            base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
-        )
-        payload_b64 = (
-            base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
-        )
+        header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
+        payload_b64 = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
         return f"{header_b64}.{payload_b64}.signature_placeholder"
 
     def _get_installation_token(self, jwt_token: str) -> dict[str, Any] | None:
@@ -464,9 +448,7 @@ class GitHubAppTokenManager:
             )
             return None
         except json.JSONDecodeError as e:
-            self.logger.log_error(
-                "Failed to parse installation token response", error=str(e)
-            )
+            self.logger.log_error("Failed to parse installation token response", error=str(e))
             return None
 
     def configure_github_cli(self) -> bool:
@@ -495,14 +477,10 @@ class GitHubAppTokenManager:
             )
 
             if result.returncode == 0:
-                self.logger.log_operation(
-                    "github_cli_configured", app_id=self.config.app_id
-                )
+                self.logger.log_operation("github_cli_configured", app_id=self.config.app_id)
                 return True
             else:
-                self.logger.log_error(
-                    "GitHub CLI authentication failed", error=result.stderr
-                )
+                self.logger.log_error("GitHub CLI authentication failed", error=result.stderr)
                 return False
 
         except Exception as e:
@@ -527,9 +505,7 @@ class GitHubAppTokenManager:
             self.logger.log_error("Failed to cleanup cached token", error=str(e))
 
 
-def create_github_app_manager(
-    config: GitHubAppConfig, mock: bool = False
-) -> GitHubAppTokenManager:
+def create_github_app_manager(config: GitHubAppConfig, mock: bool = False) -> GitHubAppTokenManager:
     """Factory function to create GitHub App token manager."""
     return GitHubAppTokenManager(config, mock)
 
@@ -562,7 +538,5 @@ def is_github_app_configured(config: GitHubAppConfig) -> bool:
         and bool(config.app_id)
         and bool(config.private_key_path)
         and bool(config.installation_id)
-        and (
-            Path(config.private_key_path).exists() if config.private_key_path else False
-        )
+        and (Path(config.private_key_path).exists() if config.private_key_path else False)
     )

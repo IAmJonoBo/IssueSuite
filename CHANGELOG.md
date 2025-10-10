@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added (Unreleased)
 
+- Enhanced CLI UX with colored output, status indicators (✓, ✗, ⚠, •), and formatted summary boxes for improved readability without requiring external dependencies.【F:src/issuesuite/ux.py†L1-L145】
+- Additional CI badges in README for lint, test-build, and UX acceptance workflows to improve project visibility.【F:README.md†L3-L9】
 - Offline-friendly dependency audit command (`issuesuite.dependency_audit`) with curated advisory dataset and pip-audit fallback.
 - Resilient pip-audit wrapper and `issuesuite security` CLI subcommand with regression coverage for offline/hardened environments.【F:src/issuesuite/pip_audit_integration.py†L1-L240】【F:tests/test_cli_extended.py†L190-L198】
 - Deterministic CI harness (`scripts/generate_performance_report.py`) that refreshes `performance_report.json` before enforcing the performance budget gate.【F:scripts/generate_performance_report.py†L1-L43】【F:src/issuesuite/performance_report.py†L1-L105】

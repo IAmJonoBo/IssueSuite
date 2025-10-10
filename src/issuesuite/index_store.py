@@ -17,18 +17,14 @@ class IndexDocument:
     entries: dict[str, dict[str, Any]]
     repo: str | None = None
     version: int = 1
-    generated_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    generated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     signature: str = ""
 
     def ensure_signature(self) -> None:
         self.signature = compute_signature(self.entries)
 
 
-def persist_index_document(
-    path: Path, document: IndexDocument, mirror: Path | None = None
-) -> None:
+def persist_index_document(path: Path, document: IndexDocument, mirror: Path | None = None) -> None:
     document.ensure_signature()
     mapping_snapshot: dict[str, int] = {}
     for slug, payload in document.entries.items():
@@ -39,9 +35,7 @@ def persist_index_document(
             try:
                 mapping_snapshot[str(slug)] = int(issue_value)
             except (TypeError, ValueError):  # pragma: no cover - defensive coercion
-                logger.debug(
-                    "skipping non-integer mapping for %s: %r", slug, issue_value
-                )
+                logger.debug("skipping non-integer mapping for %s: %r", slug, issue_value)
     payload = {
         "version": document.version,
         "generated_at": document.generated_at,
@@ -98,15 +92,11 @@ def load_index_document(path: Path) -> IndexDocument:
         entries=entries,
         repo=raw.get("repo") if isinstance(raw.get("repo"), str) else None,
         version=int(raw.get("version") or 1),
-        generated_at=str(
-            raw.get("generated_at") or datetime.now(timezone.utc).isoformat()
-        ),
+        generated_at=str(raw.get("generated_at") or datetime.now(timezone.utc).isoformat()),
         signature=str(raw.get("signature") or ""),
     )
     if doc.signature and doc.signature != compute_signature(doc.entries):
-        logger.warning(
-            "Index signature mismatch detected at %s; ignoring entries", path
-        )
+        logger.warning("Index signature mismatch detected at %s; ignoring entries", path)
         return IndexDocument(entries={}, repo=doc.repo, version=doc.version)
     return doc
 

@@ -37,9 +37,7 @@ def run_cli(args: list[str]) -> str:
     return out  # let caller fail with JSON error for visibility
 
 
-def test_ai_context_includes_mapping_snapshot(
-    tmp_path: Path, monkeypatch: MonkeyPatch
-) -> None:
+def test_ai_context_includes_mapping_snapshot(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     # Copy config & sources into temp dir
     repo_root = Path(__file__).resolve().parent.parent
     for name in ["issue_suite.config.yaml", "ISSUES.md"]:

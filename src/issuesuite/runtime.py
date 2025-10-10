@@ -26,10 +26,7 @@ def prepare_config(
     repo_override = getattr(args, "repo", None)
     if repo_override:
         cfg.github_repo = repo_override
-    if (
-        getattr(args, "cmd", None) == "sync"
-        and getattr(args, "project_number", None) is not None
-    ):
+    if getattr(args, "cmd", None) == "sync" and getattr(args, "project_number", None) is not None:
         try:
             project_number = int(args.project_number)
         except (TypeError, ValueError):  # pragma: no cover - defensive

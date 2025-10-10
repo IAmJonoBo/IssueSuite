@@ -17,9 +17,7 @@ def test_gh_auth_skips_when_cli_missing(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setattr("issuesuite.core.shutil.which", lambda _: None)
 
     def _fail(*_: object, **__: object) -> str:
-        raise AssertionError(
-            "subprocess.check_output should not be invoked when gh is absent"
-        )
+        raise AssertionError("subprocess.check_output should not be invoked when gh is absent")
 
     monkeypatch.setattr("issuesuite.core.subprocess.check_output", _fail)
 

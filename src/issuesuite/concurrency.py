@@ -25,9 +25,7 @@ R = TypeVar("R")
 class ConcurrencyConfig:
     """Configuration for concurrency settings."""
 
-    def __init__(
-        self, enabled: bool = False, max_workers: int = 4, batch_size: int = 10
-    ):
+    def __init__(self, enabled: bool = False, max_workers: int = 4, batch_size: int = 10):
         self.enabled = enabled
         self.max_workers = max_workers
         self.batch_size = batch_size
@@ -98,9 +96,7 @@ class AsyncGitHubClient:
         try:
             result = await asyncio.get_event_loop().run_in_executor(
                 self._executor,
-                functools.partial(
-                    subprocess.run, cmd, capture_output=True, text=True, check=True
-                ),
+                functools.partial(subprocess.run, cmd, capture_output=True, text=True, check=True),
             )
             return True, result.stdout
         except subprocess.CalledProcessError as e:
@@ -237,9 +233,7 @@ class ConcurrentProcessor:
 
         for i in range(0, len(specs), batch_size):
             batch = specs[i : i + batch_size]
-            batch_results = await self._process_batch_async(
-                batch, processor_func, *args, **kwargs
-            )
+            batch_results = await self._process_batch_async(batch, processor_func, *args, **kwargs)
             results.extend(batch_results)
 
             # Brief pause between batches to be respectful to GitHub API
@@ -282,9 +276,7 @@ class ConcurrentProcessor:
         processed_results: list[Any] = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                self.logger.log_error(
-                    f"Error processing spec {batch[i]}", error=str(result)
-                )
+                self.logger.log_error(f"Error processing spec {batch[i]}", error=str(result))
                 # Return a default failure result
                 processed_results.append({"error": str(result), "spec": batch[i]})
             else:
@@ -309,9 +301,7 @@ class ConcurrentProcessor:
         return await loop.run_in_executor(None, processor_func, spec, *args, **kwargs)
 
 
-def create_async_github_client(
-    config: ConcurrencyConfig, mock: bool = False
-) -> AsyncGitHubClient:
+def create_async_github_client(config: ConcurrencyConfig, mock: bool = False) -> AsyncGitHubClient:
     """Factory function to create async GitHub client."""
     return AsyncGitHubClient(config, mock)
 
@@ -333,9 +323,7 @@ async def run_concurrent_sync(
 ) -> list[Any]:
     """Convenience function to run concurrent sync."""
     processor = create_concurrent_processor(concurrency_config, mock)
-    return await processor.process_specs_concurrent(
-        specs, processor_func, *args, **kwargs
-    )
+    return await processor.process_specs_concurrent(specs, processor_func, *args, **kwargs)
 
 
 # Utility functions for backward compatibility

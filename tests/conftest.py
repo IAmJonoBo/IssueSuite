@@ -62,6 +62,4 @@ def pytest_sessionfinish(session, exitstatus):  # type: ignore
     for nodeid, secs in slow:
         print(f"{secs:0.3f}s  {nodeid}")
     total_time = sum(d for _, d in _TEST_DURATIONS)
-    print(
-        f"Total recorded test time: {total_time:0.3f}s over {len(_TEST_DURATIONS)} tests"
-    )
+    print(f"Total recorded test time: {total_time:0.3f}s over {len(_TEST_DURATIONS)} tests")

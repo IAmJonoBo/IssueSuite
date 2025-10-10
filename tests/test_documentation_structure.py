@@ -29,14 +29,10 @@ def test_starlight_workspace_scaffold() -> None:
     assert (STARLIGHT_DIR / "package.json").is_file()
     assert (STARLIGHT_DIR / "astro.config.mjs").is_file()
     assert (STARLIGHT_DIR / "tsconfig.json").is_file()
-    package_json = json.loads(
-        (STARLIGHT_DIR / "package.json").read_text(encoding="utf-8")
-    )
+    package_json = json.loads((STARLIGHT_DIR / "package.json").read_text(encoding="utf-8"))
     for script in ("build", "check", "lint", "format", "format:write"):
         assert script in package_json["scripts"], f"Missing npm script: {script}"
-    assert "@astrojs/starlight" in (STARLIGHT_DIR / "astro.config.mjs").read_text(
-        encoding="utf-8"
-    )
+    assert "@astrojs/starlight" in (STARLIGHT_DIR / "astro.config.mjs").read_text(encoding="utf-8")
 
 
 def test_diataxis_directories_populated() -> None:
@@ -58,9 +54,7 @@ def test_docs_have_frontmatter(doc_path: Path) -> None:
         "splash",
     }, f"Unsupported template {template} in {doc_path}"
     description = frontmatter["description"]
-    assert (
-        isinstance(description, str) and description.strip()
-    ), f"{doc_path} needs a description"
+    assert isinstance(description, str) and description.strip(), f"{doc_path} needs a description"
     if "tags" in frontmatter:
         assert isinstance(frontmatter["tags"], list), f"{doc_path} tags must be a list"
 

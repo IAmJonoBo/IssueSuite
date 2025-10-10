@@ -11,9 +11,7 @@ CLI_MODULE = "issuesuite.cli"
 MAX_PREVIEW_CHARS = 2000  # keep previews lightweight for AI ingestion
 
 
-def run_cli(
-    env: dict[str, str] | None = None, *args: str
-) -> subprocess.CompletedProcess[str]:
+def run_cli(env: dict[str, str] | None = None, *args: str) -> subprocess.CompletedProcess[str]:
     # Invoke via module so that relative imports resolve under package
     cmd: list[str] = [sys.executable, "-m", CLI_MODULE, *args]
     proc_env = os.environ.copy()

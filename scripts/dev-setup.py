@@ -106,9 +106,7 @@ ai:
     if result.returncode == 0:
         print("✅ All tests passed!")
     else:
-        print(
-            "⚠️  Some tests failed. Development environment is set up but tests need attention."
-        )
+        print("⚠️  Some tests failed. Development environment is set up but tests need attention.")
 
     # Check if issuesuite command works
     print("🔍 Verifying CLI installation...")

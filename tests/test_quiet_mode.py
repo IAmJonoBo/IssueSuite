@@ -5,16 +5,12 @@ import sys
 from pathlib import Path
 
 
-def run_cli(
-    *args: str, env: dict[str, str] | None = None
-) -> subprocess.CompletedProcess[str]:
+def run_cli(*args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     cmd = [sys.executable, "-m", "issuesuite.cli", *args]
     proc_env = os.environ.copy()
     if env:
         proc_env.update(env)
-    return subprocess.run(
-        cmd, capture_output=True, text=True, env=proc_env, check=False
-    )  # noqa: PLR1730
+    return subprocess.run(cmd, capture_output=True, text=True, env=proc_env, check=False)  # noqa: PLR1730
 
 
 def test_ai_context_quiet_suppresses_logs(tmp_path: Path) -> None:
@@ -46,9 +42,7 @@ def test_ai_context_quiet_suppresses_logs(tmp_path: Path) -> None:
     assert data["schemaVersion"].startswith("ai-context/1")
 
     # Env var variant
-    res_env_quiet = run_cli(
-        "ai-context", "--config", str(cfg), env={"ISSUESUITE_QUIET": "1"}
-    )
+    res_env_quiet = run_cli("ai-context", "--config", str(cfg), env={"ISSUESUITE_QUIET": "1"})
     assert res_env_quiet.returncode == 0
     if noisy:
         assert res_env_quiet.stdout.count("Authentication recommendations") <= 1

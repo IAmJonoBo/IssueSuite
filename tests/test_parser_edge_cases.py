@@ -51,9 +51,7 @@ def test_legacy_numeric_rejected(tmp_path: Path):
 
 
 def test_marker_insertion_idempotent(tmp_path: Path):
-    issues = (
-        "## [slug: demo]\n```yaml\ntitle: Demo\nlabels: [x]\nbody: |\n  Line one\n```\n"
-    )
+    issues = "## [slug: demo]\n```yaml\ntitle: Demo\nlabels: [x]\nbody: |\n  Line one\n```\n"
     suite = _write(tmp_path, issues)
     specs = suite.parse()
     assert "<!-- issuesuite:slug=demo -->" in specs[0].body

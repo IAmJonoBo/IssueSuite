@@ -92,16 +92,12 @@ def _parse_status_mapping(
         return mapping
     for raw in values:
         if "=" not in raw:
-            raise ProjectsSyncError(
-                f"Invalid status mapping '{raw}'; expected format key=value"
-            )
+            raise ProjectsSyncError(f"Invalid status mapping '{raw}'; expected format key=value")
         key, value = raw.split("=", 1)
         key = key.strip().casefold()
         value = value.strip()
         if not key or not value:
-            raise ProjectsSyncError(
-                f"Invalid status mapping '{raw}'; empty key or value"
-            )
+            raise ProjectsSyncError(f"Invalid status mapping '{raw}'; empty key or value")
         mapping[key] = value
     return mapping
 
@@ -211,9 +207,7 @@ def sync_projects(
     }
 
 
-def _project_plan_preview(
-    config: ProjectsSyncConfig, plan: Mapping[str, Any]
-) -> dict[str, Any]:
+def _project_plan_preview(config: ProjectsSyncConfig, plan: Mapping[str, Any]) -> dict[str, Any]:
     status = str(plan.get("status") or "").casefold()
     status_label = config.status_mapping.get(status)
     coverage = plan.get("coverage") or {}
@@ -253,9 +247,7 @@ def _create_session(token: str) -> requests.Session:
     return session
 
 
-def _apply_project_update(
-    config: ProjectsSyncConfig, plan: Mapping[str, Any]
-) -> dict[str, Any]:
+def _apply_project_update(config: ProjectsSyncConfig, plan: Mapping[str, Any]) -> dict[str, Any]:
     session = _create_session(config.token or "")
     metadata = _fetch_project_metadata(session, config)
 
@@ -321,9 +313,7 @@ def _fetch_project_metadata(
     session: requests.Session, config: ProjectsSyncConfig
 ) -> _ProjectMetadata:  # noqa: PLR0912
     if not config.owner or config.project_number is None:
-        raise ProjectsSyncError(
-            "Owner and project number are required for project synchronisation"
-        )
+        raise ProjectsSyncError("Owner and project number are required for project synchronisation")
     root_field = "organization" if config.owner_type == "organization" else "user"
     query = f"""
     query($owner: String!, $number: Int!, $itemQuery: String) {{
@@ -396,9 +386,7 @@ def _fetch_project_metadata(
                 fields[field.name.casefold()] = field
 
     items_payload = project_payload.get("items", {})
-    item_nodes = (
-        items_payload.get("nodes") if isinstance(items_payload, Mapping) else None
-    )
+    item_nodes = items_payload.get("nodes") if isinstance(items_payload, Mapping) else None
     item_id: str | None = None
     if isinstance(item_nodes, list):
         for node in item_nodes:
@@ -412,16 +400,12 @@ def _fetch_project_metadata(
                     break
 
     if item_id is None:
-        item_id = _create_project_item(
-            session, project_id=project_id, title=config.item_title
-        )
+        item_id = _create_project_item(session, project_id=project_id, title=config.item_title)
 
     return _ProjectMetadata(project_id=project_id, item_id=item_id, fields=fields)
 
 
-def _create_project_item(
-    session: requests.Session, *, project_id: str, title: str
-) -> str:
+def _create_project_item(session: requests.Session, *, project_id: str, title: str) -> str:
     mutation = """
     mutation($projectId: ID!, $title: String!) {
       addProjectV2ItemByTitle(input: {projectId: $projectId, title: $title}) {
@@ -447,9 +431,7 @@ def _create_project_item(
     if "errors" in payload:
         raise ProjectsSyncError(f"Draft item creation failed: {payload['errors']}")
     data = payload.get("data", {})
-    add_payload = (
-        data.get("addProjectV2ItemByTitle") if isinstance(data, Mapping) else None
-    )
+    add_payload = data.get("addProjectV2ItemByTitle") if isinstance(data, Mapping) else None
     item_payload = add_payload.get("item") if isinstance(add_payload, Mapping) else None
     item_id = item_payload.get("id") if isinstance(item_payload, Mapping) else None
     if not isinstance(item_id, str):
@@ -466,9 +448,7 @@ def _update_single_select_field(
     label: str,
 ) -> None:
     if not field.options:
-        raise ProjectsSyncError(
-            f"Field '{field.name}' does not expose selectable options"
-        )
+        raise ProjectsSyncError(f"Field '{field.name}' does not expose selectable options")
     option_id = field.options.get(label.casefold())
     if option_id is None:
         raise ProjectsSyncError(f"Option '{label}' not found for field '{field.name}'")
@@ -570,16 +550,16 @@ def _validate_mutation_response(response: requests.Response, action: str) -> Non
         )
     payload = response.json()
     if "errors" in payload:
-        raise ProjectsSyncError(
-            f"GitHub rejected request to {action}: {payload['errors']}"
-        )
+        raise ProjectsSyncError(f"GitHub rejected request to {action}: {payload['errors']}")
 
 
 def _post_status_comment(config: ProjectsSyncConfig, body: str) -> dict[str, Any]:
     if not config.comment_repo or config.comment_issue is None:
         raise ProjectsSyncError("Comment repository and issue must be configured")
     session = _create_session(config.token or "")
-    url = f"https://api.github.com/repos/{config.comment_repo}/issues/{config.comment_issue}/comments"
+    url = (
+        f"https://api.github.com/repos/{config.comment_repo}/issues/{config.comment_issue}/comments"
+    )
     response = session.post(url, json={"body": body}, timeout=30)
     if response.status_code not in {200, 201}:
         raise ProjectsSyncError(

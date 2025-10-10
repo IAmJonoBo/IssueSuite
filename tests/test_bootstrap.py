@@ -7,9 +7,7 @@ from _pytest.monkeypatch import MonkeyPatch
 from issuesuite.bootstrap import bootstrap_project, ensure_vscode_tasks
 
 
-def test_bootstrap_project_creates_and_skips(
-    tmp_path: Path, monkeypatch: MonkeyPatch
-) -> None:
+def test_bootstrap_project_creates_and_skips(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     config_path = tmp_path / "issue_suite.config.yaml"
 
@@ -76,9 +74,7 @@ def test_bootstrap_project_creates_and_skips(
     assert "changed" not in config_path.read_text(encoding="utf-8")
 
 
-def test_ensure_vscode_tasks_merges_and_force(
-    tmp_path: Path, monkeypatch: MonkeyPatch
-) -> None:
+def test_ensure_vscode_tasks_merges_and_force(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     tasks_path = tmp_path / ".vscode/tasks.json"
     tasks_path.parent.mkdir(parents=True, exist_ok=True)

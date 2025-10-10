@@ -171,9 +171,7 @@ def test_sync_with_concurrency_enabled(monkeypatch, tmp_path):
     assert suite._concurrency_config.max_workers == 2
 
     # Run sync - should use async path for large roadmap
-    summary = suite.sync(
-        dry_run=True, update=False, respect_status=False, preflight=False
-    )
+    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should process all 12 specs
     assert summary["totals"]["specs"] == 12
@@ -197,9 +195,7 @@ def test_sync_with_concurrency_disabled(monkeypatch, tmp_path):
     assert suite._concurrency_config.enabled is False
 
     # Run sync - should use sequential path
-    summary = suite.sync(
-        dry_run=True, update=False, respect_status=False, preflight=False
-    )
+    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should still process all specs correctly
     assert summary["totals"]["specs"] == 12
@@ -222,9 +218,7 @@ def test_sync_small_roadmap_uses_sequential(monkeypatch, tmp_path):
     assert cfg.concurrency_enabled is True
 
     # Run sync - should use sequential path for small roadmap
-    summary = suite.sync(
-        dry_run=True, update=False, respect_status=False, preflight=False
-    )
+    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should process the single spec correctly
     assert summary["totals"]["specs"] == 1
@@ -306,9 +300,7 @@ def test_optimal_worker_adjustment(monkeypatch, tmp_path):
     suite = IssueSuite(cfg)
 
     # Run sync with a large roadmap
-    summary = suite.sync(
-        dry_run=True, update=False, respect_status=False, preflight=False
-    )
+    summary = suite.sync(dry_run=True, update=False, respect_status=False, preflight=False)
 
     # Should have processed all specs successfully
     assert summary["totals"]["specs"] == 12

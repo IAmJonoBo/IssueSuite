@@ -133,9 +133,7 @@ def load_config(path: str | Path) -> SuiteConfig:
     extensions_disabled = extensions_config.get("disabled", []) or []
     if not isinstance(extensions_disabled, (list, tuple, set)):
         extensions_disabled = [str(extensions_disabled)]
-    extensions_disabled_tuple = tuple(
-        sorted({str(item) for item in extensions_disabled})
-    )
+    extensions_disabled_tuple = tuple(sorted({str(item) for item in extensions_disabled}))
 
     summary_version = get_schema_descriptor("summary").version
 
@@ -155,9 +153,7 @@ def load_config(path: str | Path) -> SuiteConfig:
         inject_labels=defaults.get("inject_labels", []) or [],
         ensure_milestones_list=defaults.get("ensure_milestones", DEFAULT_MILESTONES),
         ensure_labels_enabled=bool(defaults.get("ensure_labels_enabled", False)),
-        ensure_milestones_enabled=bool(
-            defaults.get("ensure_milestones_enabled", False)
-        ),
+        ensure_milestones_enabled=bool(defaults.get("ensure_milestones_enabled", False)),
         summary_json=out.get("summary_json", "issues_summary.json"),
         plan_json=out.get("plan_json", "issues_plan.json"),
         export_json=out.get("export_json", "issues_export.json"),
@@ -169,12 +165,8 @@ def load_config(path: str | Path) -> SuiteConfig:
         dry_run_default=bool(behavior.get("dry_run_default", False)),
         emit_change_events=bool(behavior.get("emit_change_events", False)),
         schema_export_file=ai.get("schema_export_file", "issue_export.schema.json"),
-        schema_summary_file=ai.get(
-            "schema_summary_file", "issue_change_summary.schema.json"
-        ),
-        schema_ai_context_file=ai.get(
-            "schema_ai_context_file", "ai_context.schema.json"
-        ),
+        schema_summary_file=ai.get("schema_summary_file", "issue_change_summary.schema.json"),
+        schema_ai_context_file=ai.get("schema_ai_context_file", "ai_context.schema.json"),
         schema_version=str(ai.get("schema_version", summary_version)),
         # Logging configuration
         logging_json_enabled=bool(logging_config.get("json_enabled", False)),

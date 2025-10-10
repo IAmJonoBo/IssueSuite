@@ -246,10 +246,7 @@ def test_setup_authentication_from_env(monkeypatch: MonkeyPatch) -> None:
     assert result["is_online"] is True
     assert isinstance(result["github_app"], dict)
     assert isinstance(result["vscode_secrets"], dict)
-    assert all(
-        str(value).startswith("<redacted:")
-        for value in result["vscode_secrets"].values()
-    )
+    assert all(str(value).startswith("<redacted:") for value in result["vscode_secrets"].values())
     assert isinstance(result["recommendations"], list)
 
 

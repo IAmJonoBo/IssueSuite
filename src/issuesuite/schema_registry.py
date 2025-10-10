@@ -66,9 +66,7 @@ def get_schema_descriptor(name: str) -> SchemaDescriptor:
 def get_schema_registry() -> dict[str, SchemaDescriptor]:
     """Return a copy of the known schema descriptors keyed by name."""
 
-    return {
-        name: _clone_descriptor(descriptor) for name, descriptor in _REGISTRY.items()
-    }
+    return {name: _clone_descriptor(descriptor) for name, descriptor in _REGISTRY.items()}
 
 
 def iter_schema_descriptors() -> Iterable[SchemaDescriptor]:

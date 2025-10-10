@@ -5,6 +5,9 @@
 [![Status](https://img.shields.io/badge/status-beta-orange.svg)](https://github.com/IAmJonoBo/IssueSuite)
 [![Python Versions](https://img.shields.io/pypi/pyversions/issuesuite.svg)](https://pypi.org/project/issuesuite/)
 [![CI](https://github.com/IAmJonoBo/IssueSuite/actions/workflows/ci.yml/badge.svg)](https://github.com/IAmJonoBo/IssueSuite/actions/workflows/ci.yml)
+[![Lint](https://github.com/IAmJonoBo/IssueSuite/actions/workflows/lint.yml/badge.svg)](https://github.com/IAmJonoBo/IssueSuite/actions/workflows/lint.yml)
+[![Test Build](https://github.com/IAmJonoBo/IssueSuite/actions/workflows/test-build.yml/badge.svg)](https://github.com/IAmJonoBo/IssueSuite/actions/workflows/test-build.yml)
+[![UX Acceptance](https://github.com/IAmJonoBo/IssueSuite/actions/workflows/ux-acceptance.yml/badge.svg)](https://github.com/IAmJonoBo/IssueSuite/actions/workflows/ux-acceptance.yml)
 
 Declarative GitHub Issues automation — manage a roadmap from a single `ISSUES.md` file (using **slug headings + fenced YAML blocks**) and keep real GitHub issues perfectly in sync (create / update / close) with deterministic hashes, readable diffs, JSON artifacts, and optional preflight resource creation.
 

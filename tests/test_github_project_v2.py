@@ -48,9 +48,7 @@ def test_build_project_assigner_disabled() -> None:
 
 def test_build_project_assigner_enabled() -> None:
     """Test building project assigner when enabled."""
-    config = ProjectConfig(
-        enabled=True, number=123, field_mappings={"labels": "Status"}
-    )
+    config = ProjectConfig(enabled=True, number=123, field_mappings={"labels": "Status"})
     assigner = build_project_assigner(config)
 
     assert isinstance(assigner, GitHubProjectAssigner)
@@ -184,9 +182,7 @@ def test_project_field_mapping_with_list_values(monkeypatch: MonkeyPatch) -> Non
     """Test project field mapping when spec has list values (e.g., labels)."""
     monkeypatch.setenv("ISSUES_SUITE_MOCK", "1")
 
-    config = ProjectConfig(
-        enabled=True, number=123, field_mappings={"labels": "Status"}
-    )
+    config = ProjectConfig(enabled=True, number=123, field_mappings={"labels": "Status"})
     assigner = GitHubProjectAssigner(config)
 
     spec = MockIssueSpec(labels=["bug", "enhancement", "high-priority"])

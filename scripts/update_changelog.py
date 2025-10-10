@@ -21,9 +21,7 @@ HEADER = "# Changelog"
 def _acquire_lock(handle: TextIO) -> None:
     try:
         fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except (
-        BlockingIOError
-    ) as exc:  # pragma: no cover - exercised in tests via monkeypatch
+    except BlockingIOError as exc:  # pragma: no cover - exercised in tests via monkeypatch
         raise RuntimeError("CHANGELOG.md is locked by another process") from exc
 
 
@@ -51,9 +49,7 @@ def update_changelog(path: Path, *, version: str, highlights: Iterable[str]) -> 
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Append a release entry to CHANGELOG.md"
-    )
+    parser = argparse.ArgumentParser(description="Append a release entry to CHANGELOG.md")
     parser.add_argument("version", help="Version identifier, e.g., 0.1.12")
     parser.add_argument(
         "--highlight",
@@ -69,9 +65,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    entry = update_changelog(
-        args.changelog, version=args.version, highlights=args.highlight
-    )
+    entry = update_changelog(args.changelog, version=args.version, highlights=args.highlight)
     print(entry)
     return 0
 

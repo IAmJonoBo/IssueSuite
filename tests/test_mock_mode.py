@@ -36,9 +36,7 @@ class Capture:  # test helper
     def __init__(self) -> None:
         self.calls: list[str] = []
 
-    def record(
-        self, command: str, *rest: str
-    ) -> str:  # simplified signature for lint happiness
+    def record(self, command: str, *rest: str) -> str:  # simplified signature for lint happiness
         self.calls.append(command)
         return ""
 

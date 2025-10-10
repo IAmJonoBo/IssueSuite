@@ -23,6 +23,4 @@ def test_generate_ci_reference_report(tmp_path, monkeypatch):
     assert summary["operations"], "Expected per-operation statistics"
 
     # Environment flag should be restored by helper
-    assert (
-        "ISSUES_SUITE_MOCK" not in os.environ or os.environ["ISSUES_SUITE_MOCK"] != "1"
-    )
+    assert "ISSUES_SUITE_MOCK" not in os.environ or os.environ["ISSUES_SUITE_MOCK"] != "1"

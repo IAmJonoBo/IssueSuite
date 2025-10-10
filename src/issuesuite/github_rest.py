@@ -58,11 +58,7 @@ class GitHubRestClient:
         params: dict[str, Any] | None = None,
         json_body: Any | None = None,
     ) -> Any:
-        url = (
-            path
-            if path.startswith("http")
-            else f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
-        )
+        url = path if path.startswith("http") else f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
 
         def _run() -> requests.Response:
             return self._session.request(
@@ -88,9 +84,7 @@ class GitHubRestClient:
                 return response.text
         return None
 
-    def _paginate(
-        self, path: str, *, params: dict[str, Any] | None = None
-    ) -> list[Any]:
+    def _paginate(self, path: str, *, params: dict[str, Any] | None = None) -> list[Any]:
         params = dict(params or {})
         per_page = params.setdefault("per_page", 100)
         params.setdefault("page", 1)
@@ -149,9 +143,7 @@ class GitHubRestClient:
         if state is not None:
             payload["state"] = state
         if payload:
-            self._request(
-                "PATCH", f"/repos/{self.repo}/issues/{number}", json_body=payload
-            )
+            self._request("PATCH", f"/repos/{self.repo}/issues/{number}", json_body=payload)
 
     def close_issue(self, *, number: int) -> None:
         self.update_issue(number=number, state="closed")
@@ -178,9 +170,7 @@ class GitHubRestClient:
         milestone = milestone.strip()
         if milestone.isdigit():
             return int(milestone)
-        milestones = self._paginate(
-            f"/repos/{self.repo}/milestones", params={"state": "all"}
-        )
+        milestones = self._paginate(f"/repos/{self.repo}/milestones", params={"state": "all"})
         for entry in milestones:
             if not isinstance(entry, dict):
                 continue
@@ -193,9 +183,7 @@ class GitHubRestClient:
 
 
 def compute_signature(entries: dict[str, Any]) -> str:
-    canonical = json.dumps(entries, sort_keys=True, separators=(",", ":")).encode(
-        "utf-8"
-    )
+    canonical = json.dumps(entries, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(canonical).hexdigest()
 
 
@@ -204,9 +192,7 @@ class GitHubIndex:
     entries: dict[str, dict[str, Any]]
     repo: str | None = None
     version: int = 1
-    generated_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    generated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     signature: str = ""
 
     def with_signature(self) -> GitHubIndex:

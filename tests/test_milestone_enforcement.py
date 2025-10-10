@@ -33,9 +33,7 @@ def run_cli(tmp_path: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 def test_milestone_enforcement_failure(tmp_path: Path) -> None:
     # Missing milestone for slug -> should raise
-    write_basic_files(
-        tmp_path, "## [slug: alpha]\n\n```yaml\ntitle: Alpha\nlabels: [test]\n```\n"
-    )
+    write_basic_files(tmp_path, "## [slug: alpha]\n\n```yaml\ntitle: Alpha\nlabels: [test]\n```\n")
     proc = run_cli(tmp_path, "sync", "--config", "issue_suite.config.yaml", "--dry-run")
     assert proc.returncode != 0, proc.stdout + proc.stderr
     assert "Milestone required" in proc.stderr or "Milestone required" in proc.stdout
