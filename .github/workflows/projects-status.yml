@@ -2,7 +2,7 @@ name: Projects Status
 
 on:
   schedule:
-    - cron: "30 05 * * *"
+    - cron: 30 05 * * *
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
   actions: read
   checks: read
   pull-requests: read
-  projects: write
+  repository-projects: write
 
 jobs:
   nightly:

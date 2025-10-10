@@ -2,8 +2,31 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import mdx from "@astrojs/mdx";
 
+const DEFAULT_SITE = "https://issuesuite.io/docs";
+const isGitHubPages = process.env.GITHUB_PAGES === "true";
+const repository = process.env.GITHUB_REPOSITORY ?? "";
+const [owner, repo] = repository.split("/");
+const githubPagesSite =
+  owner && repo
+    ? `https://${owner.toLowerCase()}.github.io/${repo}`
+    : DEFAULT_SITE;
+const resolvedSite = process.env.DEPLOY_URL ?? (isGitHubPages
+  ? githubPagesSite
+  : DEFAULT_SITE);
+
+let base;
+try {
+  const pathname = new URL(resolvedSite).pathname.replace(/\/$/, "");
+  if (pathname && pathname !== "/") {
+    base = pathname;
+  }
+} catch {
+  base = undefined;
+}
+
 export default defineConfig({
-  site: "https://issuesuite.io/docs",
+  site: resolvedSite,
+  base,
   integrations: [
     starlight({
       title: "IssueSuite Documentation",
