@@ -5,23 +5,28 @@ This directory contains legacy documentation that was relevant during developmen
 ## Archived Documents
 
 ### Implementation & Planning Documents (Completed)
+
 - `IMPLEMENTATION_SUMMARY.md` - Implementation tracking for ADR follow-ups (completed 2025-10-09)
 - `Spark_Brief.md` - Implementation guide for features now in production
 - `Next_Steps_legacy.md` - Superseded by current `/Next_Steps.md` in repo root
 
 ### Gap Analyses & Reports (Point-in-Time)
+
 - `gap_analysis.md` - Original gap analysis (superseded by 2025 version)
 - `gap_analysis_2025.md` - Comprehensive gap analysis (completed 2025-10-09)
 - `baseline_report.md` - Quality baseline report (generated 2025-10-06)
 - `red_team_report.md` - Security assessment (completed 2025-10-06)
 
 ### Internal Communications
+
 - `internal_comms_security_workflow.md` - Internal security workflow announcement (2025-10-06)
 
 ### Governance (In-Development Blueprints)
+
 - `governance/frontier_apex.md` - Governance evolution blueprint (draft)
 
 ### Documentation Process Artifacts (Completed)
+
 - `DOCUMENTATION_BEFORE_AFTER.md` - Before/after comparison of 2025-10-09 documentation optimization
 - `DOCUMENTATION_OPTIMIZATION_SUMMARY.md` - Summary of documentation restructuring completed 2025-10-09
 
@@ -42,6 +47,7 @@ For up-to-date documentation, see:
 ## Why Archive?
 
 These documents were valuable during development but represent:
+
 - Completed work (implementation summaries, gap analyses)
 - Point-in-time reports (security assessments, quality baselines)
 - Internal communications (announcements, briefings)

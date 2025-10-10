@@ -21,38 +21,38 @@ graph TB
         DEFAULTS[defaults<br/>labels & milestones]
         BEHAVIOR[behavior<br/>dry-run & diffs]
     end
-    
+
     subgraph "Output & Artifacts"
         OUTPUT[output<br/>JSON files]
         SCHEMAS[schemas<br/>schema files]
     end
-    
+
     subgraph "Integration"
         GITHUB[github<br/>repo & projects]
         AUTH[github.app<br/>authentication]
     end
-    
+
     subgraph "Operational"
         LOGGING[logging<br/>format & level]
         PERF[performance<br/>benchmarking]
         CONC[concurrency<br/>parallel ops]
         ENV[environment<br/>runtime overrides]
     end
-    
+
     subgraph "Extensions"
         PLUGINS[plugins<br/>entry points]
         TELEMETRY[telemetry<br/>event emission]
     end
-    
+
     VERSION --> SOURCE
     SOURCE --> DEFAULTS
     DEFAULTS --> BEHAVIOR
-    
+
     BEHAVIOR --> OUTPUT
     OUTPUT --> SCHEMAS
-    
+
     GITHUB --> AUTH
-    
+
     style SOURCE fill:#e1f5ff
     style GITHUB fill:#fff3cd
     style OUTPUT fill:#d4edda

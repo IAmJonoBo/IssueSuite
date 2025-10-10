@@ -119,4 +119,11 @@ for pattern in "${CLEAN_DIR_PATTERNS[@]}"; do
 	find_and_remove d "${pattern}"
 done
 
+# Always strip AppleDouble junk from the git pack directory to avoid fetch/pull failures.
+if [[ -d ${PROJECT_ROOT}/.git/objects/pack ]]; then
+	while IFS= read -r -d '' git_match; do
+		remove_path "${git_match}"
+	done < <(find "${PROJECT_ROOT}/.git/objects/pack" -maxdepth 1 -name '._pack-*' -print0 2>/dev/null || true)
+fi
+
 log "macOS cleanup complete."

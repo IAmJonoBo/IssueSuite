@@ -7,7 +7,7 @@
 [build-system]
 build-backend = "setuptools.build_meta"
 
-requires = ["setuptools>=68", "wheel"]
+requires = [ "setuptools>=68", "wheel" ]
 
 [project] # trigger-ci
 name = "issuesuite"
@@ -51,7 +51,7 @@ classifiers = [
   "Topic :: Utilities",
   "Typing :: Typed",
 ]
-dependencies = ["packaging>=25,<26", "pyyaml>=6,<7", "requests>=2.32,<3"]
+dependencies = [ "packaging>=25,<26", "pyyaml>=6,<7", "requests>=2.32,<3" ]
 
 optional-dependencies.all = [
   "jsonschema>=4,<5",
@@ -63,7 +63,7 @@ optional-dependencies.all = [
   "pyjwt>=2.9,<3",
   "python-dotenv>=1",
 ]
-optional-dependencies.auth = ["keyring>=25,<26", "pyjwt>=2.9,<3"]
+optional-dependencies.auth = [ "keyring>=25,<26", "pyjwt>=2.9,<3" ]
 optional-dependencies.dev = [
   "bandit>=1.8",
   "build>=1",
@@ -84,15 +84,15 @@ optional-dependencies.dev = [
   "types-pyyaml>=6.0.12.20240917",
   "types-requests>=2.32.0.20240914",
 ]
-optional-dependencies.env = ["python-dotenv>=1"]
+optional-dependencies.env = [ "python-dotenv>=1" ]
 optional-dependencies.observability = [
   "opentelemetry-api>=1.25",
   "opentelemetry-exporter-otlp>=1.25",
   "opentelemetry-sdk>=1.25",
 ]
-optional-dependencies.performance = ["psutil>=7.1"]
-optional-dependencies.schemas = ["jsonschema>=4,<5"]
-optional-dependencies.vscode = ["psutil>=7.1", "python-dotenv>=1"]
+optional-dependencies.performance = [ "psutil>=7.1" ]
+optional-dependencies.schemas = [ "jsonschema>=4,<5" ]
+optional-dependencies.vscode = [ "psutil>=7.1", "python-dotenv>=1" ]
 urls."Bug Reports" = "https://github.com/IAmJonoBo/IssueSuite/issues"
 urls.Changelog = "https://github.com/IAmJonoBo/IssueSuite/blob/main/CHANGELOG.md"
 urls.Documentation = "https://github.com/IAmJonoBo/IssueSuite#readme"
@@ -104,11 +104,11 @@ scripts.issuesuite = "issuesuite.cli:main"
 scripts."pip-audit" = "issuesuite.pip_audit_integration:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = [ "src" ]
 namespaces = false
 
 [tool.setuptools.package-data]
-"issuesuite" = ["data/*.json"]
+"issuesuite" = [ "data/*.json" ]
 
 [tool.ruff]
 target-version = "py310"
@@ -128,8 +128,8 @@ format.indent-style = "space"
 format.quote-style = "preserve"
 format.line-ending = "auto"
 format.skip-magic-trailing-comma = false
-lint.select = ["B", "C4", "E", "F", "I", "N", "PL", "UP"]
-lint.ignore = ["E501", "PLR0911", "PLR0913"]
+lint.select = [ "B", "C4", "E", "F", "I", "N", "PL", "UP" ]
+lint.ignore = [ "E501", "PLR0911", "PLR0913" ]
 lint.per-file-ignores."src/issuesuite/bootstrap.py" = [
   "PLR0912",
 ] # JSON merge helper keeps explicit branching for clarity
@@ -160,15 +160,15 @@ lint.per-file-ignores."tests/**/*.py" = [
 ]
 
 [tool.pytest.ini_options]
-addopts = ["-q"]
-testpaths = ["tests"]
+addopts = [ "-q" ]
+testpaths = [ "tests" ]
 
 [tool.mypy]
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-exclude = ["tests/.*"]
+exclude = [ "tests/.*" ]
 strict_optional = true
 warn_unused_ignores = true
 warn_redundant_casts = true
@@ -177,5 +177,5 @@ no_implicit_optional = true
 show_error_codes = true
 
 [[tool.mypy.overrides]]
-module = ["dotenv"]
+module = [ "dotenv" ]
 ignore_missing_imports = true

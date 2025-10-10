@@ -7,6 +7,7 @@ This document provides a visual comparison of the documentation improvements mad
 ## 1. Documentation Organization
 
 ### Before
+
 ```
 docs/
 ├── IMPLEMENTATION_SUMMARY.md (in-dev tracking)
@@ -28,12 +29,14 @@ Root/
 ```
 
 **Issues:**
+
 - Mixed current and legacy documentation
 - Development tracking mixed with user docs
 - Duplicate files (Next Steps)
 - No clear archive strategy
 
 ### After
+
 ```
 docs/
 ├── archive/
@@ -57,6 +60,7 @@ Root/
 ```
 
 **Improvements:**
+
 - Clear separation of current vs legacy docs
 - All archived docs have navigation notices
 - Single source of truth (no duplicates)
@@ -65,87 +69,123 @@ Root/
 ## 2. README Structure
 
 ### Before
+
 ```markdown
 # IssueSuite
+
 [badges]
 
 ## Features
+
 [Long feature list with technical details mixed]
 
 ## Quick Start
+
 [4-step minimal start]
 
 ### Offline/Hermetic Deployment
+
 [Deep technical content early]
 
 ### Developer Environment Setup
+
 [Contributor content mixed in]
 
 ### Developer Tooling
+
 [More contributor content]
 
 ### Documentation
+
 [Brief mention]
 
 ### Learn more
+
 [Various advanced topics scattered]
 ```
 
 **Issues:**
+
 - Feature list overwhelming for new users
 - Developer content mixed with user content
 - No clear authentication section
 - Advanced features buried
 
 ### After
+
 ```markdown
 # IssueSuite
+
 [badges]
 
 ## Features
+
 ### Core Capabilities
+
 [Concise user-focused list]
 
 ### Issue Format
+
 [Example upfront]
 
 ### Advanced Features
+
 [Organized by category]
 
 ## Quick Start
+
 ### Installation
+
 ### Initialize Your Workspace
+
 ### Your First Sync
+
 [Step-by-step with actual commands]
+
 ### Common Commands
+
 ### Next Steps
+
 [Links to deep-dive docs]
 
 ## Documentation
+
 [Diátaxis structure clearly explained]
 [Build instructions]
 
 ## Contributing
+
 [Developer setup consolidated]
+
 ### Quick Developer Setup
+
 ### Developer Tooling
+
 ### Tool Versions
 
 ## Authentication
+
 ### GitHub Personal Access Token
+
 ### GitHub App
+
 ### Verify Authentication
 
 ## Offline/Hermetic Deployment
+
 [Clear section for this use case]
 
 ## Advanced Features
+
 ### Agent Integration
+
 ### Telemetry and Plugins
+
 ### Guided Setup
 ```
 
 **Improvements:**
+
 - User journey prominent (Quick Start first)
 - Clear separation: users → contributors
 - Authentication has dedicated section
@@ -154,7 +194,9 @@ Root/
 ## 3. Visual Documentation
 
 ### Before
+
 **Architecture explanation:**
+
 ```
 ## High-level flow
 
@@ -169,6 +211,7 @@ Root/
 ```
 
 **Issues:**
+
 - No visual representation of architecture
 - Hard to understand system boundaries
 - No workflow visualization
@@ -177,44 +220,46 @@ Root/
 ### After
 
 #### System Architecture (Mermaid Diagram)
+
 ```mermaid
 graph TB
     subgraph "Input Layer"
         ISSUES[ISSUES.md]
         CONFIG[Configuration]
     end
-    
+
     subgraph "CLI Layer"
         CLI[cli.py]
         RUNTIME[runtime.py]
     end
-    
+
     subgraph "Processing Layer"
         PARSER[parser.py]
         CORE[core.py]
         ORCH[orchestrator.py]
     end
-    
+
     subgraph "Integration Layer"
         GH[github_issues.py]
         AUTH[github_auth.py]
         PROJ[project.py]
     end
-    
+
     subgraph "Output Layer"
         MAPPING[index.json]
         SUMMARY[summary.json]
     end
-    
+
     subgraph "External Systems"
         GITHUB[GitHub API]
         PROJECTS[Projects v2]
     end
-    
+
     [connections showing data flow]
 ```
 
 #### Workflow Sequence (Mermaid Diagram)
+
 ```mermaid
 sequenceDiagram
     User->>CLI: issuesuite sync
@@ -227,6 +272,7 @@ sequenceDiagram
 ```
 
 #### Additional Diagrams Added:
+
 - ✅ Configuration lifecycle flowchart
 - ✅ Getting started workflow
 - ✅ Index mapping state machine
@@ -234,6 +280,7 @@ sequenceDiagram
 - ✅ GitHub Projects workflow sequence
 
 **Improvements:**
+
 - Visual understanding of system layers
 - Clear data flow visualization
 - Workflow steps easy to follow
@@ -243,7 +290,9 @@ sequenceDiagram
 ## 4. Documentation Coverage
 
 ### Before
+
 **How-to guides:**
+
 - ADR governance
 - CI/CD automation
 - Docs automation
@@ -251,12 +300,15 @@ sequenceDiagram
 - Renovate integration
 
 **Missing:**
+
 - GitHub Projects integration (mentioned but not documented)
 - No diagrams anywhere
 - Authentication scattered
 
 ### After
+
 **How-to guides:**
+
 - ADR governance (✅ unchanged)
 - CI/CD automation (✅ unchanged)
 - Docs automation (✅ unchanged)
@@ -265,6 +317,7 @@ sequenceDiagram
 - **GitHub Projects** (✨ NEW comprehensive guide with diagrams)
 
 **Enhancements:**
+
 - ✅ 9 Mermaid diagrams added across 6 files
 - ✅ Authentication consolidated in README
 - ✅ All complex systems now have visual aids
@@ -272,6 +325,7 @@ sequenceDiagram
 ## 5. User Experience Journey
 
 ### Before - New User Path
+
 1. Land on README
 2. See long feature list (overwhelming)
 3. Find "Quick Start" section
@@ -283,6 +337,7 @@ sequenceDiagram
 **Time to first sync:** ~30-45 minutes with confusion
 
 ### After - New User Path
+
 1. Land on README
 2. See organized features (Core/Advanced/Format)
 3. Find prominent "Quick Start" with clear steps
@@ -297,6 +352,7 @@ sequenceDiagram
 ## 6. Contributor Experience
 
 ### Before - Contributor Path
+
 1. Find developer setup in middle of README
 2. Navigate between scattered sections
 3. Quality gates mentioned but not consolidated
@@ -304,6 +360,7 @@ sequenceDiagram
 5. No clear "how to start contributing"
 
 ### After - Contributor Path
+
 1. "Contributing" section in README prominent
 2. CONTRIBUTING.md linked clearly
 3. Quick Developer Setup in 3 steps
@@ -314,12 +371,14 @@ sequenceDiagram
 ## 7. Maintenance Improvements
 
 ### Documentation Maintenance Before
+
 - **Build process**: Unclear, documentation scattered
 - **Diagram updates**: No diagrams to maintain
 - **Legacy content**: Mixed with current, confusing
 - **Cross-references**: Some pointing to old docs
 
 ### Documentation Maintenance After
+
 - **Build process**: `nox -s docs` or `cd docs/starlight && npm run build`
 - **Diagram updates**: Mermaid code in MDX, easy to update
 - **Legacy content**: Archived with clear notices and index
@@ -328,6 +387,7 @@ sequenceDiagram
 ## 8. Quality Metrics
 
 ### Before
+
 - **Diagrams:** 0
 - **Visual aids:** ASCII art only
 - **Archive strategy:** None
@@ -336,6 +396,7 @@ sequenceDiagram
 - **Projects guide:** Minimal
 
 ### After
+
 - **Diagrams:** 9 Mermaid diagrams ✅
 - **Visual aids:** Professional diagrams in all complex sections ✅
 - **Archive strategy:** Complete with index and notices ✅
@@ -346,6 +407,7 @@ sequenceDiagram
 ## 9. Build & Validation
 
 ### Before
+
 ```bash
 cd docs/starlight
 npm run check
@@ -353,6 +415,7 @@ npm run check
 ```
 
 ### After
+
 ```bash
 cd docs/starlight
 npm run check
@@ -365,16 +428,16 @@ npm run build
 
 ## Summary of Improvements
 
-| Aspect | Before | After | Impact |
-|--------|--------|-------|--------|
-| **Legacy docs** | Mixed with current | Archived with index | High clarity |
-| **Diagrams** | 0 | 9 Mermaid diagrams | High understanding |
-| **README structure** | Developer-focused | User-focused | High UX |
-| **Authentication** | Scattered | Dedicated section | Medium UX |
-| **Projects guide** | Minimal | Comprehensive | High value |
-| **User journey** | 30-45 min | 15-20 min | High onboarding |
-| **Maintainability** | Manual updates | Diagrams as code | Medium effort |
-| **Archive strategy** | None | Complete system | High organization |
+| Aspect               | Before             | After               | Impact             |
+| -------------------- | ------------------ | ------------------- | ------------------ |
+| **Legacy docs**      | Mixed with current | Archived with index | High clarity       |
+| **Diagrams**         | 0                  | 9 Mermaid diagrams  | High understanding |
+| **README structure** | Developer-focused  | User-focused        | High UX            |
+| **Authentication**   | Scattered          | Dedicated section   | Medium UX          |
+| **Projects guide**   | Minimal            | Comprehensive       | High value         |
+| **User journey**     | 30-45 min          | 15-20 min           | High onboarding    |
+| **Maintainability**  | Manual updates     | Diagrams as code    | Medium effort      |
+| **Archive strategy** | None               | Complete system     | High organization  |
 
 ## Conclusion
 

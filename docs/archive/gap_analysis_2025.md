@@ -5,6 +5,7 @@
 > This gap analysis was completed on 2025-10-09. All identified gaps have been remediated and are tracked in current documentation.
 >
 > **See current documentation:**
+>
 > - [Release Checklist](../RELEASE_CHECKLIST.md) for release readiness criteria
 > - [Architecture Overview](../starlight/src/content/docs/explanations/architecture.mdx) for current architecture
 > - [ADRs](../adrs/) for architectural decisions
@@ -159,7 +160,7 @@ This comprehensive gap analysis identifies critical architectural, operational, 
 
 ### RT-04: Lockfile Bypass Attack
 
-**Severity**: HIGH  
+**Severity**: HIGH
 **Vector**: Developer commits `pyproject.toml` changes without running `refresh-deps.sh`, causing `uv.lock` to become stale. CI passes because it installs from manifest, not lockfile.
 
 **Proof of Concept**:
@@ -178,7 +179,7 @@ git commit -m "Add feature dependency"
 
 ### RT-05: Renovate Command Injection
 
-**Severity**: MEDIUM  
+**Severity**: MEDIUM
 **Vector**: While unlikely, if Renovate's `postUpgradeTasks.commands` execution is compromised, the script runs with repo write access.
 
 **Current Mitigation**:
@@ -193,7 +194,7 @@ git commit -m "Add feature dependency"
 
 ### RT-06: Dependency Confusion
 
-**Severity**: MEDIUM  
+**Severity**: MEDIUM
 **Vector**: No validation that private dependencies (if any) are pulled from correct registries.
 
 **Current State**:
@@ -301,8 +302,8 @@ git commit -m "Add feature dependency"
 
 IssueSuite's dependency management is now **fully implemented and documented**. All Phase 1, 2, and 3 remediations have been completed (2025-10-09):
 
-✅ **Phase 1 (Critical)**: Lockfile synchronization CI check, ADR-0002, and regression tests  
-✅ **Phase 2 (High Priority)**: Hermetic packaging validation, ADR-0003, development environment parity, ADR-0004  
+✅ **Phase 1 (Critical)**: Lockfile synchronization CI check, ADR-0002, and regression tests
+✅ **Phase 2 (High Priority)**: Hermetic packaging validation, ADR-0003, development environment parity, ADR-0004
 ✅ **Phase 3 (Medium Priority)**: Security validation, comprehensive documentation, Renovate integration
 
 The primary risk of lockfile drift (RT-04) has been **eliminated** through automated CI enforcement. All architectural decisions are documented in ADRs with complete implementation and cross-referenced documentation.

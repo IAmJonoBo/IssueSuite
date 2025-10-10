@@ -16,7 +16,7 @@ IssueSuite behavior can be controlled through environment variables for CI autom
 
 ### `ISSUESUITE_AI_MODE`
 
-**Type**: Boolean (0 or 1)  
+**Type**: Boolean (0 or 1)
 **Default**: `0`
 
 Forces all sync operations into dry-run mode regardless of CLI flags. Designed for AI agent safety.
@@ -28,7 +28,7 @@ issuesuite sync --update  # Still runs as dry-run
 
 ### `ISSUESUITE_QUIET`
 
-**Type**: Boolean (0 or 1)  
+**Type**: Boolean (0 or 1)
 **Default**: `0`
 
 Suppresses informational logging, useful when piping JSON output to other tools.
@@ -39,7 +39,7 @@ ISSUESUITE_QUIET=1 issuesuite export --pretty > issues.json
 
 ### `ISSUESUITE_DEBUG`
 
-**Type**: Boolean (0 or 1)  
+**Type**: Boolean (0 or 1)
 **Default**: `0`
 
 Enables verbose debug logging for troubleshooting.
@@ -52,7 +52,7 @@ ISSUESUITE_DEBUG=1 issuesuite sync --dry-run
 
 ### `ISSUES_SUITE_MOCK`
 
-**Type**: Boolean (0 or 1)  
+**Type**: Boolean (0 or 1)
 **Default**: `0`
 
 Enables mock mode for offline testing without GitHub API access. All GitHub operations are simulated and printed as `MOCK <action>`.
@@ -74,7 +74,7 @@ Mock mode generates deterministic incremental issue numbers for create operation
 
 ### `ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE`
 
-**Type**: Boolean (0 or 1)  
+**Type**: Boolean (0 or 1)
 **Default**: `0`
 
 Disables online vulnerability database queries in pip-audit integration, relying solely on offline curated advisories.
@@ -87,7 +87,7 @@ ISSUESUITE_PIP_AUDIT_DISABLE_ONLINE=1 issuesuite security --pip-audit
 
 ### `ISSUESUITE_PIP_AUDIT_TIMEOUT`
 
-**Type**: Integer (seconds)  
+**Type**: Integer (seconds)
 **Default**: `60`
 
 Maximum time to wait for pip-audit network operations before falling back to offline advisories.
@@ -98,7 +98,7 @@ ISSUESUITE_PIP_AUDIT_TIMEOUT=30 issuesuite security --pip-audit
 
 ### `ISSUESUITE_PROJECT_CACHE_DISABLE`
 
-**Type**: Boolean (0 or 1)  
+**Type**: Boolean (0 or 1)
 **Default**: `0`
 
 Disables GitHub Projects (v2) field metadata caching. Cache normally lives in `.issuesuite_cache/`.
@@ -109,7 +109,7 @@ ISSUESUITE_PROJECT_CACHE_DISABLE=1 issuesuite sync --update
 
 ### `ISSUESUITE_PROJECT_CACHE_TTL`
 
-**Type**: Integer (seconds)  
+**Type**: Integer (seconds)
 **Default**: `3600` (1 hour)
 
 Time-to-live for cached GitHub Projects field metadata.
@@ -122,7 +122,7 @@ ISSUESUITE_PROJECT_CACHE_TTL=7200  # 2 hours
 
 ### `ISSUESUITE_RETRY_ATTEMPTS`
 
-**Type**: Integer  
+**Type**: Integer
 **Default**: `3`
 
 Maximum number of retry attempts for transient GitHub API failures.
@@ -133,7 +133,7 @@ ISSUESUITE_RETRY_ATTEMPTS=5 issuesuite sync --update
 
 ### `ISSUESUITE_RETRY_BASE`
 
-**Type**: Float (seconds)  
+**Type**: Float (seconds)
 **Default**: `1.0`
 
 Base delay for exponential backoff between retry attempts.
@@ -144,7 +144,7 @@ ISSUESUITE_RETRY_BASE=2.0 issuesuite sync --update
 
 ### `ISSUESUITE_RETRY_MAX_SLEEP`
 
-**Type**: Float (seconds)  
+**Type**: Float (seconds)
 **Default**: `60.0` (optional)
 
 Maximum sleep duration between retries (caps exponential backoff).
@@ -157,7 +157,7 @@ ISSUESUITE_RETRY_MAX_SLEEP=30.0 issuesuite sync --update
 
 ### `GITHUB_TOKEN`
 
-**Type**: String  
+**Type**: String
 **Required**: Yes (unless using GitHub App authentication)
 
 Personal access token or GitHub Actions token for API authentication.
@@ -195,7 +195,7 @@ The CI workflow `.github/workflows/dependencies.yml` automatically validates loc
 
 ### `ISSUESUITE_PLUGINS`
 
-**Type**: Comma-separated list  
+**Type**: Comma-separated list
 **Default**: Empty
 
 Explicitly enable specific plugins by entry-point name.
@@ -206,7 +206,7 @@ ISSUESUITE_PLUGINS="my_plugin,another_plugin" issuesuite sync
 
 ### `ISSUESUITE_TELEMETRY`
 
-**Type**: JSON string  
+**Type**: JSON string
 **Default**: Empty
 
 Override telemetry configuration via environment.

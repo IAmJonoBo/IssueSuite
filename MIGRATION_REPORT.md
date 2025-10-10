@@ -7,11 +7,13 @@ Successfully implemented a complete Singularity-inspired design system for the I
 ## Changes Made
 
 ### 1. Dependencies Added
+
 - `@astrojs/sitemap@^3.2.2` - Automatic sitemap generation
 
 ### 2. Configuration Updates
 
 #### `astro.config.mjs`
+
 - Added sitemap integration
 - Added Google Fonts preconnect and stylesheet links
   - Inter (weights: 400, 500, 600)
@@ -22,7 +24,9 @@ Successfully implemented a complete Singularity-inspired design system for the I
 ### 3. Design System Implementation
 
 #### `src/styles/tokens.css` (New)
+
 Comprehensive design token system including:
+
 - **Typography**: Font families (Inter, Space Grotesk, monospace)
 - **Type Scale**: Responsive sizes from h1 to small text with line heights
 - **Colors**: High-contrast neutrals (ink-900/700/500, bg-0/50/100) and cobalt/indigo accents (accent-600/700)
@@ -32,7 +36,9 @@ Comprehensive design token system including:
 - **Layout**: Max container width (1280px) and responsive gutters
 
 #### `src/styles/theme.css` (Replaced)
+
 Complete Singularity-style theme featuring:
+
 - Space Grotesk for headings, Inter for body text
 - High-contrast color scheme
 - Accessible focus states (2px solid accent outline)
@@ -46,7 +52,9 @@ Complete Singularity-style theme featuring:
 ### 4. Components
 
 #### `src/components/CardGrid.astro` (New)
+
 Responsive card grid component:
+
 - 1 column on mobile
 - 2 columns on tablet (≥768px)
 - 3 columns on desktop (≥1024px)
@@ -56,6 +64,7 @@ Responsive card grid component:
 ### 5. Build Artifacts
 
 Verified successful generation of:
+
 - `sitemap-index.xml` - Sitemap index
 - `sitemap-0.xml` - Sitemap entries
 - `robots.txt` - Search engine directives
@@ -77,6 +86,7 @@ All requirements from the specification have been verified:
 ## GitHub Pages Deployment
 
 The existing `docs.yml` workflow already handles GitHub Pages deployment with:
+
 - Build from `docs/starlight` directory
 - Deploy to GitHub Pages
 - Proper permissions configuration

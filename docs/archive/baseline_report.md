@@ -5,6 +5,7 @@
 > This quality baseline was generated on 2025-10-06. For current quality gates and testing practices, see the current documentation.
 >
 > **See current documentation:**
+>
 > - [CONTRIBUTING.md](../../CONTRIBUTING.md) for quality standards
 > - [Release Checklist](../RELEASE_CHECKLIST.md) for release gates
 

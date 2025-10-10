@@ -19,6 +19,8 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from issuesuite.coverage_trends import (  # noqa: E402
     CoverageTrendError as CoverageTrendRuntimeError,
+)
+from issuesuite.coverage_trends import (  # noqa: E402
     export_trends,
 )
 from issuesuite.quality_gates import (  # noqa: E402

@@ -99,9 +99,9 @@ git commit -m "chore(deps): update ruff to 0.14.1"
 
 Renovate's `postUpgradeTasks` execute with repository write access in an isolated branch context. IssueSuite's security posture:
 
-✅ **Script is version-controlled** — Changes to `refresh-deps.sh` require code review  
-✅ **No external inputs processed** — Script only reads local manifests  
-✅ **Isolated execution** — Runs in branch before merge  
+✅ **Script is version-controlled** — Changes to `refresh-deps.sh` require code review
+✅ **No external inputs processed** — Script only reads local manifests
+✅ **Isolated execution** — Runs in branch before merge
 ✅ **CI validation** — All changes validated by quality gates
 
 See [ADR-0002](../../adrs/ADR-0002-dependency-sync-enforcement.md) for the full security assessment.
@@ -147,26 +147,26 @@ See [ADR-0002](../../adrs/ADR-0002-dependency-sync-enforcement.md) for the full 
 
 ### For Contributors
 
-✅ **Let Renovate handle routine updates** — Don't manually bump versions for minor/patch updates  
-✅ **Review security updates promptly** — Renovate flags these as high priority  
-✅ **Test major updates locally** — Use `nox -s tests` before approving  
+✅ **Let Renovate handle routine updates** — Don't manually bump versions for minor/patch updates
+✅ **Review security updates promptly** — Renovate flags these as high priority
+✅ **Test major updates locally** — Use `nox -s tests` before approving
 ✅ **Keep lockfiles synchronized** — Run `refresh-deps.sh` after manual changes
 
 ### For Maintainers
 
-✅ **Configure automerge carefully** — Consider enabling for patch/minor updates with passing tests  
-✅ **Group related updates** — Use Renovate's `grouping` feature for related packages  
-✅ **Schedule updates appropriately** — Avoid merge conflicts by scheduling outside active development windows  
+✅ **Configure automerge carefully** — Consider enabling for patch/minor updates with passing tests
+✅ **Group related updates** — Use Renovate's `grouping` feature for related packages
+✅ **Schedule updates appropriately** — Avoid merge conflicts by scheduling outside active development windows
 ✅ **Monitor Renovate dashboard** — Track pending updates and rate limit status
 
 ## Integration with ADRs
 
 This integration implements architectural decisions from:
 
-- **[ADR-0002: Automated Dependency Synchronization Enforcement](../../adrs/ADR-0002-dependency-sync-enforcement.md)**  
+- **[ADR-0002: Automated Dependency Synchronization Enforcement](../../adrs/ADR-0002-dependency-sync-enforcement.md)**
   Renovate's `postUpgradeTasks` + CI validation prevent lockfile drift
 
-- **[ADR-0004: Development Environment Parity](../../adrs/ADR-0004-dev-environment-parity.md)**  
+- **[ADR-0004: Development Environment Parity](../../adrs/ADR-0004-dev-environment-parity.md)**
   Lockfile synchronization ensures consistent tool versions across environments
 
 ## Success Metrics

@@ -5,6 +5,7 @@
 > This internal announcement from 2025-10-06 describes security workflow changes that are now part of standard documentation.
 >
 > **See current documentation:**
+>
 > - [Environment Variables Reference](../starlight/src/content/docs/reference/environment-variables.mdx)
 > - [Release Checklist](../RELEASE_CHECKLIST.md)
 

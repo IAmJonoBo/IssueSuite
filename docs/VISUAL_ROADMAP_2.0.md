@@ -251,7 +251,7 @@ Enterprise Customers       0                10+              ∞    ████
           │ full      │                │ Adjust    │
           │ roadmap   │                │ or Exit   │
           └───────────┘                └───────────┘
-          
+
           Risk: LOW (Can pivot after Phase 1 with learnings)
 ```
 
@@ -384,7 +384,7 @@ docs/
           │  Templates  Plugins    Predictive   Rich Diff
           │  (P2)       (P2)       (P3)         (P2)
       ────┼────────────────────────────────────────────────
-     Low  │                                    
+     Low  │
     Impact│
           └─────────────────────────────────────────────────→
             Low Complexity              High Complexity
@@ -469,7 +469,6 @@ docs/
 
 ---
 
-**🎨 Diagrams created with ASCII art for universal compatibility**  
-**📱 Renders correctly in terminal, GitHub, and text editors**  
+**🎨 Diagrams created with ASCII art for universal compatibility**
+**📱 Renders correctly in terminal, GitHub, and text editors**
 **♿ Accessible to screen readers and CLI-only environments**
-

@@ -18,6 +18,7 @@
 ## 🚀 2.0 Vision
 
 ### Transform IssueSuite into:
+
 - 🌐 **Multi-Repo Platform** — Manage 100+ repos as unified workspaces
 - 🤖 **AI-Powered** — Natural language specs, smart suggestions, auto-remediation
 - 🖥️ **Server Mode** — Webhooks, REST API, real-time dashboards
@@ -29,6 +30,7 @@
 ## 🎯 21 Gaps → 21 Features
 
 ### 🔥 Power & Scalability (6)
+
 1. Multi-repository orchestration
 2. Issue templates & patterns
 3. Bulk operations & batch updates
@@ -37,26 +39,31 @@
 6. Shared resource management
 
 ### 🧠 Intelligence & Automation (3)
+
 7. Smart suggestions (ML-powered)
 8. Auto-remediation of drift
 9. Semantic validation
 
 ### 💪 Resilience & Robustness (3)
+
 10. Transactional sync with rollback
 11. Advanced retry strategies
 12. Disaster recovery & backup
 
 ### 🤝 UX & Agent Experience (3)
+
 13. AI-assisted spec generation
 14. Rich diff visualization
 15. Interactive conflict resolution
 
 ### 📊 Proactivity & Assistance (3)
+
 16. Predictive analytics
 17. Health monitoring dashboards
 18. Guided workflows & wizards
 
 ### 🔌 Extensibility & Integration (3)
+
 19. Plugin marketplace
 20. Webhook server mode
 21. REST API for programmatic access
@@ -93,36 +100,38 @@ Q1 2027 │ Phase 5: Enterprise
 
 ## 📈 Target Metrics (v1.x → v2.0)
 
-| Metric | Current | Target | Δ |
-|--------|---------|--------|---|
-| Repos per User | 1 | 100+ | **100x** |
-| Issues per Sync | 100 | 10,000 | **100x** |
-| Time to First Issue | 15-30m | <5m | **5x faster** |
-| Manual Drift Work | 100% | <10% | **10x reduction** |
-| GitHub Stars | ~50 | 1000+ | **20x** |
-| Enterprise Customers | 0 | 10+ | **∞** |
+| Metric               | Current | Target | Δ                 |
+| -------------------- | ------- | ------ | ----------------- |
+| Repos per User       | 1       | 100+   | **100x**          |
+| Issues per Sync      | 100     | 10,000 | **100x**          |
+| Time to First Issue  | 15-30m  | <5m    | **5x faster**     |
+| Manual Drift Work    | 100%    | <10%   | **10x reduction** |
+| GitHub Stars         | ~50     | 1000+  | **20x**           |
+| Enterprise Customers | 0       | 10+    | **∞**             |
 
 ---
 
 ## 🎭 Red Team Highlights
 
-| Attack Vector | Severity | Mitigation |
-|--------------|----------|------------|
-| Workspace privilege escalation | HIGH | Org validation, explicit approval |
-| Plugin supply chain attack | CRITICAL | Sandboxing, code signing, audit |
-| Webhook replay attack | MEDIUM | Nonce validation, idempotency |
-| Auto-remediation loop | MEDIUM | Loop detection, rule conflict analysis |
-| Transaction deadlock | LOW | Lock ordering, timeouts |
+| Attack Vector                  | Severity | Mitigation                             |
+| ------------------------------ | -------- | -------------------------------------- |
+| Workspace privilege escalation | HIGH     | Org validation, explicit approval      |
+| Plugin supply chain attack     | CRITICAL | Sandboxing, code signing, audit        |
+| Webhook replay attack          | MEDIUM   | Nonce validation, idempotency          |
+| Auto-remediation loop          | MEDIUM   | Loop detection, rule conflict analysis |
+| Transaction deadlock           | LOW      | Lock ordering, timeouts                |
 
 ---
 
 ## 💰 Business Case
 
 ### Investment
+
 - **Phase 1 Pilot:** $300-400k (3 months)
 - **Full Roadmap:** $2-3M (15 months)
 
 ### Returns (Year 3)
+
 - **Enterprise SaaS:** $500k ARR
 - **Plugin Marketplace:** $24k/year
 - **Training/Consulting:** $250k/year
@@ -148,12 +157,14 @@ Q1 2027 │ Phase 5: Enterprise
 ### **PROCEED** with Phase 1 Pilot ✅
 
 **Why:**
+
 - Strong v1.x foundation (production-ready, zero tech debt)
 - Clear market gaps with validated user pain
 - Feasible roadmap with manageable risk
 - Positive ROI projection
 
 **Approach:**
+
 1. **Month 1-3:** Build webhook server + API MVP
 2. **Month 3:** Launch alpha with 5-10 early adopters
 3. **Month 4:** Evaluate results → go/no-go for Phases 2-5

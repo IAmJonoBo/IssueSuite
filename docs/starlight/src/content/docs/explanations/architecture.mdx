@@ -19,37 +19,37 @@ graph TB
         ISSUES[ISSUES.md<br/>Markdown Specs]
         CONFIG[issue_suite.config.yaml<br/>Configuration]
     end
-    
+
     subgraph "CLI Layer"
         CLI[cli.py<br/>Command Parser]
         RUNTIME[runtime.py<br/>Execution Wrapper]
     end
-    
+
     subgraph "Processing Layer"
         PARSER[parser.py<br/>Spec Parser]
         CORE[core.py<br/>Sync Engine]
         ORCH[orchestrator.py<br/>State Manager]
     end
-    
+
     subgraph "Integration Layer"
         GH[github_issues.py<br/>REST Client]
         AUTH[github_auth.py<br/>Auth Provider]
         PROJ[project.py<br/>Projects v2]
         RETRY[retry.py<br/>Resilient Calls]
     end
-    
+
     subgraph "Output Layer"
         MAPPING[.issuesuite/index.json<br/>Slug → Issue Mapping]
         SUMMARY[issues_summary.json<br/>Change Summary]
         TELEMETRY[Telemetry Events]
         PLUGINS[Plugin Hooks]
     end
-    
+
     subgraph "External Systems"
         GITHUB[GitHub API]
         PROJECTS[GitHub Projects v2]
     end
-    
+
     ISSUES --> PARSER
     CONFIG --> CLI
     CLI --> RUNTIME
@@ -67,7 +67,7 @@ graph TB
     ORCH --> SUMMARY
     RUNTIME --> TELEMETRY
     RUNTIME --> PLUGINS
-    
+
     style ISSUES fill:#e1f5ff
     style CONFIG fill:#e1f5ff
     style GITHUB fill:#fff3cd
@@ -89,20 +89,20 @@ sequenceDiagram
     participant Orchestrator
     participant GitHub
     participant Files as Artifacts
-    
+
     User->>CLI: issuesuite sync --update
     CLI->>Parser: Load ISSUES.md
     Parser->>Parser: Validate slug format
     Parser->>Parser: Parse YAML blocks
     Parser-->>Core: Issue specs
-    
+
     Core->>Core: Load existing mapping
     Core->>GitHub: Fetch live issues
     GitHub-->>Core: Current state
-    
+
     Core->>Core: Compute diff
     Core->>Core: Generate plan
-    
+
     alt Dry Run
         Core-->>CLI: Plan with proposed changes
         CLI-->>User: Display plan
@@ -155,18 +155,18 @@ graph LR
         ENV[Environment Variables]
         CLI_ARGS[CLI Arguments]
     end
-    
+
     subgraph "Resolution"
         LOAD[config.py loader]
         RESOLVE[Resolve $VAR syntax]
         MERGE[Merge overrides]
     end
-    
+
     subgraph "Runtime"
         RUNTIME[runtime.py]
         EXEC[Command execution]
     end
-    
+
     YAML --> LOAD
     ENV --> RESOLVE
     LOAD --> RESOLVE
@@ -174,7 +174,7 @@ graph LR
     CLI_ARGS --> MERGE
     MERGE --> RUNTIME
     RUNTIME --> EXEC
-    
+
     style YAML fill:#e1f5ff
     style ENV fill:#e1f5ff
     style CLI_ARGS fill:#e1f5ff

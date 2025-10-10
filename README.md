@@ -34,7 +34,7 @@ title: Investigate API timeouts
 labels: [bug, backend]
 milestone: Sprint 1
 body: |
-  Requests intermittently exceed 5s …
+Requests intermittently exceed 5s …
 \`\`\`
 ```
 
@@ -76,6 +76,7 @@ issuesuite init --all-extras
 ```
 
 This creates:
+
 - `issue_suite.config.yaml` — Configuration file
 - `ISSUES.md` — Starter issue specifications
 - `.vscode/tasks.json` — VS Code tasks for common operations
@@ -88,13 +89,13 @@ This creates:
 
    ```markdown
    ## [slug: welcome-issue]
-   
+
    \`\`\`yaml
    title: Welcome to IssueSuite!
    labels: [documentation]
    milestone: Getting Started
    body: |
-     This is your first managed issue.
+   This is your first managed issue.
    \`\`\`
    ```
 
@@ -274,6 +275,7 @@ issuesuite setup --create-env
 IssueSuite supports air-gapped and hermetic environments for secure deployments:
 
 **Core offline capabilities**:
+
 - Works without network access when `ISSUES_SUITE_MOCK=1` is set
 - Optional dependencies gracefully degrade if unavailable
 - Offline testing validated in CI
@@ -973,6 +975,7 @@ The parser will auto-insert the hidden marker `<!-- issuesuite:slug=<slug> -->` 
 ## Roadmap
 
 ### v1.x (Completed) ✅
+
 - GitHub Project (v2) assignment integration
 - Concurrency for large roadmaps
 - GitHub App token integration
@@ -980,7 +983,9 @@ The parser will auto-insert the hidden marker `<!-- issuesuite:slug=<slug> -->` 
 - Two-way reconcile / import
 
 ### v2.0 Vision 🚀
+
 IssueSuite 2.0 transforms the production-ready CLI into a comprehensive **AI-powered, multi-repository automation platform** with:
+
 - 🌐 Multi-repo workspace orchestration (manage 100+ repos)
 - 🤖 AI-assisted spec generation and smart suggestions
 - 🖥️ Server mode with webhooks and REST API
@@ -988,6 +993,7 @@ IssueSuite 2.0 transforms the production-ready CLI into a comprehensive **AI-pow
 - 🏢 Enterprise features (SAML/SSO, audit logs, SOC 2)
 
 **📚 Read More:**
+
 - [Comprehensive Gap Analysis & 2.0 Roadmap](docs/GAP_ANALYSIS_2.0_ROADMAP.md) — 39-page deep dive
 - [Executive Summary](docs/EXECUTIVE_SUMMARY_2.0.md) — Stakeholder-focused overview
 - [Quick Reference](docs/QUICK_REFERENCE_2.0.md) — One-page summary

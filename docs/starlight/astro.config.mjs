@@ -11,9 +11,8 @@ const githubPagesSite =
   owner && repo
     ? `https://${owner.toLowerCase()}.github.io/${repo}`
     : DEFAULT_SITE;
-const resolvedSite = process.env.DEPLOY_URL ?? (isGitHubPages
-  ? githubPagesSite
-  : DEFAULT_SITE);
+const resolvedSite =
+  process.env.DEPLOY_URL ?? (isGitHubPages ? githubPagesSite : DEFAULT_SITE);
 
 let base;
 try {
@@ -31,7 +30,8 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "IssueSuite Documentation",
-      description: "Declarative GitHub Issues automation with governance-driven quality gates, deterministic sync, and observable roadmap health.",
+      description:
+        "Declarative GitHub Issues automation with governance-driven quality gates, deterministic sync, and observable roadmap health.",
       favicon: "/favicon.svg",
       customCss: ["./src/styles/tokens.css", "./src/styles/theme.css"],
       components: {

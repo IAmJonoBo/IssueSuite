@@ -5,11 +5,12 @@
 > This implementation tracking document was completed on 2025-10-09. All ADR follow-ups and gap remediations have been completed and the project is in release-ready state.
 >
 > **See current documentation:**
+>
 > - [Release Checklist](../RELEASE_CHECKLIST.md)
 > - [Environment Variables Reference](../starlight/src/content/docs/reference/environment-variables.mdx)
 > - [ADRs](../adrs/)
 
-**Date**: 2025-10-09  
+**Date**: 2025-10-09
 **Task**: Implement all outstanding ADRs, todos, etc. to bring the project to release state
 
 ## Summary

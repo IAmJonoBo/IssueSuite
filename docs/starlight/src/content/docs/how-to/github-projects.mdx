@@ -21,27 +21,27 @@ graph TB
         SYNC[Sync Engine]
         PROJ_MOD[project.py<br/>Projects Integration]
     end
-    
+
     subgraph "Configuration"
         CONFIG[github.project.enable: true<br/>github.project.number: N<br/>field_mappings]
     end
-    
+
     subgraph "GitHub API"
         ISSUES[Issues API<br/>Create/Update]
         PROJECTS[Projects v2 API<br/>Add items & fields]
     end
-    
+
     subgraph "Cache"
         CACHE[.issuesuite_cache/<br/>Cached field metadata]
     end
-    
+
     SPEC --> SYNC
     CONFIG --> SYNC
     SYNC --> ISSUES
     SYNC --> PROJ_MOD
     PROJ_MOD --> PROJECTS
     PROJ_MOD <--> CACHE
-    
+
     style SPEC fill:#e1f5ff
     style CONFIG fill:#fff3cd
     style CACHE fill:#d4edda
@@ -65,7 +65,7 @@ github:
   repo: owner/repo
   project:
     enable: true
-    number: 42  # Your project number
+    number: 42 # Your project number
 ```
 
 This adds all synced issues to the project without setting custom fields.
@@ -81,9 +81,9 @@ github:
     enable: true
     number: 42
     field_mappings:
-      Priority: priority        # Map 'priority' from spec to 'Priority' field
-      Status: status            # Map 'status' to 'Status' field
-      Sprint: milestone         # Map milestone to 'Sprint' field
+      Priority: priority # Map 'priority' from spec to 'Priority' field
+      Status: status # Map 'status' to 'Status' field
+      Sprint: milestone # Map milestone to 'Sprint' field
 ```
 
 In your `ISSUES.md`:
@@ -97,7 +97,7 @@ priority: High
 status: In Progress
 milestone: Sprint 3
 body: |
-  Implementation details...
+Implementation details...
 \`\`\`
 ```
 
@@ -105,13 +105,13 @@ body: |
 
 Projects API supports these field types:
 
-| Type | Example Values | Notes |
-|------|----------------|-------|
+| Type          | Example Values          | Notes                                    |
+| ------------- | ----------------------- | ---------------------------------------- |
 | Single select | `High`, `Medium`, `Low` | Must match project field options exactly |
-| Text | Any string | Free-form text |
-| Number | `1`, `5.5` | Numeric values |
-| Date | `2025-10-15` | ISO 8601 date format |
-| Iteration | `Sprint 3` | Must match iteration name |
+| Text          | Any string              | Free-form text                           |
+| Number        | `1`, `5.5`              | Numeric values                           |
+| Date          | `2025-10-15`            | ISO 8601 date format                     |
+| Iteration     | `Sprint 3`              | Must match iteration name                |
 
 ## Field caching
 
@@ -127,10 +127,11 @@ IssueSuite caches project field metadata in `.issuesuite_cache/` to reduce API c
 - **TTL**: Default 3600 seconds (1 hour)
 - **Invalidation**: Automatic on TTL expiry or manual deletion
 - **Configuration**:
+
   ```bash
   # Custom TTL
   export ISSUESUITE_PROJECT_CACHE_TTL=7200
-  
+
   # Disable caching (always fetch fresh)
   export ISSUESUITE_PROJECT_CACHE_DISABLE=1
   ```
@@ -146,9 +147,9 @@ IssueSuite caches project field metadata in `.issuesuite_cache/` to reduce API c
       "name": "Priority",
       "dataType": "SINGLE_SELECT",
       "options": [
-        {"id": "opt1", "name": "High"},
-        {"id": "opt2", "name": "Medium"},
-        {"id": "opt3", "name": "Low"}
+        { "id": "opt1", "name": "High" },
+        { "id": "opt2", "name": "Medium" },
+        { "id": "opt3", "name": "Low" }
       ]
     }
   ],
@@ -165,13 +166,13 @@ sequenceDiagram
     participant Cache
     participant GitHub as GitHub API
     participant Project as Projects API
-    
+
     User->>Sync: issuesuite sync --update
     Sync->>GitHub: Create/update issue
     GitHub-->>Sync: Issue #123
-    
+
     Sync->>Cache: Check field cache
-    
+
     alt Cache valid
         Cache-->>Sync: Cached field data
     else Cache expired/missing
@@ -179,13 +180,13 @@ sequenceDiagram
         Project-->>Sync: Field IDs & options
         Sync->>Cache: Store metadata
     end
-    
+
     Sync->>Project: Add issue to project
     Project-->>Sync: Item ID
-    
+
     Sync->>Project: Update custom fields
     Project-->>Sync: Success
-    
+
     Sync-->>User: Summary with project updates
 ```
 
@@ -196,7 +197,7 @@ sequenceDiagram
 If you specify a value not in the field's options:
 
 ```yaml
-priority: Critical  # But only High/Medium/Low exist
+priority: Critical # But only High/Medium/Low exist
 ```
 
 IssueSuite logs a warning and skips that field update:
@@ -312,7 +313,7 @@ milestone: Sprint 5
 team: Backend
 estimate: 5
 body: |
-  Feature implementation...
+Feature implementation...
 \`\`\`
 ```
 

@@ -22,26 +22,26 @@ stateDiagram-v2
     [*] --> LoadIndex: Sync starts
     LoadIndex --> EmptyIndex: File missing/corrupt
     LoadIndex --> ExistingIndex: Valid index found
-    
+
     EmptyIndex --> ComputePlan: Fresh mappings
     ExistingIndex --> ComputePlan: Merge with specs
-    
+
     ComputePlan --> DryRun: dry_run=true
     ComputePlan --> ExecutePlan: dry_run=false
-    
+
     DryRun --> [*]: No persistence
-    
+
     ExecutePlan --> CreateIssues: New slugs
     ExecutePlan --> UpdateIssues: Changed specs
     ExecutePlan --> CloseIssues: Missing specs
-    
+
     CreateIssues --> UpdateIndex: Record new mappings
     UpdateIssues --> UpdateIndex: Update hashes
     CloseIssues --> PruneIndex: Remove stale entries
-    
+
     UpdateIndex --> PersistIndex
     PruneIndex --> PersistIndex
-    
+
     PersistIndex --> [*]: Write atomically
 ```
 

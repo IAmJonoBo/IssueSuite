@@ -65,7 +65,10 @@ def colorize(text: str, color: str, bold: bool = False, stream: TextIO | None = 
 def print_success(message: str, stream: TextIO | None = None) -> None:
     """Print success message in green."""
     stream = stream or sys.stdout
-    print(colorize("✓", Colors.GREEN, bold=True, stream=stream) + " " + message, file=stream)
+    print(
+        colorize("✓", Colors.GREEN, bold=True, stream=stream) + " " + message,
+        file=stream,
+    )
 
 
 def print_error(message: str, stream: TextIO | None = None) -> None:
@@ -77,13 +80,19 @@ def print_error(message: str, stream: TextIO | None = None) -> None:
 def print_warning(message: str, stream: TextIO | None = None) -> None:
     """Print warning message in yellow."""
     stream = stream or sys.stdout
-    print(colorize("⚠", Colors.YELLOW, bold=True, stream=stream) + " " + message, file=stream)
+    print(
+        colorize("⚠", Colors.YELLOW, bold=True, stream=stream) + " " + message,
+        file=stream,
+    )
 
 
 def print_info(message: str, stream: TextIO | None = None) -> None:
     """Print info message in blue."""
     stream = stream or sys.stdout
-    print(colorize("ℹ", Colors.BLUE, bold=True, stream=stream) + " " + message, file=stream)
+    print(
+        colorize("ℹ", Colors.BLUE, bold=True, stream=stream) + " " + message,
+        file=stream,
+    )
 
 
 def print_header(message: str, stream: TextIO | None = None) -> None:

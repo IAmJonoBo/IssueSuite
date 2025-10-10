@@ -5,6 +5,7 @@
 > This implementation guide was created during feature development and is now archived. All features described here are fully implemented and documented in the current documentation.
 >
 > **See current documentation:**
+>
 > - [Getting Started Tutorial](../starlight/src/content/docs/tutorials/getting-started.mdx)
 > - [Architecture Overview](../starlight/src/content/docs/explanations/architecture.mdx)
 > - [CONTRIBUTING.md](../../CONTRIBUTING.md)
