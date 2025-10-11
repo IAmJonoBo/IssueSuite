@@ -61,7 +61,11 @@ from issuesuite.projects_status import (
 )
 from issuesuite.reconcile import format_report, reconcile
 from issuesuite.runtime import execute_command, prepare_config
-from issuesuite.scaffold import scaffold_project
+from issuesuite.scaffold import (
+    ScaffoldResult,
+    scaffold_project,
+    write_vscode_assets,
+)
 from issuesuite.schemas import get_schemas
 from issuesuite.setup_wizard import run_guided_setup
 
@@ -608,22 +612,42 @@ def _setup_check_auth(
             print(f"  - {rec}")
 
 
-def _setup_vscode() -> None:
-    vscode_dir = Path(".vscode")
+def _setup_vscode() -> ScaffoldResult:
+    workspace = Path.cwd()
+    vscode_dir = workspace / ".vscode"
     if vscode_dir.exists():
         print("[setup] VS Code integration files already exist in .vscode/")
     else:
         print("[setup] Creating VS Code integration files...")
+
+    result = write_vscode_assets(workspace)
+
+    if result.created:
         print("[setup] VS Code files should be committed to your repository")
+        for path in result.created:
+            try:
+                relative = path.relative_to(workspace)
+            except ValueError:
+                relative = path
+            print(f"[setup] created {relative}")
+    else:
+        for path in result.skipped:
+            try:
+                relative = path.relative_to(workspace)
+            except ValueError:
+                relative = path
+            print(f"[setup] skipped (exists) {relative}")
+        print("[setup] no VS Code files created (all existed)")
     _print_lines(
         [
             "[setup] VS Code integration includes:",
             "  - Tasks for common IssueSuite operations",
-            "  - Debug configurations",
-            "  - YAML schema associations for config files",
-            "  - Python environment configuration",
+            "  - Debug configurations for the IssueSuite CLI",
+            "  - YAML schema associations for IssueSuite specs",
+            "  - Python environment defaults for local .venv usage",
         ]
     )
+    return result
 
 
 def _setup_show_help() -> None:
