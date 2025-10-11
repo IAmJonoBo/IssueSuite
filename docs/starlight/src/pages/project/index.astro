@@ -34,7 +34,7 @@ const readingList =
   readingEntries.find((entry) => entry.id === "what-were-reading" || entry.id.endsWith("/what-were-reading"))?.data.items ?? [];
 ---
 
-<StarlightPage frontmatter={frontmatter} hasSidebar={false}>
+<StarlightPage frontmatter={frontmatter}>
   <div class="hero sl-container">
     <div class="hero__eyebrow">Project overview</div>
     <h1>Ship deterministic IssueSuite workflows</h1>
