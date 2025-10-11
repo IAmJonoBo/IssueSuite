@@ -3,9 +3,11 @@ import Layout from "@astrojs/starlight/components/Layout.astro";
 import CardGrid from "../../components/CardGrid.astro";
 import Footer from "../../components/Footer.astro";
 import { getCollection } from "astro:content";
-import { withBase } from "astro/client";
 
 const landingSlug = "project-overview";
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+const withBasePath = (path: string) => `${basePath}${path}`;
 const landingDocs = (await getCollection("docs", ({ data }) => data.landingPages?.includes(landingSlug)))
   .sort((a, b) => {
     const aDate = a.data.pubDate ?? "";
@@ -17,14 +19,15 @@ const landingDocs = (await getCollection("docs", ({ data }) => data.landingPages
   .map((entry) => {
     const docPath = entry.slug === "index" ? "/docs/" : `/docs/${entry.slug}/`;
     return {
-      href: withBase(docPath),
+      href: withBasePath(docPath),
       title: entry.data.title,
       description: entry.data.description ?? "",
     };
   });
 
 const readingEntries = await getCollection("reading");
-const readingList = readingEntries.find((entry) => entry.slug === "what-were-reading")?.data.items ?? [];
+const readingList =
+  readingEntries.find((entry) => entry.id === "what-were-reading" || entry.id.endsWith("/what-were-reading"))?.data.items ?? [];
 ---
 
 <Layout
@@ -49,8 +52,8 @@ const readingList = readingEntries.find((entry) => entry.slug === "what-were-rea
         </p>
       </div>
       <div class="cta-actions">
-  <a class="btn" href={withBase("/docs/tutorials/getting-started/")}>Follow the getting started tutorial</a>
-  <a class="btn secondary" href={withBase("/docs/reference/cli/")}>Review CLI reference</a>
+        <a class="btn" href={withBasePath("/docs/tutorials/getting-started/")}>Follow the getting started tutorial</a>
+        <a class="btn secondary" href={withBasePath("/docs/reference/cli/")}>Review CLI reference</a>
       </div>
     </div>
   </div>
@@ -100,7 +103,7 @@ const readingList = readingEntries.find((entry) => entry.slug === "what-were-rea
     <ul class="next-steps">
       <li><a href="https://github.com/IAmJonoBo/IssueSuite/releases" target="_blank" rel="noopener noreferrer">Watch IssueSuite releases</a></li>
       <li><a href="https://github.com/IAmJonoBo/IssueSuite/projects" target="_blank" rel="noopener noreferrer">Monitor documentation roadmap</a></li>
-  <li><a href={withBase("/docs/how-to/docs-automation/")}>Adopt the documentation automation pipeline</a></li>
+      <li><a href={withBasePath("/docs/how-to/docs-automation/")}>Adopt the documentation automation pipeline</a></li>
     </ul>
   </section>
 

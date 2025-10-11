@@ -1,21 +1,22 @@
 ---
-const targetUrl = Astro.site
-	? new URL("./project/", Astro.site).pathname
-	: "/project/";
+const siteSource = (Astro.site ?? Astro.url).toString();
+const normalizedSite = siteSource.endsWith("/") ? siteSource : `${siteSource}/`;
+const targetUrl = new URL("project/", normalizedSite);
+const targetHref = `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`;
 
-Astro.redirect(targetUrl);
+Astro.redirect(targetHref);
 ---
 
 <!DOCTYPE html>
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<meta http-equiv="refresh" content={`0; url=${targetUrl}`} />
+		<meta http-equiv="refresh" content={`0; url=${targetHref}`} />
 		<title>Redirecting…</title>
 	</head>
 	<body>
 		<p>
-			Redirecting to <a href={targetUrl}>IssueSuite Project Hub</a>…
+			Redirecting to <a href={targetHref}>IssueSuite Project Hub</a>…
 		</p>
 	</body>
 </html>
