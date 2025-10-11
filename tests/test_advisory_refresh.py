@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
+
+try:  # Python 3.11+
+    from datetime import UTC  # type: ignore[attr-defined]
+except ImportError:  # Python 3.10 compatibility
+    from datetime import timezone as _timezone
+
+    UTC = _timezone.utc  # type: ignore[assignment]
 from pathlib import Path
 
 import pytest
