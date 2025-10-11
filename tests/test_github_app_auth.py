@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import stat
 import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -132,6 +133,9 @@ def test_token_caching(tmp_path: Path) -> None:
     assert manager2._cached_token == test_token
     assert manager2._token_expires_at is not None
 
+    if os.name != "nt":
+        assert stat.S_IMODE(cache_path.stat().st_mode) == 0o600
+
 
 def test_token_caching_with_keyring(tmp_path: Path) -> None:
     """Token caching prefers system keyring when available."""
@@ -172,6 +176,38 @@ def test_token_caching_with_keyring(tmp_path: Path) -> None:
 
 
 @patch("issuesuite.github_auth.keyring", None)
+def test_load_file_cache_rejects_insecure_permissions(tmp_path: Path) -> None:
+    """Token cache files with permissive modes are ignored for safety."""
+
+    if os.name == "nt":
+        pytest.skip("POSIX permissions are not enforced on Windows")
+
+    config = GitHubAppConfig(
+        enabled=True,
+        app_id="12345",
+        private_key_path="/path/to/key.pem",
+        installation_id="67890",
+        token_cache_path=str(tmp_path / "token.json"),
+    )
+    manager = GitHubAppTokenManager(config)
+
+    manager._cached_token = "token"
+    manager._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    payload = manager._encode_cache_blob()
+
+    cache_path = Path(config.token_cache_path)
+    cache_path.write_text(json.dumps({"payload": payload}), encoding="utf-8")
+    cache_path.chmod(0o644)
+
+    manager._cached_token = None
+    manager._token_expires_at = None
+
+    assert manager._load_file_cache() is False
+    assert manager._cached_token is None
+    assert manager._token_expires_at is None
+
+
+@patch("issuesuite.github_auth.keyring", None)
 def test_load_cached_token_legacy_format(tmp_path: Path) -> None:
     """Legacy plaintext cache files still load successfully."""
     expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
@@ -181,6 +217,8 @@ def test_load_cached_token_legacy_format(tmp_path: Path) -> None:
     }
     cache_path = tmp_path / "legacy.json"
     cache_path.write_text(json.dumps(cache_payload))
+    if os.name != "nt":
+        cache_path.chmod(0o600)
 
     config = GitHubAppConfig(
         enabled=True,
@@ -258,6 +296,23 @@ def test_jwt_generation_with_key_file(tmp_path: Path) -> None:
     assert isinstance(jwt_token, str)
     assert "." in jwt_token  # JWT format has dots
     assert jwt_token.endswith("signature_placeholder")
+
+
+def test_jwt_generation_with_empty_private_key(tmp_path: Path) -> None:
+    """Empty private key files should result in a validation failure."""
+
+    key_path = tmp_path / "empty.pem"
+    key_path.write_text("   \n\n")
+
+    config = GitHubAppConfig(
+        enabled=True,
+        app_id="12345",
+        private_key_path=str(key_path),
+        installation_id="67890",
+    )
+    manager = GitHubAppTokenManager(config)
+
+    assert manager._generate_jwt() is None
 
 
 def test_jwt_generation_without_pyjwt(tmp_path: Path) -> None:
@@ -492,6 +547,39 @@ def test_configure_github_cli_success(mock_run: MagicMock) -> None:
 
     # Verify environment variable was set
     assert os.environ.get("GITHUB_TOKEN") == "test_token"
+
+
+@patch("subprocess.run")
+def test_configure_github_cli_failure_restores_environment(mock_run: MagicMock) -> None:
+    """GitHub CLI failures should not leak the installation token."""
+
+    result = MagicMock()
+    result.returncode = 1
+    result.stderr = "authentication failed"
+    mock_run.return_value = result
+
+    config = GitHubAppConfig(
+        enabled=True,
+        app_id="12345",
+        private_key_path="/path/to/key.pem",
+        installation_id="67890",
+    )
+    manager = GitHubAppTokenManager(config, mock=False)
+    manager._cached_token = "leaky-token"
+    manager._token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+
+    previous = os.environ.get("GITHUB_TOKEN")
+    os.environ["GITHUB_TOKEN"] = "previous-token"
+
+    try:
+        assert manager.configure_github_cli() is False
+        assert mock_run.called
+        assert os.environ.get("GITHUB_TOKEN") == "previous-token"
+    finally:
+        if previous is None:
+            os.environ.pop("GITHUB_TOKEN", None)
+        else:
+            os.environ["GITHUB_TOKEN"] = previous
 
 
 def test_configure_github_cli_mock() -> None:

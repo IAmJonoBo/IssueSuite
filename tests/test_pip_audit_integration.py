@@ -379,6 +379,49 @@ def test_run_resilient_pip_audit_handles_missing_dependency(
     assert "pip-audit unavailable (missing-dependency)" in captured.err
 
 
+def test_detect_recoverable_failure_handles_timeouts() -> None:
+    """Timeout patterns should be treated as recoverable failures."""
+
+    from issuesuite.pip_audit_integration import _detect_recoverable_failure  # noqa: PLC0415
+
+    reason = _detect_recoverable_failure(
+        "Read timed out while fetching", "Failed to establish a new connection"
+    )
+    assert reason == "timeout"
+
+
+def test_run_resilient_pip_audit_handles_subprocess_timeout(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Subprocess timeouts should trigger the offline advisory fallback."""
+
+    def _raise_timeout(*args: object, **kwargs: object) -> NoReturn:
+        raise subprocess.TimeoutExpired(cmd=args[0], timeout=kwargs.get("timeout", 60))
+
+    monkeypatch.setattr("issuesuite.pip_audit_integration.subprocess.run", _raise_timeout)
+    monkeypatch.setattr("issuesuite.pip_audit_integration.load_advisories", lambda: [])
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.collect_installed_packages", lambda: []
+    )
+
+    def _mock_perform_audit(**kwargs: object) -> tuple[list[Finding], str | None]:
+        assert kwargs["online_probe"] is False
+        return ([], "timeout")
+
+    monkeypatch.setattr("issuesuite.pip_audit_integration.perform_audit", _mock_perform_audit)
+    monkeypatch.setattr(
+        "issuesuite.pip_audit_integration.render_findings_table",
+        lambda findings: "offline table",
+    )
+
+    rc = run_resilient_pip_audit(["--strict"])
+    captured = capsys.readouterr()
+
+    assert rc == 0
+    assert "offline table" in captured.out
+    assert "timed out" in captured.err
+
+
 def test_get_audit_timeout_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test _resolve_timeout with various environment values."""
     from issuesuite.pip_audit_integration import _resolve_timeout  # noqa: PLC0415

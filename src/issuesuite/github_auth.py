@@ -12,6 +12,7 @@ import importlib
 import json
 import os
 import shutil
+import stat
 import subprocess  # nosec B404 - subprocess is required for GitHub CLI integration
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -182,6 +183,24 @@ class GitHubAppTokenManager:
         cache_path = Path(self.config.token_cache_path)
         if not cache_path.exists():
             return False
+
+        if os.name != "nt":
+            try:
+                mode = stat.S_IMODE(cache_path.stat().st_mode)
+            except OSError as exc:
+                self.logger.log_error(
+                    "Failed to read cache permissions",
+                    path=str(cache_path),
+                    error=str(exc),
+                )
+                return False
+            if mode & 0o077:
+                self.logger.log_error(
+                    "Cached token permissions are too permissive",
+                    path=str(cache_path),
+                    mode=oct(mode),
+                )
+                return False
 
         try:
             with cache_path.open("r", encoding="utf-8") as f:
@@ -464,6 +483,12 @@ class GitHubAppTokenManager:
             self.logger.info("MOCK: Configure GitHub CLI with App token")
             return True
 
+        previous_token = os.environ.get("GITHUB_TOKEN")
+        def restore_token() -> None:
+            if previous_token is None:
+                os.environ.pop("GITHUB_TOKEN", None)
+            else:
+                os.environ["GITHUB_TOKEN"] = previous_token
         try:
             # Set the token as environment variable for gh CLI
             os.environ["GITHUB_TOKEN"] = token
@@ -481,10 +506,12 @@ class GitHubAppTokenManager:
                 return True
             else:
                 self.logger.log_error("GitHub CLI authentication failed", error=result.stderr)
+                restore_token()
                 return False
 
         except Exception as e:
             self.logger.log_error("Failed to configure GitHub CLI", error=str(e))
+            restore_token()
             return False
 
     def cleanup_cached_token(self) -> None:

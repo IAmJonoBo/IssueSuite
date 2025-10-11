@@ -378,12 +378,23 @@ _SSL_ERROR_PATTERNS = tuple(
 
 _MISSING_DEPENDENCY_PATTERNS = ("dependency not found on pypi",)
 
+_TIMEOUT_PATTERNS = (
+    "read timed out",
+    "timed out while fetching",
+    "connect timeout",
+    "connection timed out",
+    "failed to establish a new connection",
+    "connection aborted",
+    "connection reset by peer",
+)
+
 
 def _detect_recoverable_failure(stdout: str, stderr: str) -> str | None:
     combined = f"{stdout}\n{stderr}".lower()
     for reason, patterns in (
         ("ssl-error", _SSL_ERROR_PATTERNS),
         ("missing-dependency", _MISSING_DEPENDENCY_PATTERNS),
+        ("timeout", _TIMEOUT_PATTERNS),
     ):
         if any(token in combined for token in patterns):
             return reason

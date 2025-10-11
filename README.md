@@ -258,6 +258,10 @@ github:
     private_key_path: $GITHUB_APP_PRIVATE_KEY_PATH
 ```
 
+IssueSuite only trusts GitHub App cache files with `0600` permissions and
+cleans up any temporary `GITHUB_TOKEN` exports if the GitHub CLI handshake
+fails, so regenerate the token if you rotate credentials or adjust file modes.
+
 See [Environment Variables Reference](docs/starlight/src/content/docs/reference/environment-variables.mdx) for GitHub App configuration.
 
 ### Verify Authentication
@@ -1040,7 +1044,7 @@ python scripts/quality_gates.py
 
 The script prints a concise summary and writes `quality_gate_report.json` for CI dashboards.
 
-The dependency gate first attempts to run `pip-audit` in the active environment and automatically falls back to IssueSuite's curated offline advisory dataset when network access is unavailable. The dataset lives at `src/issuesuite/data/security_advisories.json`; update it in tandem with upstream disclosures to keep offline scans trustworthy. You can also run the audit directly via `python -m issuesuite.dependency_audit` (pass `--offline-only` to skip the online probe).
+The dependency gate first attempts to run `pip-audit` in the active environment and automatically falls back to IssueSuite's curated offline advisory dataset when network access is unavailable. Connection resets, read timeouts, and TLS trust issues trigger the offline flow after the configurable 60-second watchdog. The dataset lives at `src/issuesuite/data/security_advisories.json`; update it in tandem with upstream disclosures to keep offline scans trustworthy. You can also run the audit directly via `python -m issuesuite.dependency_audit` (pass `--offline-only` to skip the online probe).
 
 For performance budgets, the gate suite now generates a deterministic `performance_report.json` before asserting benchmarks. You can refresh the artifact independently with:
 
