@@ -211,29 +211,57 @@ def test_cli_setup_vscode_scaffolds_tasks(
     tasks_path = tmp_path / ".vscode" / "tasks.json"
     launch_path = tmp_path / ".vscode" / "launch.json"
     settings_path = tmp_path / ".vscode" / "settings.json"
+    config_schema_path = tmp_path / ".vscode" / "issue_suite.config.schema.json"
 
     assert tasks_path.exists()
     assert launch_path.exists()
     assert settings_path.exists()
+    assert config_schema_path.exists()
 
     task_data = json.loads(tasks_path.read_text(encoding="utf-8"))
     assert task_data["version"] == "2.0.0"
     labels = {task["label"] for task in task_data["tasks"]}
-    assert "IssueSuite: Dry-run Sync" in labels
-    assert "IssueSuite: Validate" in labels
+    assert {
+        "IssueSuite: Dry-run Sync",
+        "IssueSuite: Validate",
+        "IssueSuite: Agent Apply (dry-run)",
+        "IssueSuite: Schema Bundle",
+        "IssueSuite: Security Audit (Offline)",
+    }.issubset(labels)
 
     launch_data = json.loads(launch_path.read_text(encoding="utf-8"))
     assert launch_data["version"] == "0.2.0"
-    assert any(cfg.get("module") == "issuesuite" for cfg in launch_data["configurations"])
+    configurations = launch_data["configurations"]
+    assert any(cfg.get("module") == "issuesuite" for cfg in configurations)
+    config_names = {cfg["name"] for cfg in configurations}
+    assert {
+        "IssueSuite: Dry-run Sync",
+        "IssueSuite: Full Sync",
+        "IssueSuite: Guided Setup",
+    }.issubset(config_names)
+    dry_run_cfg = next(cfg for cfg in configurations if cfg["name"] == "IssueSuite: Dry-run Sync")
+    assert dry_run_cfg.get("preLaunchTask") == "IssueSuite: Validate"
 
     settings_data = json.loads(settings_path.read_text(encoding="utf-8"))
     assert settings_data["python.defaultInterpreterPath"] == "${workspaceFolder}/.venv/bin/python"
     assert "yaml.schemas" in settings_data
+    assert "./issue_suite.config.schema.json" in settings_data["yaml.schemas"]
+    schema_mappings = {
+        entry["url"]: set(entry["fileMatch"]) for entry in settings_data.get("json.schemas", [])
+    }
+    assert "${workspaceFolder}/issue_export.schema.json" in schema_mappings
+    assert "issues_export.json" in schema_mappings["${workspaceFolder}/issue_export.schema.json"]
+    assert "${workspaceFolder}/ai_context.schema.json" in schema_mappings
+    assert {
+        "ai_context.json",
+        ".issuesuite/**/*.json",
+    } == schema_mappings["${workspaceFolder}/ai_context.schema.json"]
 
     first_run_output = capsys.readouterr().out
     assert "[setup] created .vscode/tasks.json" in first_run_output
     assert "[setup] created .vscode/launch.json" in first_run_output
     assert "[setup] created .vscode/settings.json" in first_run_output
+    assert "[setup] created .vscode/issue_suite.config.schema.json" in first_run_output
 
     rc = main(["setup", "--vscode"])
 
@@ -243,6 +271,7 @@ def test_cli_setup_vscode_scaffolds_tasks(
     assert "[setup] already current .vscode/tasks.json" in second_run_output
     assert "[setup] already current .vscode/launch.json" in second_run_output
     assert "[setup] already current .vscode/settings.json" in second_run_output
+    assert "[setup] already current .vscode/issue_suite.config.schema.json" in second_run_output
     assert "[setup] no VS Code files created or changed" in second_run_output
 
 

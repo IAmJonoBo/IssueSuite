@@ -153,6 +153,100 @@ VSCODE_TASKS_TEMPLATE = textwrap.dedent(
             "issues_summary.json"
           ],
           "group": "build"
+        },
+        {
+          "label": "IssueSuite: Summary",
+          "type": "shell",
+          "command": "issuesuite",
+          "args": [
+            "summary",
+            "--config",
+            "issue_suite.config.yaml",
+            "--limit",
+            "20"
+          ],
+          "group": "build"
+        },
+        {
+          "label": "IssueSuite: Export",
+          "type": "shell",
+          "command": "issuesuite",
+          "args": [
+            "export",
+            "--config",
+            "issue_suite.config.yaml",
+            "--pretty",
+            "--output",
+            "issues_export.json"
+          ],
+          "group": "build"
+        },
+        {
+          "label": "IssueSuite: Agent Apply (dry-run)",
+          "type": "shell",
+          "command": "issuesuite",
+          "args": [
+            "agent-apply",
+            "--config",
+            "issue_suite.config.yaml",
+            "--updates-json",
+            "agent_updates.json"
+          ]
+        },
+        {
+          "label": "IssueSuite: Agent Apply (apply)",
+          "type": "shell",
+          "command": "issuesuite",
+          "args": [
+            "agent-apply",
+            "--config",
+            "issue_suite.config.yaml",
+            "--updates-json",
+            "agent_updates.json",
+            "--apply"
+          ]
+        },
+        {
+          "label": "IssueSuite: Schema Bundle",
+          "type": "shell",
+          "command": "issuesuite",
+          "args": [
+            "schema",
+            "--config",
+            "issue_suite.config.yaml"
+          ]
+        },
+        {
+          "label": "IssueSuite: Projects Status",
+          "type": "shell",
+          "command": "issuesuite",
+          "args": [
+            "projects-status",
+            "--config",
+            "issue_suite.config.yaml"
+          ]
+        },
+        {
+          "label": "IssueSuite: Security Audit (Offline)",
+          "type": "shell",
+          "command": "issuesuite",
+          "args": [
+            "security",
+            "--config",
+            "issue_suite.config.yaml",
+            "--offline-only",
+            "--pip-audit",
+            "--pip-audit-disable-online"
+          ]
+        },
+        {
+          "label": "IssueSuite: Guided Setup",
+          "type": "shell",
+          "command": "issuesuite",
+          "args": [
+            "setup",
+            "--guided"
+          ]
         }
       ]
     }
@@ -177,7 +271,25 @@ VSCODE_LAUNCH_TEMPLATE = textwrap.dedent(
             "issue_suite.config.yaml"
           ],
           "justMyCode": false,
-          "console": "integratedTerminal"
+          "console": "integratedTerminal",
+          "preLaunchTask": "IssueSuite: Validate"
+        },
+        {
+          "name": "IssueSuite: Full Sync",
+          "type": "python",
+          "request": "launch",
+          "module": "issuesuite",
+          "args": [
+            "sync",
+            "--update",
+            "--config",
+            "issue_suite.config.yaml",
+            "--summary-json",
+            "issues_summary.json"
+          ],
+          "console": "integratedTerminal",
+          "justMyCode": false,
+          "preLaunchTask": "IssueSuite: Validate"
         },
         {
           "name": "IssueSuite: Validate",
@@ -191,8 +303,356 @@ VSCODE_LAUNCH_TEMPLATE = textwrap.dedent(
           ],
           "console": "integratedTerminal",
           "justMyCode": false
+        },
+        {
+          "name": "IssueSuite: Summary",
+          "type": "python",
+          "request": "launch",
+          "module": "issuesuite",
+          "args": [
+            "summary",
+            "--config",
+            "issue_suite.config.yaml",
+            "--limit",
+            "20"
+          ],
+          "console": "integratedTerminal",
+          "justMyCode": false
+        },
+        {
+          "name": "IssueSuite: Projects Status",
+          "type": "python",
+          "request": "launch",
+          "module": "issuesuite",
+          "args": [
+            "projects-status",
+            "--config",
+            "issue_suite.config.yaml"
+          ],
+          "console": "integratedTerminal",
+          "justMyCode": false
+        },
+        {
+          "name": "IssueSuite: Security Audit (Offline)",
+          "type": "python",
+          "request": "launch",
+          "module": "issuesuite",
+          "args": [
+            "security",
+            "--config",
+            "issue_suite.config.yaml",
+            "--offline-only",
+            "--pip-audit",
+            "--pip-audit-disable-online"
+          ],
+          "console": "integratedTerminal",
+          "justMyCode": false
+        },
+        {
+          "name": "IssueSuite: Schema Bundle",
+          "type": "python",
+          "request": "launch",
+          "module": "issuesuite",
+          "args": [
+            "schema",
+            "--config",
+            "issue_suite.config.yaml"
+          ],
+          "console": "integratedTerminal",
+          "justMyCode": false
+        },
+        {
+          "name": "IssueSuite: Guided Setup",
+          "type": "python",
+          "request": "launch",
+          "module": "issuesuite",
+          "args": [
+            "setup",
+            "--guided"
+          ],
+          "console": "integratedTerminal",
+          "justMyCode": false
+        },
+        {
+          "name": "IssueSuite: Agent Apply (dry-run)",
+          "type": "python",
+          "request": "launch",
+          "module": "issuesuite",
+          "args": [
+            "agent-apply",
+            "--config",
+            "issue_suite.config.yaml",
+            "--updates-json",
+            "agent_updates.json"
+          ],
+          "console": "integratedTerminal",
+          "justMyCode": false
+        },
+        {
+          "name": "IssueSuite: Agent Apply (apply)",
+          "type": "python",
+          "request": "launch",
+          "module": "issuesuite",
+          "args": [
+            "agent-apply",
+            "--config",
+            "issue_suite.config.yaml",
+            "--updates-json",
+            "agent_updates.json",
+            "--apply"
+          ],
+          "console": "integratedTerminal",
+          "justMyCode": false
         }
       ]
+    }
+    """
+).lstrip()
+
+VSCODE_CONFIG_SCHEMA_TEMPLATE = textwrap.dedent(
+    """
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "IssueSuite configuration",
+      "type": "object",
+      "required": [
+        "version",
+        "source"
+      ],
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source": {
+          "type": "object",
+          "required": [
+            "file"
+          ],
+          "properties": {
+            "file": {
+              "type": "string"
+            },
+            "id_pattern": {
+              "type": "string"
+            },
+            "milestone_required": {
+              "type": "boolean"
+            },
+            "milestone_pattern": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "behavior": {
+          "type": "object",
+          "properties": {
+            "dry_run_default": {
+              "type": "boolean"
+            },
+            "truncate_body_diff": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "emit_change_events": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true
+        },
+        "defaults": {
+          "type": "object",
+          "properties": {
+            "ensure_labels_enabled": {
+              "type": "boolean"
+            },
+            "ensure_milestones_enabled": {
+              "type": "boolean"
+            },
+            "inject_labels": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "summary_json": {
+              "type": "string"
+            },
+            "plan_json": {
+              "type": "string"
+            },
+            "export_json": {
+              "type": "string"
+            },
+            "mapping_file": {
+              "type": "string"
+            },
+            "hash_state_file": {
+              "type": "string"
+            },
+            "report_html": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "ai": {
+          "type": "object",
+          "properties": {
+            "schema_export_file": {
+              "type": "string"
+            },
+            "schema_summary_file": {
+              "type": "string"
+            },
+            "schema_ai_context_file": {
+              "type": "string"
+            },
+            "schema_version": {
+              "type": [
+                "string",
+                "number"
+              ]
+            }
+          },
+          "additionalProperties": true
+        },
+        "github": {
+          "type": "object",
+          "properties": {
+            "repo": {
+              "type": "string"
+            },
+            "app": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "id": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
+                },
+                "private_key": {
+                  "type": "string"
+                },
+                "installation_id": {
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
+                }
+              },
+              "additionalProperties": true
+            },
+            "project": {
+              "type": "object",
+              "properties": {
+                "enable": {
+                  "type": "boolean"
+                },
+                "number": {
+                  "type": "integer"
+                },
+                "field_mappings": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "logging": {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "string"
+            },
+            "json_enabled": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true
+        },
+        "concurrency": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "max_workers": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": true
+        },
+        "telemetry": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "store_path": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "environment": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "load_dotenv": {
+              "type": "boolean"
+            },
+            "dotenv_path": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "extensions": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "disabled": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "performance": {
+          "type": "object",
+          "properties": {
+            "benchmarking": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
     }
     """
 ).lstrip()
@@ -207,14 +667,36 @@ VSCODE_SETTINGS_TEMPLATE = textwrap.dedent(
         "tests"
       ],
       "yaml.schemas": {
-        "./issue_suite.schema.json": [
+        "./issue_suite.config.schema.json": [
           "issue_suite.config.yaml",
           "**/.issuesuite/**/*.yaml"
         ],
-        "./ai_context.schema.json": [
-          "**/.issuesuite/**/*.json"
+        "https://json.schemastore.org/github-workflow.json": [
+          ".github/workflows/*.yml",
+          ".github/workflows/*.yaml"
         ]
       },
+      "json.schemas": [
+        {
+          "fileMatch": [
+            "issues_export.json"
+          ],
+          "url": "${workspaceFolder}/issue_export.schema.json"
+        },
+        {
+          "fileMatch": [
+            "issues_summary.json"
+          ],
+          "url": "${workspaceFolder}/issue_change_summary.schema.json"
+        },
+        {
+          "fileMatch": [
+            "ai_context.json",
+            ".issuesuite/**/*.json"
+          ],
+          "url": "${workspaceFolder}/ai_context.schema.json"
+        }
+      ],
       "files.watcherExclude": {
         "**/.issuesuite/**": true
       },
@@ -222,7 +704,13 @@ VSCODE_SETTINGS_TEMPLATE = textwrap.dedent(
         "**/.issuesuite/**": true,
         "issues_summary.json": true,
         "issues_plan.json": true,
-        "issues_export.json": true
+        "issues_export.json": true,
+        "issue_export.schema.json": true,
+        "issue_change_summary.schema.json": true,
+        "ai_context.schema.json": true,
+        "ai_context.json": true,
+        "projects_status_report.json": true,
+        "projects_status_comment.md": true
       }
     }
     """
@@ -313,9 +801,14 @@ _VSCODE_ASSET_TEMPLATES: dict[str, EditorAssetTemplate] = {
         template=VSCODE_SETTINGS_TEMPLATE,
         fmt="json",
     ),
+    "config_schema": EditorAssetTemplate(
+        path=".vscode/issue_suite.config.schema.json",
+        template=VSCODE_CONFIG_SCHEMA_TEMPLATE,
+        fmt="json",
+    ),
 }
 
-_DEFAULT_VSCODE_ASSETS: tuple[str, ...] = ("tasks", "launch", "settings")
+_DEFAULT_VSCODE_ASSETS: tuple[str, ...] = ("tasks", "launch", "settings", "config_schema")
 
 
 _AssetStatus = Literal["created", "updated", "unchanged", "needs_update"]
