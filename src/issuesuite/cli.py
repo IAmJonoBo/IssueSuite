@@ -66,6 +66,7 @@ from issuesuite.scaffold import (
     scaffold_project,
     write_vscode_assets,
 )
+from issuesuite.scaffold import ScaffoldResult, scaffold_project, write_vscode_tasks
 from issuesuite.schemas import get_schemas
 from issuesuite.setup_wizard import run_guided_setup
 
