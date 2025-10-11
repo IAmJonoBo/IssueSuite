@@ -1,0 +1,32 @@
+{
+  "items": [
+    {
+      "title": "Projects Quickstart",
+      "source": "GitHub Docs",
+      "url": "https://docs.github.com/en/issues/planning-and-tracking-with-projects/learning-about-projects/quickstart",
+      "paywalled": false,
+      "note": "Official guide that IssueSuite adopters reference when wiring GitHub Projects v2 alongside declarative issue specs."
+    },
+    {
+      "title": "Diátaxis Documentation Framework",
+      "source": "Diátaxis",
+      "url": "https://diataxis.fr/",
+      "paywalled": false,
+      "note": "Explains the documentation methodology we mirror across tutorials, how-to guides, references, and explanations."
+    },
+    {
+      "title": "Instrumenting Python Services with OpenTelemetry",
+      "source": "OpenTelemetry.io",
+      "url": "https://opentelemetry.io/docs/instrumentation/python/",
+      "paywalled": false,
+      "note": "Background on the telemetry hooks IssueSuite emits for roadmap health dashboards."
+    },
+    {
+      "title": "Handling static site forms with Formspree",
+      "source": "Formspree Blog",
+      "url": "https://formspree.io/blog/static-site-forms",
+      "paywalled": false,
+      "note": "Walkthrough for shipping compliant signup forms without standing up server infrastructure."
+    }
+  ]
+}

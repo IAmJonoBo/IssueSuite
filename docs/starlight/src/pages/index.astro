@@ -1,0 +1,21 @@
+---
+const targetUrl = Astro.site
+	? new URL("./project/", Astro.site).pathname
+	: "/project/";
+
+Astro.redirect(targetUrl);
+---
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta http-equiv="refresh" content={`0; url=${targetUrl}`} />
+		<title>Redirecting…</title>
+	</head>
+	<body>
+		<p>
+			Redirecting to <a href={targetUrl}>IssueSuite Project Hub</a>…
+		</p>
+	</body>
+</html>

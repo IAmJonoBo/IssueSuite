@@ -57,3 +57,17 @@
   --gutter-tablet: 20px;
   --gutter-mobile: 16px;
 }
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink-900: #f8f9fb;
+  --ink-700: #e3e7f3;
+  --ink-500: #a7afc6;
+  --bg-0: #05050f;
+  --bg-50: #090a16;
+  --bg-100: #0e1020;
+  --accent-600: #8a94ff;
+  --accent-700: #6973ff;
+  --card-shadow: 0 12px 32px rgba(8, 13, 32, 0.6);
+  --header-shadow: 0 1px 0 rgba(105, 115, 255, 0.12);
+}
