@@ -270,6 +270,15 @@ Generate a starter `.env` file:
 issuesuite setup --create-env
 ```
 
+Scaffold VS Code tasks in an existing workspace:
+
+```bash
+issuesuite setup --vscode
+```
+
+The command writes `.vscode/tasks.json` with ready-to-run IssueSuite tasks (validate, dry-run sync, full sync).
+It skips creation when the file already exists.
+
 ## Offline/Hermetic Deployment
 
 IssueSuite supports air-gapped and hermetic environments for secure deployments:
