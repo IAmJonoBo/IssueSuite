@@ -300,6 +300,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional path for a rendered Markdown comment",
     )
     psync.add_argument(
+        "--plan-output",
+        dest="plan_output",
+        type=Path,
+        help="Optional path to write the serialized sync payload",
+    )
+    psync.add_argument(
         "--lookahead-days",
         dest="lookahead_days",
         type=int,
@@ -672,6 +678,8 @@ def _setup_vscode(*, force: bool = False) -> ScaffoldResult:
         [
             "[setup] VS Code integration includes:",
             "  - Tasks for common IssueSuite operations",
+            "  - Expanded debug configurations for sync, security, and guided setup",
+            "  - YAML + JSON schema associations for IssueSuite configs and artifacts",
             "  - Debug configurations for the IssueSuite CLI",
             "  - YAML schema associations for IssueSuite specs",
             "  - Python environment defaults for local .venv usage",
@@ -1356,6 +1364,9 @@ def _cmd_projects_sync(cfg: SuiteConfig | None, args: argparse.Namespace) -> int
     comment_output = getattr(args, "comment_output", None)
     if isinstance(comment_output, Path):
         _ensure_parent(comment_output)
+    plan_output = getattr(args, "plan_output", None)
+    if isinstance(plan_output, Path):
+        _ensure_parent(plan_output)
     coverage_path = getattr(args, "coverage", None)
     next_steps_paths = getattr(args, "next_steps", None)
     lookahead_days = getattr(args, "lookahead_days", None)
@@ -1391,6 +1402,12 @@ def _cmd_projects_sync(cfg: SuiteConfig | None, args: argparse.Namespace) -> int
     if comment and not getattr(args, "quiet", False):
         print(comment, end="")
 
+    plan_payload = result.get("report")
+    if plan_output and isinstance(plan_payload, dict):
+        Path(plan_output).write_text(
+            json.dumps(plan_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+
     project_result = result.get("project", {}) or {}
     comment_result = result.get("comment_result", {}) or {}
     status_label = project_result.get("status_label") or project_result.get("status")
@@ -1399,9 +1416,11 @@ def _cmd_projects_sync(cfg: SuiteConfig | None, args: argparse.Namespace) -> int
     coverage_msg = (
         f", coverage={coverage_percent:.1f}%" if isinstance(coverage_percent, (int, float)) else ""
     )
+    created_item = project_result.get("created_item")
+    creation_msg = ", created_item=True" if created_item else ""
     print(
         f"[projects-sync] {action}: enabled={project_result.get('enabled')} updated={project_result.get('updated')}"
-        f", status={status_label or 'n/a'}{coverage_msg}",
+        f", status={status_label or 'n/a'}{coverage_msg}{creation_msg}",
         file=sys.stderr,
     )
     if comment_result.get("enabled"):
@@ -1418,6 +1437,7 @@ def _cmd_projects_sync(cfg: SuiteConfig | None, args: argparse.Namespace) -> int
             "project_enabled": bool(project_result.get("enabled")),
             "comment_enabled": bool(comment_result.get("enabled")),
             "status": status_label,
+            "created_item": bool(created_item),
         }
     }
     return 0

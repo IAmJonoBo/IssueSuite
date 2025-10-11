@@ -431,12 +431,19 @@ nox -s tests lint typecheck security secrets build
 nox -s lock  # refresh uv.lock and docs/starlight/package-lock.json
 ```
 
-Frontier Apex prototypes introduce two new harnesses you can run ad-hoc while we- Preview nightly GitHub Projects automation dry-runs with `issuesuite projects-sync --comment-output preview.md` (set the relevant environment variables or pass `--project-owner/--project-number` to target your dashboard).
-
-Frontier Apex prototypes introduce two new harnesses you can run ad-hoc while we
-stabilise the elevated standards:
+Frontier Apex prototypes now ship dedicated harnesses for the Projects automation rollout. Use the CLI to capture both the Markdown status comment and the JSON payload that powers the dashboard:
 
 ```bash
+# Generate a Frontier Apex sync plan + comment without mutating GitHub
+issuesuite projects-sync \
+  --next-steps docs/Next_Steps.md \
+  --coverage coverage_projects_payload.json \
+  --project-owner acme \
+  --project-number 7 \
+  --status-field Status \
+  --plan-output projects_sync_plan.json \
+  --comment-output projects_sync_comment.md
+
 # Emit strict mypy telemetry without failing the workflow
 python scripts/type_coverage_report.py
 

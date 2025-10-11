@@ -5,7 +5,13 @@ from subprocess import CompletedProcess
 
 import pytest
 
-from issuesuite.quality_gates import Gate, QualityGateError, run_gates
+from issuesuite.quality_gates import (
+    Gate,
+    GateResult,
+    QualityGateError,
+    format_summary,
+    run_gates,
+)
 
 
 def _completed(returncode: int, stdout: str = "", stderr: str = "") -> CompletedProcess[str]:
@@ -61,3 +67,31 @@ def test_run_gates_coverage_failure(tmp_path: Path) -> None:
 
     assert excinfo.value.result.gate.name == "Tests"
     assert excinfo.value.result.coverage == pytest.approx(50.0)
+
+
+def test_format_summary_handles_mixed_results() -> None:
+    gate_pass = Gate(name="Tests", command=["pytest"], coverage_threshold=85.0)
+    gate_fail = Gate(name="Lint", command=["ruff", "check"])
+    results = [
+        GateResult(
+            gate=gate_pass,
+            returncode=0,
+            stdout="ok",
+            stderr="",
+            coverage=91.2345,
+            success=True,
+        ),
+        GateResult(
+            gate=gate_fail,
+            returncode=1,
+            stdout="",
+            stderr="boom",
+            coverage=None,
+            success=False,
+        ),
+    ]
+
+    summary = format_summary(results)
+
+    assert "[PASS] Tests (coverage 91.23% >= 85.00%)" in summary
+    assert "[FAIL] Lint" in summary

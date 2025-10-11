@@ -551,6 +551,42 @@ def test_cli_projects_sync_dry_run(tmp_path: Path, capsys: pytest.CaptureFixture
     assert "Frontier Apex status" in comment_output.read_text()
 
 
+def test_cli_projects_sync_writes_plan_output(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    next_steps_path = tmp_path / "Next Steps.md"
+    next_steps_path.write_text("# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8")
+    coverage_path = tmp_path / "coverage_projects_payload.json"
+    coverage_path.write_text(
+        json.dumps({"status": "on_track", "overall_coverage": 0.92}),
+        encoding="utf-8",
+    )
+    plan_output = tmp_path / "projects_sync_plan.json"
+
+    rc = main(
+        [
+            "projects-sync",
+            "--next-steps",
+            str(next_steps_path),
+            "--coverage",
+            str(coverage_path),
+            "--project-owner",
+            "acme",
+            "--project-number",
+            "7",
+            "--status-field",
+            "Status",
+            "--plan-output",
+            str(plan_output),
+        ]
+    )
+
+    assert rc == 0
+    payload = json.loads(plan_output.read_text())
+    assert payload["status"] == "on_track"
+    assert "Frontier Apex status" in capsys.readouterr().out
+
+
 def test_cli_projects_status_respects_quiet(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
