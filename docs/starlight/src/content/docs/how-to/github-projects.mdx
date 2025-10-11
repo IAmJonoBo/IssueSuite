@@ -194,6 +194,26 @@ sequenceDiagram
     Sync-->>User: Summary with project updates
 ```
 
+## Frontier Apex automation
+
+IssueSuite ships CLI harnesses that mirror the nightly governance dashboards. Use `issuesuite projects-sync` to render the JSON payload that powers the GitHub Projects status item alongside the Markdown comment that surfaces in async updates:
+
+```bash
+issuesuite projects-sync \
+  --next-steps Next_Steps.md \
+  --coverage coverage_projects_payload.json \
+  --project-owner acme \
+  --project-number 7 \
+  --status-field Status \
+  --plan-output projects_sync_plan.json \
+  --comment-output projects_sync_comment.md
+```
+
+- The command is idempotent. In dry-run mode (`--apply` omitted) it reports the calculated status without mutating GitHub.
+- When `--apply` is present, the sync automatically creates the dashboard draft item if it does not already exist, then updates the configured status, coverage, and summary fields.
+- The CLI emits a structured payload on stdout and prints `created_item=True` when a new draft item is provisioned so automated checks can detect onboarding scenarios.
+- Pair the CLI with `issuesuite projects-status` to export the same summary without contacting GitHub.
+
 ## Error handling
 
 ### Missing field options

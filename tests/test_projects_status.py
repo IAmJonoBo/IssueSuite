@@ -4,12 +4,17 @@ import json
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+import pytest
+
 from issuesuite.projects_status import (
+    ProjectsStatusError,
     TaskEntry,
     combine_status,
     generate_report,
+    load_coverage_payload,
     parse_tasks,
     render_comment,
+    serialize_report,
     summarize_tasks,
 )
 
@@ -195,3 +200,53 @@ def test_render_comment_includes_sections() -> None:
     assert "Overdue task" in comment
     assert "Due soon task" in comment
     assert comment.startswith("❌")
+
+
+def test_serialize_report_converts_entries() -> None:
+    task = TaskEntry(
+        raw="- [ ] **Owner:** Maintainers — Task",
+        completed=False,
+        owner="Maintainers",
+        due=date(2025, 10, 12),
+        description="Task",
+    )
+    report = {
+        "status": "on_track",
+        "emoji": "✅",
+        "tasks": {
+            "entries": [task],
+            "overdue": [task],
+            "due_soon": [],
+            "open_count": 1,
+            "overdue_count": 1,
+            "due_soon_count": 0,
+        },
+    }
+
+    serialized = serialize_report(report)
+
+    assert serialized["tasks"]["entries"][0]["owner"] == "Maintainers"
+    assert serialized["tasks"]["overdue"][0]["due"] == "2025-10-12"
+    assert serialized["tasks"]["open_count"] == 1
+
+
+def test_load_coverage_payload_handles_absent(tmp_path: Path) -> None:
+    payload = load_coverage_payload(tmp_path / "missing.json")
+
+    assert payload is None
+
+
+def test_load_coverage_payload_requires_object(tmp_path: Path) -> None:
+    path = tmp_path / "payload.json"
+    path.write_text("[]", encoding="utf-8")
+
+    with pytest.raises(ProjectsStatusError):
+        load_coverage_payload(path)
+
+
+def test_load_coverage_payload_validates_json(tmp_path: Path) -> None:
+    path = tmp_path / "payload.json"
+    path.write_text("not-json", encoding="utf-8")
+
+    with pytest.raises(ProjectsStatusError):
+        load_coverage_payload(path)

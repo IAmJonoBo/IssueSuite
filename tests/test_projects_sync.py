@@ -36,6 +36,23 @@ def test_build_config_defaults_and_mapping() -> None:
     assert config.status_mapping["off_track"] == "Red"
 
 
+def test_build_config_rejects_invalid_owner_type() -> None:
+    with pytest.raises(ProjectsSyncError):
+        build_config(
+            owner="acme",
+            project_number=1,
+            owner_type="team",
+            item_title=None,
+            status_field=None,
+            status_mapping=None,
+            coverage_field=None,
+            summary_field=None,
+            comment_repo=None,
+            comment_issue=None,
+            token=None,
+        )
+
+
 def test_sync_projects_dry_run_preview(tmp_path: Path) -> None:
     next_steps_path = tmp_path / "Next Steps.md"
     next_steps_path.write_text(
@@ -170,6 +187,11 @@ def test_apply_project_update_with_mocked_http(
                                 "name": "Coverage %",
                                 "dataType": "NUMBER",
                             },
+                            {
+                                "id": "FIELD_SUMMARY",
+                                "name": "Summary",
+                                "dataType": "TEXT",
+                            },
                         ]
                     },
                     "items": {"nodes": [{"id": "ITEM_123", "title": "IssueSuite Health"}]},
@@ -189,6 +211,7 @@ def test_apply_project_update_with_mocked_http(
         metadata_response,
         update_response,
         update_response,
+        update_response,
     ]
 
     next_steps_path = tmp_path / "Next Steps.md"
@@ -196,7 +219,13 @@ def test_apply_project_update_with_mocked_http(
 
     coverage_payload = tmp_path / "coverage_projects_payload.json"
     coverage_payload.write_text(
-        json.dumps({"status": "on_track", "overall_coverage": 0.9}),
+        json.dumps(
+            {
+                "status": "on_track",
+                "overall_coverage": 0.9,
+                "message": "Coverage 90% (target 85%)",
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -208,7 +237,7 @@ def test_apply_project_update_with_mocked_http(
         status_field="Status",
         status_mapping=["on_track=Green"],
         coverage_field="Coverage %",
-        summary_field=None,
+        summary_field="Summary",
         comment_repo=None,
         comment_issue=None,
         token="ghp_test_token",
@@ -223,7 +252,106 @@ def test_apply_project_update_with_mocked_http(
 
     assert result["project"]["enabled"] is True
     assert result["project"]["dry_run"] is False
-    assert mock_session.post.call_count >= 2
+    assert result["project"].get("created_item") is False
+    assert mock_session.post.call_count == 4
+    # Last update should target the summary field text mutation
+    summary_call = mock_session.post.call_args_list[-1]
+    summary_payload = summary_call.kwargs["json"]
+    assert summary_payload["variables"]["fieldId"] == "FIELD_SUMMARY"
+
+
+@patch("requests.Session")
+def test_apply_project_update_creates_item_when_missing(
+    mock_session_class: MagicMock, tmp_path: Path
+) -> None:
+    """Ensure the sync flow creates the Frontier Apex item when absent."""
+
+    mock_session = MagicMock()
+    mock_session_class.return_value = mock_session
+
+    metadata_response = MagicMock()
+    metadata_response.status_code = 200
+    metadata_response.json.return_value = {
+        "data": {
+            "organization": {
+                "projectV2": {
+                    "id": "PROJECT_123",
+                    "title": "Test Project",
+                    "fields": {
+                        "nodes": [
+                            {
+                                "id": "FIELD_STATUS",
+                                "name": "Status",
+                                "dataType": "SINGLE_SELECT",
+                                "options": {
+                                    "nodes": [
+                                        {"id": "OPT_GREEN", "name": "Green"},
+                                    ]
+                                },
+                            }
+                        ]
+                    },
+                    "items": {"nodes": []},
+                }
+            }
+        }
+    }
+
+    create_item_response = MagicMock()
+    create_item_response.status_code = 200
+    create_item_response.json.return_value = {
+        "data": {
+            "addProjectV2ItemByTitle": {"item": {"id": "ITEM_NEW"}}
+        }
+    }
+
+    update_response = MagicMock()
+    update_response.status_code = 200
+    update_response.json.return_value = {
+        "data": {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "ITEM_NEW"}}}
+    }
+
+    mock_session.post.side_effect = [
+        metadata_response,
+        create_item_response,
+        update_response,
+    ]
+
+    next_steps_path = tmp_path / "Next Steps.md"
+    next_steps_path.write_text("# Next Steps\n\n## Tasks\n\n- [ ] Item\n", encoding="utf-8")
+
+    coverage_payload = tmp_path / "coverage_projects_payload.json"
+    coverage_payload.write_text(
+        json.dumps({"status": "on_track", "overall_coverage": 0.91}),
+        encoding="utf-8",
+    )
+
+    config = build_config(
+        owner="acme",
+        project_number=7,
+        owner_type="organization",
+        item_title="IssueSuite Health",
+        status_field="Status",
+        status_mapping=["on_track=Green"],
+        coverage_field=None,
+        summary_field=None,
+        comment_repo=None,
+        comment_issue=None,
+        token="ghp_test_token",
+    )
+
+    result = sync_projects(
+        config=config,
+        next_steps_paths=[next_steps_path],
+        coverage_payload_path=coverage_payload,
+        apply=True,
+    )
+
+    assert result["project"]["updated"] is True
+    assert result["project"]["created_item"] is True
+    assert mock_session.post.call_count == 3
+    create_payload = mock_session.post.call_args_list[1][1]["json"]["query"]
+    assert "addProjectV2ItemByTitle" in create_payload
 
 
 @patch("requests.Session")

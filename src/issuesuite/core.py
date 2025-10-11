@@ -62,20 +62,30 @@ def _plan_match_issue(spec: IssueSpec, existing: list[dict[str, Any]]) -> dict[s
         title = issue.get("title")
         if title == spec.title:
             return issue
-        if spec.external_id in (title or "") and re.sub(
-            r"\s+", " ", (title or "").lower()
-        ) == re.sub(r"\s+", " ", spec.title.lower()):
+        normalized_title = re.sub(r"\s+", " ", (title or "").lower())
+        normalized_spec = re.sub(r"\s+", " ", spec.title.lower())
+        if normalized_title == normalized_spec:
             return issue
+        title_lower = (title or "").lower()
+        if spec.external_id and spec.external_id in title_lower:
+            stripped = title_lower.replace(spec.external_id, " ")
+            stripped = re.sub(r"[()\[\]{}:_]+", " ", stripped)
+            stripped = re.sub(r"\s+", " ", stripped).strip()
+            if stripped == normalized_spec:
+                return issue
     return None
 
 
 def _plan_changes(spec: IssueSpec, issue: dict[str, Any]) -> dict[str, int]:
     diff = compute_diff(spec, issue)
+    milestone_changed = 1 if diff.get("milestone_changed") else 0
+    if not milestone_changed and ("milestone_from" in diff or "milestone_to" in diff):
+        milestone_changed = 1
     return {
         "labels_added": len(diff.get("labels_added", [])),
         "labels_removed": len(diff.get("labels_removed", [])),
         "body_changed": 1 if diff.get("body_changed") else 0,
-        "milestone_changed": 1 if diff.get("milestone_changed") else 0,
+        "milestone_changed": milestone_changed,
     }
 
 
