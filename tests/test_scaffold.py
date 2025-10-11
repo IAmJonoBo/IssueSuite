@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from issuesuite.scaffold import scaffold_project
+from issuesuite.scaffold import scaffold_project, write_vscode_assets
 
 
 def test_scaffold_project_creates_core_files(tmp_path: Path) -> None:
@@ -36,9 +36,11 @@ def test_scaffold_project_handles_extras_and_skips(tmp_path: Path) -> None:
 
     workflow_path = tmp_path / ".github/workflows/issuesuite-sync.yml"
     tasks_path = tmp_path / ".vscode/tasks.json"
+    launch_path = tmp_path / ".vscode/launch.json"
+    settings_path = tmp_path / ".vscode/settings.json"
     gitignore_path = tmp_path / ".gitignore"
 
-    for path in (workflow_path, tasks_path, gitignore_path):
+    for path in (workflow_path, tasks_path, launch_path, settings_path, gitignore_path):
         assert path in result.created
         assert path.exists()
 
@@ -54,3 +56,17 @@ def test_scaffold_project_force_overwrites(tmp_path: Path) -> None:
 
     assert issues_path in result.created
     assert "## [slug: example-task]" in issues_path.read_text(encoding="utf-8")
+
+
+def test_write_vscode_assets_detects_drift(tmp_path: Path) -> None:
+    tasks_path = tmp_path / ".vscode" / "tasks.json"
+    tasks_path.parent.mkdir(parents=True, exist_ok=True)
+    tasks_path.write_text("{}", encoding="utf-8")
+
+    result = write_vscode_assets(tmp_path, assets=("tasks",))
+    assert tasks_path in result.needs_update
+    assert tasks_path in result.skipped
+
+    forced = write_vscode_assets(tmp_path, assets=("tasks",), force=True)
+    assert tasks_path in forced.updated
+    assert tasks_path not in forced.needs_update
