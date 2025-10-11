@@ -1,13 +1,17 @@
 ---
-import Layout from "@astrojs/starlight/components/Layout.astro";
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
 import CardGrid from "../../components/CardGrid.astro";
-import Footer from "../../components/Footer.astro";
 import { getCollection } from "astro:content";
 
 const landingSlug = "project-overview";
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const withBasePath = (path: string) => `${basePath}${path}`;
+const frontmatter = {
+  title: "IssueSuite Project Hub",
+  description: "Launch IssueSuite with governance-first defaults, resilient sync automation, and observability you can trust.",
+  template: "doc",
+};
 const landingDocs = (await getCollection("docs", ({ data }) => data.landingPages?.includes(landingSlug)))
   .sort((a, b) => {
     const aDate = a.data.pubDate ?? "";
@@ -30,12 +34,7 @@ const readingList =
   readingEntries.find((entry) => entry.id === "what-were-reading" || entry.id.endsWith("/what-were-reading"))?.data.items ?? [];
 ---
 
-<Layout
-  title="IssueSuite Project Hub"
-  pageTitle="IssueSuite Project Hub"
-  description="Your launchpad for IssueSuite documentation, guides, and governance resources."
-  hasSidebar={false}
->
+<StarlightPage frontmatter={frontmatter} hasSidebar={false}>
   <div class="hero sl-container">
     <div class="hero__eyebrow">Project overview</div>
     <h1>Ship deterministic IssueSuite workflows</h1>
@@ -106,9 +105,7 @@ const readingList =
       <li><a href={withBasePath("/docs/how-to/docs-automation/")}>Adopt the documentation automation pipeline</a></li>
     </ul>
   </section>
-
-  <Footer />
-</Layout>
+</StarlightPage>
 
 <style>
   :global(:root) {

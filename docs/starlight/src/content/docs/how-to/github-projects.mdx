@@ -121,7 +121,7 @@ Projects API supports these field types:
 
 IssueSuite caches project field metadata in `.issuesuite_cache/` to reduce API calls:
 
-```
+```text
 .issuesuite_cache/
 └── project_42_fields.json
 ```
@@ -206,7 +206,7 @@ priority: Critical # But only High/Medium/Low exist
 
 IssueSuite logs a warning and skips that field update:
 
-```
+```text
 WARN: Option 'Critical' not found in field 'Priority' (api-timeout-fix)
 ```
 
@@ -221,7 +221,7 @@ field_mappings:
 
 The sync logs an error and continues:
 
-```
+```text
 ERROR: Field 'Nonexistent' not found in project 42
 ```
 
@@ -229,7 +229,7 @@ ERROR: Field 'Nonexistent' not found in project 42
 
 If your token lacks project access:
 
-```
+```text
 ERROR: Failed to fetch project fields: Resource not accessible by integration
 ```
 
