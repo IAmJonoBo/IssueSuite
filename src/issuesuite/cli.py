@@ -87,6 +87,15 @@ class _FormatterArgumentParser(argparse.ArgumentParser):
         super().__init__(*args, **kwargs)
 
 
+def _should_print(args: argparse.Namespace | None = None) -> bool:
+    """Check if output should be printed (respecting quiet mode)."""
+    if os.environ.get("ISSUESUITE_QUIET") == "1":
+        return False
+    if args is not None and getattr(args, "quiet", False):
+        return False
+    return True
+
+
 def _build_parser() -> argparse.ArgumentParser:
     """Construct top-level CLI parser with subcommands.
 
@@ -442,7 +451,7 @@ def _cmd_export(cfg: SuiteConfig, args: argparse.Namespace) -> int:
         json.dumps(data, indent=2 if args.pretty else None) + ("\n" if args.pretty else "")
     )
 
-    if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+    if _should_print(args):
         print_success(f"Exported {len(data)} issues to {out_path}")
     else:
         print(f"[export] {len(data)} issues -> {out_path}")
@@ -456,7 +465,7 @@ def _cmd_summary(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     suite = IssueSuite(cfg)
     specs = suite.parse()
 
-    if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+    if _should_print(args):
         print_header(f"Issue Summary ({len(specs)} total)")
     else:
         print(f"Total: {len(specs)}")
@@ -466,7 +475,7 @@ def _cmd_summary(cfg: SuiteConfig, args: argparse.Namespace) -> int:
         print("[ai-mode] ai_mode=1 dry_run=True (forced)")
 
     for s in specs[: args.limit]:
-        if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+        if _should_print(args):
             slug = colorize(s.external_id, Colors.CYAN, bold=True)
             hash_str = colorize(s.hash[:8] if s.hash else "", Colors.DIM)
             title = s.title[:70]
@@ -476,7 +485,7 @@ def _cmd_summary(cfg: SuiteConfig, args: argparse.Namespace) -> int:
 
     if len(specs) > args.limit:
         remaining = len(specs) - args.limit
-        if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+        if _should_print(args):
             msg = colorize(f"... ({remaining} more)", Colors.DIM)
             print(f"  {msg}")
         else:
@@ -520,7 +529,7 @@ def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     plan_path = _resolve_plan_path(cfg, args)
 
     # Show operation start
-    if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+    if _should_print(args):
         mode = "DRY RUN" if args.dry_run else ("READ-ONLY" if not args.update else "LIVE")
         print_operation_status("sync", "starting", f"mode={mode}")
 
@@ -536,7 +545,7 @@ def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     totals = summary.get("totals") if isinstance(summary, dict) else None
     if isinstance(totals, dict):
         # Enhanced summary output
-        if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+        if _should_print(args):
             items = [
                 ("Parsed specs", totals.get("parsed", 0)),
                 ("Created", totals.get("created", 0)),
@@ -552,7 +561,7 @@ def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     _write_plan_json(plan_path, summary)
     args._plugin_payload = {"summary": summary}
 
-    if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+    if _should_print(args):
         print_operation_status("sync", "completed")
 
     return 0
@@ -580,7 +589,7 @@ def _cmd_schema(cfg: SuiteConfig, args: argparse.Namespace) -> int:
             )
             files_written.append(cfg.schema_ai_context_file)
 
-        if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+        if _should_print(args):
             print_success(f"Generated {len(files_written)} schema file(s)")
             for f in files_written:
                 print(f"  • {f}")
@@ -671,6 +680,8 @@ def _setup_vscode(*, force: bool = False) -> ScaffoldResult:
             "  - Tasks for common IssueSuite operations",
             "  - Expanded debug configurations for sync, security, and guided setup",
             "  - YAML + JSON schema associations for IssueSuite configs and artifacts",
+            "  - Debug configurations for the IssueSuite CLI",
+            "  - YAML schema associations for IssueSuite specs",
             "  - Python environment defaults for local .venv usage",
             "  - Safe re-run support via --force to refresh templates",
         ]
