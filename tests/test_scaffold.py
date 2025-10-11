@@ -36,9 +36,11 @@ def test_scaffold_project_handles_extras_and_skips(tmp_path: Path) -> None:
 
     workflow_path = tmp_path / ".github/workflows/issuesuite-sync.yml"
     tasks_path = tmp_path / ".vscode/tasks.json"
+    launch_path = tmp_path / ".vscode/launch.json"
+    settings_path = tmp_path / ".vscode/settings.json"
     gitignore_path = tmp_path / ".gitignore"
 
-    for path in (workflow_path, tasks_path, gitignore_path):
+    for path in (workflow_path, tasks_path, launch_path, settings_path, gitignore_path):
         assert path in result.created
         assert path.exists()
 

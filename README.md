@@ -79,7 +79,9 @@ This creates:
 
 - `issue_suite.config.yaml` — Configuration file
 - `ISSUES.md` — Starter issue specifications
-- `.vscode/tasks.json` — VS Code tasks for common operations
+- `.vscode/tasks.json` — VS Code tasks for common IssueSuite operations
+- `.vscode/launch.json` — Debug configurations for the CLI
+- `.vscode/settings.json` — YAML schema + Python defaults for the workspace
 - `.github/workflows/` — CI workflow templates
 - `.gitignore` updates — Artifact exclusions
 
@@ -270,14 +272,14 @@ Generate a starter `.env` file:
 issuesuite setup --create-env
 ```
 
-Scaffold VS Code tasks in an existing workspace:
+Scaffold VS Code automation in an existing workspace:
 
 ```bash
 issuesuite setup --vscode
 ```
 
-The command writes `.vscode/tasks.json` with ready-to-run IssueSuite tasks (validate, dry-run sync, full sync).
-It skips creation when the file already exists.
+The command writes `.vscode/tasks.json`, `.vscode/launch.json`, and `.vscode/settings.json` with ready-to-run defaults.
+Existing files are skipped unless you pass `--force` via `issuesuite init`.
 
 ## Offline/Hermetic Deployment
 

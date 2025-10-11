@@ -209,16 +209,31 @@ def test_cli_setup_vscode_scaffolds_tasks(
     assert rc == 0
 
     tasks_path = tmp_path / ".vscode" / "tasks.json"
-    assert tasks_path.exists()
+    launch_path = tmp_path / ".vscode" / "launch.json"
+    settings_path = tmp_path / ".vscode" / "settings.json"
 
-    data = json.loads(tasks_path.read_text(encoding="utf-8"))
-    assert data["version"] == "2.0.0"
-    labels = {task["label"] for task in data["tasks"]}
+    assert tasks_path.exists()
+    assert launch_path.exists()
+    assert settings_path.exists()
+
+    task_data = json.loads(tasks_path.read_text(encoding="utf-8"))
+    assert task_data["version"] == "2.0.0"
+    labels = {task["label"] for task in task_data["tasks"]}
     assert "IssueSuite: Dry-run Sync" in labels
     assert "IssueSuite: Validate" in labels
 
+    launch_data = json.loads(launch_path.read_text(encoding="utf-8"))
+    assert launch_data["version"] == "0.2.0"
+    assert any(cfg.get("module") == "issuesuite" for cfg in launch_data["configurations"])
+
+    settings_data = json.loads(settings_path.read_text(encoding="utf-8"))
+    assert settings_data["python.defaultInterpreterPath"] == "${workspaceFolder}/.venv/bin/python"
+    assert "yaml.schemas" in settings_data
+
     first_run_output = capsys.readouterr().out
     assert "[setup] created .vscode/tasks.json" in first_run_output
+    assert "[setup] created .vscode/launch.json" in first_run_output
+    assert "[setup] created .vscode/settings.json" in first_run_output
 
     rc = main(["setup", "--vscode"])
 
@@ -226,6 +241,8 @@ def test_cli_setup_vscode_scaffolds_tasks(
 
     second_run_output = capsys.readouterr().out
     assert "[setup] skipped (exists) .vscode/tasks.json" in second_run_output
+    assert "[setup] skipped (exists) .vscode/launch.json" in second_run_output
+    assert "[setup] skipped (exists) .vscode/settings.json" in second_run_output
 
 def test_cli_doctor_reports_warnings_and_problems(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]

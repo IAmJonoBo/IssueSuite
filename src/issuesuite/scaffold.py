@@ -157,6 +157,75 @@ VSCODE_TASKS_TEMPLATE = textwrap.dedent(
     """
 ).lstrip()
 
+VSCODE_LAUNCH_TEMPLATE = textwrap.dedent(
+    """
+    {
+      "version": "0.2.0",
+      "configurations": [
+        {
+          "name": "IssueSuite: Dry-run Sync",
+          "type": "python",
+          "request": "launch",
+          "module": "issuesuite",
+          "args": [
+            "sync",
+            "--dry-run",
+            "--update",
+            "--config",
+            "issue_suite.config.yaml"
+          ],
+          "justMyCode": false,
+          "console": "integratedTerminal"
+        },
+        {
+          "name": "IssueSuite: Validate",
+          "type": "python",
+          "request": "launch",
+          "module": "issuesuite",
+          "args": [
+            "validate",
+            "--config",
+            "issue_suite.config.yaml"
+          ],
+          "console": "integratedTerminal",
+          "justMyCode": false
+        }
+      ]
+    }
+    """
+).lstrip()
+
+VSCODE_SETTINGS_TEMPLATE = textwrap.dedent(
+    """
+    {
+      "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+      "python.envFile": "${workspaceFolder}/.env",
+      "python.testing.pytestEnabled": true,
+      "python.testing.pytestArgs": [
+        "tests"
+      ],
+      "yaml.schemas": {
+        "./issue_suite.schema.json": [
+          "issue_suite.config.yaml",
+          "**/.issuesuite/**/*.yaml"
+        ],
+        "./ai_context.schema.json": [
+          "**/.issuesuite/**/*.json"
+        ]
+      },
+      "files.watcherExclude": {
+        "**/.issuesuite/**": true
+      },
+      "search.exclude": {
+        "**/.issuesuite/**": true,
+        "issues_summary.json": true,
+        "issues_plan.json": true,
+        "issues_export.json": true
+      }
+    }
+    """
+).lstrip()
+
 GITIGNORE_TEMPLATE = textwrap.dedent(
     """
     # IssueSuite artifacts
@@ -189,7 +258,6 @@ def _iter_optional_templates(include: Iterable[str]) -> list[tuple[str, str, str
             WORKFLOW_TEMPLATE,
             "GitHub workflow",
         ),
-        "vscode": (".vscode/tasks.json", VSCODE_TASKS_TEMPLATE, "VS Code tasks"),
         "gitignore": (".gitignore", GITIGNORE_TEMPLATE, ".gitignore entries"),
     }
     results: list[tuple[str, str, str]] = []
@@ -199,27 +267,45 @@ def _iter_optional_templates(include: Iterable[str]) -> list[tuple[str, str, str
     return results
 
 
-def write_vscode_tasks(directory: Path, *, force: bool = False) -> ScaffoldResult:
-    """Ensure VS Code task definitions exist under *directory*.
+_VSCODE_ASSET_TEMPLATES: dict[str, tuple[str, str]] = {
+    "tasks": (".vscode/tasks.json", VSCODE_TASKS_TEMPLATE),
+    "launch": (".vscode/launch.json", VSCODE_LAUNCH_TEMPLATE),
+    "settings": (".vscode/settings.json", VSCODE_SETTINGS_TEMPLATE),
+}
 
-    Parameters
-    ----------
-    directory:
-        Workspace root directory where `.vscode/tasks.json` should be written.
-    force:
-        Overwrite existing tasks when ``True``.
-    """
+_DEFAULT_VSCODE_ASSETS: tuple[str, ...] = ("tasks", "launch", "settings")
 
-    target = (directory / ".vscode" / "tasks.json").resolve()
+
+def write_vscode_assets(
+    directory: Path,
+    *,
+    force: bool = False,
+    assets: Iterable[str] | None = None,
+) -> ScaffoldResult:
+    """Ensure VS Code assets exist under *directory*."""
+
+    selected = list(dict.fromkeys(assets or _DEFAULT_VSCODE_ASSETS))
     created: list[Path] = []
     skipped: list[Path] = []
 
-    if _write_if_needed(target, VSCODE_TASKS_TEMPLATE, force):
-        created.append(target)
-    else:
-        skipped.append(target)
+    for asset in selected:
+        template_info = _VSCODE_ASSET_TEMPLATES.get(asset)
+        if not template_info:
+            continue
+        rel_path, template = template_info
+        target = (directory / rel_path).resolve()
+        if _write_if_needed(target, template, force):
+            created.append(target)
+        else:
+            skipped.append(target)
 
     return ScaffoldResult(created=created, skipped=skipped)
+
+
+def write_vscode_tasks(directory: Path, *, force: bool = False) -> ScaffoldResult:
+    """Ensure VS Code task definitions exist under *directory*."""
+
+    return write_vscode_assets(directory, force=force, assets=("tasks",))
 
 
 def scaffold_project(
@@ -242,6 +328,7 @@ def scaffold_project(
         Overwrite existing files when true.
     include:
         Optional iterable of extras ("workflow", "vscode", "gitignore").
+        Selecting "vscode" writes tasks, launch, and settings files.
     """
 
     directory.mkdir(parents=True, exist_ok=True)
@@ -263,7 +350,12 @@ def scaffold_project(
         skipped.append(issues_path)
 
     extras = include or []
-    for rel_path, template, _label in _iter_optional_templates(extras):
+    if "vscode" in extras:
+        vscode_result = write_vscode_assets(directory, force=force)
+        created.extend(vscode_result.created)
+        skipped.extend(vscode_result.skipped)
+    filtered_extras = [item for item in extras if item != "vscode"]
+    for rel_path, template, _label in _iter_optional_templates(filtered_extras):
         target = directory / rel_path
         if _write_if_needed(target, template, force):
             created.append(target)
@@ -273,4 +365,9 @@ def scaffold_project(
     return ScaffoldResult(created=created, skipped=skipped)
 
 
-__all__ = ["scaffold_project", "ScaffoldResult", "write_vscode_tasks"]
+__all__ = [
+    "scaffold_project",
+    "ScaffoldResult",
+    "write_vscode_tasks",
+    "write_vscode_assets",
+]

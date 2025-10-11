@@ -61,6 +61,11 @@ from issuesuite.projects_status import (
 )
 from issuesuite.reconcile import format_report, reconcile
 from issuesuite.runtime import execute_command, prepare_config
+from issuesuite.scaffold import (
+    ScaffoldResult,
+    scaffold_project,
+    write_vscode_assets,
+)
 from issuesuite.scaffold import ScaffoldResult, scaffold_project, write_vscode_tasks
 from issuesuite.schemas import get_schemas
 from issuesuite.setup_wizard import run_guided_setup
@@ -616,7 +621,7 @@ def _setup_vscode() -> ScaffoldResult:
     else:
         print("[setup] Creating VS Code integration files...")
 
-    result = write_vscode_tasks(workspace)
+    result = write_vscode_assets(workspace)
 
     if result.created:
         print("[setup] VS Code files should be committed to your repository")
@@ -638,9 +643,9 @@ def _setup_vscode() -> ScaffoldResult:
         [
             "[setup] VS Code integration includes:",
             "  - Tasks for common IssueSuite operations",
-            "  - Debug configurations",
-            "  - YAML schema associations for config files",
-            "  - Python environment configuration",
+            "  - Debug configurations for the IssueSuite CLI",
+            "  - YAML schema associations for IssueSuite specs",
+            "  - Python environment defaults for local .venv usage",
         ]
     )
     return result
