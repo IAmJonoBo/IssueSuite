@@ -19,6 +19,10 @@ pip install -e '.[dev,all]'
 issuesuite setup --create-env --check-auth --vscode
 ```
 
+> ℹ️  Re-run with `--force` (`issuesuite setup --vscode --force`) to refresh the shipped
+> VS Code templates if you've customised or drifted from the defaults. JSON files are
+> normalised automatically, so whitespace-only edits won't trigger drift warnings.
+
 1. Open VS Code in your project directory:
 
 ```bash
