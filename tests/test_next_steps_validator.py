@@ -90,3 +90,25 @@ def test_validate_next_steps_rejects_table_missing_keywords(tmp_path: Path) -> N
     with pytest.raises(ValueError) as exc:
         validate_next_steps([table_path])
     assert "coverage ≥80" in str(exc.value)
+
+
+def test_validate_next_steps_handles_missing_file(tmp_path: Path) -> None:
+    missing = tmp_path / "Next Steps.md"
+    with pytest.raises(ValueError) as exc:
+        validate_next_steps([missing])
+    assert "does not exist" in str(exc.value)
+
+
+def test_validate_next_steps_defaults_resolve_paths(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    tracker = tmp_path / "Next Steps.md"
+    tracker.write_text(_baseline_content(), encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    # Should not raise when defaults locate the tracker automatically.
+    validate_next_steps()
+
+
+def test_validate_next_steps_defaults_missing(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(ValueError) as exc:
+        validate_next_steps()
+    assert "No Next Steps files" in str(exc.value)

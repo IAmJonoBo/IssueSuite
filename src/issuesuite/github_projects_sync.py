@@ -80,7 +80,7 @@ class _ProjectField:
 @dataclass(frozen=True)
 class _ProjectMetadata:
     project_id: str
-    item_id: str
+    item_id: str | None
     fields: dict[str, _ProjectField]
 
 
@@ -251,6 +251,19 @@ def _apply_project_update(config: ProjectsSyncConfig, plan: Mapping[str, Any]) -
     session = _create_session(config.token or "")
     metadata = _fetch_project_metadata(session, config)
 
+    item_id = metadata.item_id
+    created_item = False
+    if item_id is None:
+        title = config.item_title
+        if not title:
+            raise ProjectsSyncError("Project item title required to create status entry")
+        item_id = _create_project_item(
+            session,
+            project_id=metadata.project_id,
+            title=title,
+        )
+        created_item = True
+
     status = str(plan.get("status") or "").casefold()
     status_label = config.status_mapping.get(status)
     if status_label is None:
@@ -266,7 +279,7 @@ def _apply_project_update(config: ProjectsSyncConfig, plan: Mapping[str, Any]) -
         _update_single_select_field(
             session,
             project_id=metadata.project_id,
-            item_id=metadata.item_id,
+            item_id=item_id,
             field=_resolve_field(metadata, config.status_field),
             label=status_label,
         )
@@ -274,7 +287,7 @@ def _apply_project_update(config: ProjectsSyncConfig, plan: Mapping[str, Any]) -
         _update_number_field(
             session,
             project_id=metadata.project_id,
-            item_id=metadata.item_id,
+            item_id=item_id,
             field=_resolve_field(metadata, config.coverage_field),
             value=coverage_percent,
         )
@@ -282,7 +295,7 @@ def _apply_project_update(config: ProjectsSyncConfig, plan: Mapping[str, Any]) -
         _update_text_field(
             session,
             project_id=metadata.project_id,
-            item_id=metadata.item_id,
+            item_id=item_id,
             field=_resolve_field(metadata, config.summary_field),
             value=summary,
         )
@@ -292,10 +305,11 @@ def _apply_project_update(config: ProjectsSyncConfig, plan: Mapping[str, Any]) -
         "updated": True,
         "dry_run": False,
         "project_id": metadata.project_id,
-        "item_id": metadata.item_id,
+        "item_id": item_id,
         "status": status,
         "status_label": status_label,
         "coverage_percent": coverage_percent,
+        "created_item": created_item,
     }
 
 
@@ -398,9 +412,6 @@ def _fetch_project_metadata(
                 if title.strip().casefold() == config.item_title.casefold():
                     item_id = candidate_id
                     break
-
-    if item_id is None:
-        item_id = _create_project_item(session, project_id=project_id, title=config.item_title)
 
     return _ProjectMetadata(project_id=project_id, item_id=item_id, fields=fields)
 

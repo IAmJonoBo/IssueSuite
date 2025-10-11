@@ -151,7 +151,7 @@ def test_cli_setup_vscode(tmp_path, capsys):
         captured = capsys.readouterr()
         assert "[setup] VS Code integration includes:" in captured.out
         assert "Tasks for common IssueSuite operations" in captured.out
-        assert "Debug configurations" in captured.out
+        assert "Expanded debug configurations" in captured.out
     finally:
         os.chdir(original_cwd)
 
