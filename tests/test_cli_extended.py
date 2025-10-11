@@ -272,6 +272,26 @@ def test_cli_setup_vscode_force_refresh(
     task_data = json.loads(tasks_path.read_text(encoding="utf-8"))
     assert task_data["version"] == "2.0.0"
 
+
+def test_cli_setup_vscode_handles_reformatted_assets(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["setup", "--vscode"]) == 0
+    capsys.readouterr()
+
+    tasks_path = tmp_path / ".vscode" / "tasks.json"
+    canonical = json.loads(tasks_path.read_text(encoding="utf-8"))
+    tasks_path.write_text(json.dumps(canonical), encoding="utf-8")
+
+    assert main(["setup", "--vscode"]) == 0
+    rerun_output = capsys.readouterr().out
+    assert "[setup] already current .vscode/tasks.json" in rerun_output
+    assert "[setup] no VS Code files created or changed" in rerun_output
+
 def test_cli_doctor_reports_warnings_and_problems(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

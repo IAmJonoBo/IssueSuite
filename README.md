@@ -282,7 +282,8 @@ The command writes `.vscode/tasks.json`, `.vscode/launch.json`, and `.vscode/set
 Existing files are left untouched unless you pass `--force` to `issuesuite setup --vscode`
 or `issuesuite init --force`. When files differ from the shipped defaults, IssueSuite will
 flag the drift and offer to refresh templates with `--force` so manual customisations are
-never overwritten silently.
+never overwritten silently. Whitespace-only edits are ignored—the command normalises JSON
+before comparing—so you only see drift warnings when the underlying configuration changes.
 
 ## Offline/Hermetic Deployment
 

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import textwrap
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Literal
 
 CONFIG_TEMPLATE = textwrap.dedent(
     """
@@ -246,12 +248,37 @@ class ScaffoldResult:
     needs_update: list[Path] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class EditorAssetTemplate:
+    """Template metadata for editor automation assets."""
+
+    path: str
+    template: str
+    fmt: str = "text"
+
+    def normalized(self) -> str:
+        return _normalize_content(self.template, fmt=self.fmt)
+
+
 def _write_if_needed(path: Path, content: str, force: bool) -> bool:
     if path.exists() and not force:
         return False
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
     return True
+
+
+def _normalize_content(content: str, *, fmt: str) -> str:
+    if fmt == "json":
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError as exc:  # pragma: no cover - defensive guard
+            raise ValueError("invalid json") from exc
+        normalized = json.dumps(data, indent=2)
+        if not normalized.endswith("\n"):
+            normalized = f"{normalized}\n"
+        return normalized
+    return content
 
 
 def _iter_optional_templates(include: Iterable[str]) -> list[tuple[str, str, str]]:
@@ -270,13 +297,68 @@ def _iter_optional_templates(include: Iterable[str]) -> list[tuple[str, str, str
     return results
 
 
-_VSCODE_ASSET_TEMPLATES: dict[str, tuple[str, str]] = {
-    "tasks": (".vscode/tasks.json", VSCODE_TASKS_TEMPLATE),
-    "launch": (".vscode/launch.json", VSCODE_LAUNCH_TEMPLATE),
-    "settings": (".vscode/settings.json", VSCODE_SETTINGS_TEMPLATE),
+_VSCODE_ASSET_TEMPLATES: dict[str, EditorAssetTemplate] = {
+    "tasks": EditorAssetTemplate(
+        path=".vscode/tasks.json",
+        template=VSCODE_TASKS_TEMPLATE,
+        fmt="json",
+    ),
+    "launch": EditorAssetTemplate(
+        path=".vscode/launch.json",
+        template=VSCODE_LAUNCH_TEMPLATE,
+        fmt="json",
+    ),
+    "settings": EditorAssetTemplate(
+        path=".vscode/settings.json",
+        template=VSCODE_SETTINGS_TEMPLATE,
+        fmt="json",
+    ),
 }
 
 _DEFAULT_VSCODE_ASSETS: tuple[str, ...] = ("tasks", "launch", "settings")
+
+
+_AssetStatus = Literal["created", "updated", "unchanged", "needs_update"]
+
+
+def _sync_single_asset(
+    target: Path,
+    normalized_template: str,
+    *,
+    fmt: str,
+    force: bool,
+) -> _AssetStatus:
+    if not target.exists():
+        _write_if_needed(target, normalized_template, force=True)
+        return "created"
+
+    try:
+        existing = target.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        if force:
+            _write_if_needed(target, normalized_template, force=True)
+            return "updated"
+        return "needs_update"
+
+    try:
+        normalized_existing = _normalize_content(existing, fmt=fmt)
+    except ValueError:
+        if force:
+            _write_if_needed(target, normalized_template, force=True)
+            return "updated"
+        return "needs_update"
+
+    if normalized_existing == normalized_template:
+        if force and existing != normalized_template:
+            _write_if_needed(target, normalized_template, force=True)
+            return "updated"
+        return "unchanged"
+
+    if force:
+        _write_if_needed(target, normalized_template, force=True)
+        return "updated"
+
+    return "needs_update"
 
 
 def write_vscode_assets(
@@ -298,35 +380,25 @@ def write_vscode_assets(
         template_info = _VSCODE_ASSET_TEMPLATES.get(asset)
         if not template_info:
             continue
-        rel_path, template = template_info
+        rel_path = template_info.path
+        normalized_template = template_info.normalized()
         target = (directory / rel_path).resolve()
-        if not target.exists():
-            if _write_if_needed(target, template, force=True):
-                created.append(target)
-            continue
-
-        try:
-            existing = target.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            if force:
-                if _write_if_needed(target, template, force=True):
-                    updated.append(target)
-                continue
-            skipped.append(target)
-            needs_update.append(target)
-            continue
-        if existing == template:
+        status = _sync_single_asset(
+            target,
+            normalized_template,
+            fmt=template_info.fmt,
+            force=force,
+        )
+        if status == "created":
+            created.append(target)
+        elif status == "updated":
+            updated.append(target)
+        elif status == "unchanged":
             skipped.append(target)
             unchanged.append(target)
-            continue
-
-        if force:
-            if _write_if_needed(target, template, force=True):
-                updated.append(target)
-            continue
-
-        skipped.append(target)
-        needs_update.append(target)
+        else:  # "needs_update"
+            skipped.append(target)
+            needs_update.append(target)
 
     return ScaffoldResult(
         created=created,

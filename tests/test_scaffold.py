@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from issuesuite.scaffold import scaffold_project, write_vscode_assets
@@ -70,3 +71,23 @@ def test_write_vscode_assets_detects_drift(tmp_path: Path) -> None:
     forced = write_vscode_assets(tmp_path, assets=("tasks",), force=True)
     assert tasks_path in forced.updated
     assert tasks_path not in forced.needs_update
+
+
+def test_write_vscode_assets_accepts_reformatted_json(tmp_path: Path) -> None:
+    tasks_path = tmp_path / ".vscode" / "tasks.json"
+
+    initial = write_vscode_assets(tmp_path, assets=("tasks",))
+    assert tasks_path in initial.created
+
+    canonical_data = json.loads(tasks_path.read_text(encoding="utf-8"))
+    tasks_path.write_text(json.dumps(canonical_data), encoding="utf-8")
+
+    rerun = write_vscode_assets(tmp_path, assets=("tasks",))
+    assert tasks_path in rerun.unchanged
+    assert tasks_path in rerun.skipped
+
+    forced = write_vscode_assets(tmp_path, assets=("tasks",), force=True)
+    assert tasks_path in forced.updated
+    normalized_text = tasks_path.read_text(encoding="utf-8")
+    assert normalized_text.endswith("\n")
+    assert json.loads(normalized_text)["version"] == "2.0.0"
