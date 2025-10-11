@@ -66,7 +66,6 @@ from issuesuite.scaffold import (
     scaffold_project,
     write_vscode_assets,
 )
-from issuesuite.scaffold import ScaffoldResult, scaffold_project, write_vscode_tasks
 from issuesuite.schemas import get_schemas
 from issuesuite.setup_wizard import run_guided_setup
 
@@ -86,6 +85,15 @@ class _FormatterArgumentParser(argparse.ArgumentParser):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("formatter_class", _HelpFormatter)
         super().__init__(*args, **kwargs)
+
+
+def _should_print(args: argparse.Namespace | None = None) -> bool:
+    """Check if output should be printed (respecting quiet mode)."""
+    if os.environ.get("ISSUESUITE_QUIET") == "1":
+        return False
+    if args is not None and getattr(args, "quiet", False):
+        return False
+    return True
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -437,7 +445,7 @@ def _cmd_export(cfg: SuiteConfig, args: argparse.Namespace) -> int:
         json.dumps(data, indent=2 if args.pretty else None) + ("\n" if args.pretty else "")
     )
 
-    if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+    if _should_print(args):
         print_success(f"Exported {len(data)} issues to {out_path}")
     else:
         print(f"[export] {len(data)} issues -> {out_path}")
@@ -451,7 +459,7 @@ def _cmd_summary(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     suite = IssueSuite(cfg)
     specs = suite.parse()
 
-    if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+    if _should_print(args):
         print_header(f"Issue Summary ({len(specs)} total)")
     else:
         print(f"Total: {len(specs)}")
@@ -461,7 +469,7 @@ def _cmd_summary(cfg: SuiteConfig, args: argparse.Namespace) -> int:
         print("[ai-mode] ai_mode=1 dry_run=True (forced)")
 
     for s in specs[: args.limit]:
-        if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+        if _should_print(args):
             slug = colorize(s.external_id, Colors.CYAN, bold=True)
             hash_str = colorize(s.hash[:8] if s.hash else "", Colors.DIM)
             title = s.title[:70]
@@ -471,7 +479,7 @@ def _cmd_summary(cfg: SuiteConfig, args: argparse.Namespace) -> int:
 
     if len(specs) > args.limit:
         remaining = len(specs) - args.limit
-        if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+        if _should_print(args):
             msg = colorize(f"... ({remaining} more)", Colors.DIM)
             print(f"  {msg}")
         else:
@@ -515,7 +523,7 @@ def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     plan_path = _resolve_plan_path(cfg, args)
 
     # Show operation start
-    if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+    if _should_print(args):
         mode = "DRY RUN" if args.dry_run else ("READ-ONLY" if not args.update else "LIVE")
         print_operation_status("sync", "starting", f"mode={mode}")
 
@@ -531,7 +539,7 @@ def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     totals = summary.get("totals") if isinstance(summary, dict) else None
     if isinstance(totals, dict):
         # Enhanced summary output
-        if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+        if _should_print(args):
             items = [
                 ("Parsed specs", totals.get("parsed", 0)),
                 ("Created", totals.get("created", 0)),
@@ -547,7 +555,7 @@ def _cmd_sync(cfg: SuiteConfig, args: argparse.Namespace) -> int:
     _write_plan_json(plan_path, summary)
     args._plugin_payload = {"summary": summary}
 
-    if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+    if _should_print(args):
         print_operation_status("sync", "completed")
 
     return 0
@@ -575,7 +583,7 @@ def _cmd_schema(cfg: SuiteConfig, args: argparse.Namespace) -> int:
             )
             files_written.append(cfg.schema_ai_context_file)
 
-        if not args.quiet and not os.environ.get("ISSUESUITE_QUIET"):
+        if _should_print(args):
             print_success(f"Generated {len(files_written)} schema file(s)")
             for f in files_written:
                 print(f"  • {f}")
@@ -624,10 +632,6 @@ def _setup_vscode(*, force: bool = False) -> ScaffoldResult:
     if force:
         print("[setup] Rewriting VS Code integration files (force enabled)...")
     elif vscode_dir.exists():
-def _setup_vscode() -> ScaffoldResult:
-    workspace = Path.cwd()
-    vscode_dir = workspace / ".vscode"
-    if vscode_dir.exists():
         print("[setup] VS Code integration files already exist in .vscode/")
     else:
         print("[setup] Creating VS Code integration files...")
@@ -639,7 +643,6 @@ def _setup_vscode() -> ScaffoldResult:
             return path.relative_to(workspace)
         except ValueError:
             return path
-    result = write_vscode_assets(workspace)
 
     if result.created:
         print("[setup] VS Code files should be committed to your repository")
@@ -665,19 +668,6 @@ def _setup_vscode() -> ScaffoldResult:
     if not any([result.created, result.updated, result.needs_update]):
         print("[setup] no VS Code files created or changed")
 
-            try:
-                relative = path.relative_to(workspace)
-            except ValueError:
-                relative = path
-            print(f"[setup] created {relative}")
-    else:
-        for path in result.skipped:
-            try:
-                relative = path.relative_to(workspace)
-            except ValueError:
-                relative = path
-            print(f"[setup] skipped (exists) {relative}")
-        print("[setup] no VS Code files created (all existed)")
     _print_lines(
         [
             "[setup] VS Code integration includes:",
