@@ -279,7 +279,10 @@ issuesuite setup --vscode
 ```
 
 The command writes `.vscode/tasks.json`, `.vscode/launch.json`, and `.vscode/settings.json` with ready-to-run defaults.
-Existing files are skipped unless you pass `--force` via `issuesuite init`.
+Existing files are left untouched unless you pass `--force` to `issuesuite setup --vscode`
+or `issuesuite init --force`. When files differ from the shipped defaults, IssueSuite will
+flag the drift and offer to refresh templates with `--force` so manual customisations are
+never overwritten silently.
 
 ## Offline/Hermetic Deployment
 

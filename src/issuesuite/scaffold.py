@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import textwrap
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 CONFIG_TEMPLATE = textwrap.dedent(
@@ -241,6 +241,9 @@ GITIGNORE_TEMPLATE = textwrap.dedent(
 class ScaffoldResult:
     created: list[Path]
     skipped: list[Path]
+    updated: list[Path] = field(default_factory=list)
+    unchanged: list[Path] = field(default_factory=list)
+    needs_update: list[Path] = field(default_factory=list)
 
 
 def _write_if_needed(path: Path, content: str, force: bool) -> bool:
@@ -287,6 +290,9 @@ def write_vscode_assets(
     selected = list(dict.fromkeys(assets or _DEFAULT_VSCODE_ASSETS))
     created: list[Path] = []
     skipped: list[Path] = []
+    updated: list[Path] = []
+    unchanged: list[Path] = []
+    needs_update: list[Path] = []
 
     for asset in selected:
         template_info = _VSCODE_ASSET_TEMPLATES.get(asset)
@@ -294,12 +300,41 @@ def write_vscode_assets(
             continue
         rel_path, template = template_info
         target = (directory / rel_path).resolve()
-        if _write_if_needed(target, template, force):
-            created.append(target)
-        else:
-            skipped.append(target)
+        if not target.exists():
+            if _write_if_needed(target, template, force=True):
+                created.append(target)
+            continue
 
-    return ScaffoldResult(created=created, skipped=skipped)
+        try:
+            existing = target.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            if force:
+                if _write_if_needed(target, template, force=True):
+                    updated.append(target)
+                continue
+            skipped.append(target)
+            needs_update.append(target)
+            continue
+        if existing == template:
+            skipped.append(target)
+            unchanged.append(target)
+            continue
+
+        if force:
+            if _write_if_needed(target, template, force=True):
+                updated.append(target)
+            continue
+
+        skipped.append(target)
+        needs_update.append(target)
+
+    return ScaffoldResult(
+        created=created,
+        skipped=skipped,
+        updated=updated,
+        unchanged=unchanged,
+        needs_update=needs_update,
+    )
 
 
 def write_vscode_tasks(directory: Path, *, force: bool = False) -> ScaffoldResult:
@@ -334,6 +369,9 @@ def scaffold_project(
     directory.mkdir(parents=True, exist_ok=True)
     created: list[Path] = []
     skipped: list[Path] = []
+    updated: list[Path] = []
+    unchanged: list[Path] = []
+    needs_update: list[Path] = []
 
     config_path = directory / config_filename
     issues_path = directory / issues_filename
@@ -354,6 +392,9 @@ def scaffold_project(
         vscode_result = write_vscode_assets(directory, force=force)
         created.extend(vscode_result.created)
         skipped.extend(vscode_result.skipped)
+        updated.extend(vscode_result.updated)
+        unchanged.extend(vscode_result.unchanged)
+        needs_update.extend(vscode_result.needs_update)
     filtered_extras = [item for item in extras if item != "vscode"]
     for rel_path, template, _label in _iter_optional_templates(filtered_extras):
         target = directory / rel_path
@@ -362,7 +403,13 @@ def scaffold_project(
         else:
             skipped.append(target)
 
-    return ScaffoldResult(created=created, skipped=skipped)
+    return ScaffoldResult(
+        created=created,
+        skipped=skipped,
+        updated=updated,
+        unchanged=unchanged,
+        needs_update=needs_update,
+    )
 
 
 __all__ = [

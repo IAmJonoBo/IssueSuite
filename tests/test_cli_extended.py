@@ -240,9 +240,37 @@ def test_cli_setup_vscode_scaffolds_tasks(
     assert rc == 0
 
     second_run_output = capsys.readouterr().out
-    assert "[setup] skipped (exists) .vscode/tasks.json" in second_run_output
-    assert "[setup] skipped (exists) .vscode/launch.json" in second_run_output
-    assert "[setup] skipped (exists) .vscode/settings.json" in second_run_output
+    assert "[setup] already current .vscode/tasks.json" in second_run_output
+    assert "[setup] already current .vscode/launch.json" in second_run_output
+    assert "[setup] already current .vscode/settings.json" in second_run_output
+    assert "[setup] no VS Code files created or changed" in second_run_output
+
+
+def test_cli_setup_vscode_force_refresh(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["setup", "--vscode"]) == 0
+    capsys.readouterr()
+
+    tasks_path = tmp_path / ".vscode" / "tasks.json"
+    tasks_path.write_text("{}", encoding="utf-8")
+
+    assert main(["setup", "--vscode"]) == 0
+    second_output = capsys.readouterr().out
+    assert "[setup] differs from template .vscode/tasks.json" in second_output
+    assert "Run 'issuesuite setup --vscode --force'" in second_output
+    assert tasks_path.read_text(encoding="utf-8") == "{}"
+
+    assert main(["setup", "--vscode", "--force"]) == 0
+    forced_output = capsys.readouterr().out
+    assert "[setup] updated .vscode/tasks.json" in forced_output
+
+    task_data = json.loads(tasks_path.read_text(encoding="utf-8"))
+    assert task_data["version"] == "2.0.0"
 
 def test_cli_doctor_reports_warnings_and_problems(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
