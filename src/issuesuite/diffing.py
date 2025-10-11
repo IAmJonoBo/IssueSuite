@@ -52,7 +52,7 @@ def needs_update(spec: IssueSpec, issue: dict[str, Any], prev_hash: str | None) 
         return True
     desired_ms = spec.milestone or ""
     existing_ms = milestone_title(issue)
-    if desired_ms and desired_ms != existing_ms:
+    if desired_ms != existing_ms:
         return True
     body = (issue.get("body") or "").strip()
     return body != spec.body.strip()
@@ -66,7 +66,7 @@ def compute_diff(spec: IssueSpec, issue: dict[str, Any]) -> dict[str, Any]:
         d["labels_removed"] = sorted(existing_labels - set(spec.labels))
     desired_ms = spec.milestone or ""
     existing_ms = milestone_title(issue)
-    if desired_ms and desired_ms != existing_ms:
+    if desired_ms != existing_ms:
         d["milestone_from"] = existing_ms
         d["milestone_to"] = desired_ms
     old_body = (issue.get("body") or "").strip().splitlines()
