@@ -29,6 +29,8 @@ _slug_re = re.compile(r"^##\s*\[slug:\s*([a-z0-9][a-z0-9-_]*)\s*\]$", re.IGNOREC
 
 
 def _normalize_body(body_any: Any) -> str:
+    if body_any is None:
+        return "\n"
     if isinstance(body_any, list):
         return "\n".join(str(x) for x in body_any) + "\n"
     body_s = str(body_any)
@@ -70,9 +72,9 @@ def _parse_single(slug: str, block: list[str]) -> IssueSpec:  # noqa: C901 - acc
         label_tokens = [str(p).strip() for p in labels_any if str(p).strip()]
     labels = [LABEL_CANON_MAP.get(lbl.lower(), lbl) for lbl in label_tokens]
     milestone_val = data.get("milestone") if "milestone" in data else None
-    milestone = milestone_val if isinstance(milestone_val, str) else None
+    milestone = milestone_val if isinstance(milestone_val, str) and milestone_val.strip() else None
     status_val = data.get("status") if "status" in data else None
-    status = status_val if isinstance(status_val, str) else None
+    status = status_val if isinstance(status_val, str) and status_val.strip() else None
     project_val = data.get("project") if "project" in data else None
     project_block = project_val if isinstance(project_val, dict) else None
     h = hashlib.sha256()
