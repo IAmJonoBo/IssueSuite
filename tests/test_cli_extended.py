@@ -197,6 +197,36 @@ def test_cli_reconcile_detects_drift(
     assert "spec_only" in captured.out
 
 
+def test_cli_setup_vscode_scaffolds_tasks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    rc = main(["setup", "--vscode"])
+
+    assert rc == 0
+
+    tasks_path = tmp_path / ".vscode" / "tasks.json"
+    assert tasks_path.exists()
+
+    data = json.loads(tasks_path.read_text(encoding="utf-8"))
+    assert data["version"] == "2.0.0"
+    labels = {task["label"] for task in data["tasks"]}
+    assert "IssueSuite: Dry-run Sync" in labels
+    assert "IssueSuite: Validate" in labels
+
+    first_run_output = capsys.readouterr().out
+    assert "[setup] created .vscode/tasks.json" in first_run_output
+
+    rc = main(["setup", "--vscode"])
+
+    assert rc == 0
+
+    second_run_output = capsys.readouterr().out
+    assert "[setup] skipped (exists) .vscode/tasks.json" in second_run_output
+
 def test_cli_doctor_reports_warnings_and_problems(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

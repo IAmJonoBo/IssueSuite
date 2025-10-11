@@ -199,6 +199,29 @@ def _iter_optional_templates(include: Iterable[str]) -> list[tuple[str, str, str
     return results
 
 
+def write_vscode_tasks(directory: Path, *, force: bool = False) -> ScaffoldResult:
+    """Ensure VS Code task definitions exist under *directory*.
+
+    Parameters
+    ----------
+    directory:
+        Workspace root directory where `.vscode/tasks.json` should be written.
+    force:
+        Overwrite existing tasks when ``True``.
+    """
+
+    target = (directory / ".vscode" / "tasks.json").resolve()
+    created: list[Path] = []
+    skipped: list[Path] = []
+
+    if _write_if_needed(target, VSCODE_TASKS_TEMPLATE, force):
+        created.append(target)
+    else:
+        skipped.append(target)
+
+    return ScaffoldResult(created=created, skipped=skipped)
+
+
 def scaffold_project(
     directory: Path,
     *,
@@ -250,4 +273,4 @@ def scaffold_project(
     return ScaffoldResult(created=created, skipped=skipped)
 
 
-__all__ = ["scaffold_project", "ScaffoldResult"]
+__all__ = ["scaffold_project", "ScaffoldResult", "write_vscode_tasks"]
