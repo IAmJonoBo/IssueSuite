@@ -624,10 +624,6 @@ def _setup_vscode(*, force: bool = False) -> ScaffoldResult:
     if force:
         print("[setup] Rewriting VS Code integration files (force enabled)...")
     elif vscode_dir.exists():
-def _setup_vscode() -> ScaffoldResult:
-    workspace = Path.cwd()
-    vscode_dir = workspace / ".vscode"
-    if vscode_dir.exists():
         print("[setup] VS Code integration files already exist in .vscode/")
     else:
         print("[setup] Creating VS Code integration files...")
@@ -639,7 +635,6 @@ def _setup_vscode() -> ScaffoldResult:
             return path.relative_to(workspace)
         except ValueError:
             return path
-    result = write_vscode_assets(workspace)
 
     if result.created:
         print("[setup] VS Code files should be committed to your repository")
@@ -665,19 +660,6 @@ def _setup_vscode() -> ScaffoldResult:
     if not any([result.created, result.updated, result.needs_update]):
         print("[setup] no VS Code files created or changed")
 
-            try:
-                relative = path.relative_to(workspace)
-            except ValueError:
-                relative = path
-            print(f"[setup] created {relative}")
-    else:
-        for path in result.skipped:
-            try:
-                relative = path.relative_to(workspace)
-            except ValueError:
-                relative = path
-            print(f"[setup] skipped (exists) {relative}")
-        print("[setup] no VS Code files created (all existed)")
     _print_lines(
         [
             "[setup] VS Code integration includes:",
