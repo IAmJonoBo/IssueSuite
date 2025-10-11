@@ -61,7 +61,11 @@ from issuesuite.projects_status import (
 )
 from issuesuite.reconcile import format_report, reconcile
 from issuesuite.runtime import execute_command, prepare_config
-from issuesuite.scaffold import scaffold_project
+from issuesuite.scaffold import (
+    ScaffoldResult,
+    scaffold_project,
+    write_vscode_assets,
+)
 from issuesuite.schemas import get_schemas
 from issuesuite.setup_wizard import run_guided_setup
 
@@ -365,6 +369,11 @@ def _build_parser() -> argparse.ArgumentParser:
     setup.add_argument("--create-env", action="store_true", help="Create sample .env file")
     setup.add_argument("--check-auth", action="store_true", help="Check authentication status")
     setup.add_argument("--vscode", action="store_true", help="Setup VS Code integration files")
+    setup.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite automation assets when rerunning setup",
+    )
     setup.add_argument("--config", default=CONFIG_DEFAULT)
     setup.add_argument(
         "--guided",
@@ -608,22 +617,59 @@ def _setup_check_auth(
             print(f"  - {rec}")
 
 
-def _setup_vscode() -> None:
-    vscode_dir = Path(".vscode")
-    if vscode_dir.exists():
+def _setup_vscode(*, force: bool = False) -> ScaffoldResult:
+    workspace = Path.cwd()
+    vscode_dir = workspace / ".vscode"
+    if force:
+        print("[setup] Rewriting VS Code integration files (force enabled)...")
+    elif vscode_dir.exists():
         print("[setup] VS Code integration files already exist in .vscode/")
     else:
         print("[setup] Creating VS Code integration files...")
+
+    result = write_vscode_assets(workspace, force=force)
+
+    def _rel(path: Path) -> Path:
+        try:
+            return path.relative_to(workspace)
+        except ValueError:
+            return path
+
+    if result.created:
         print("[setup] VS Code files should be committed to your repository")
+        for path in result.created:
+            print(f"[setup] created {_rel(path)}")
+
+    if result.updated:
+        for path in result.updated:
+            print(f"[setup] updated {_rel(path)}")
+
+    if result.unchanged:
+        for path in result.unchanged:
+            print(f"[setup] already current {_rel(path)}")
+
+    if result.needs_update:
+        for path in result.needs_update:
+            print(f"[setup] differs from template {_rel(path)}")
+        print(
+            "[setup] existing VS Code files differ from IssueSuite defaults. "
+            "Run 'issuesuite setup --vscode --force' to rewrite them or review manually.",
+        )
+
+    if not any([result.created, result.updated, result.needs_update]):
+        print("[setup] no VS Code files created or changed")
+
     _print_lines(
         [
             "[setup] VS Code integration includes:",
             "  - Tasks for common IssueSuite operations",
-            "  - Debug configurations",
-            "  - YAML schema associations for config files",
-            "  - Python environment configuration",
+            "  - Expanded debug configurations for sync, security, and guided setup",
+            "  - YAML + JSON schema associations for IssueSuite configs and artifacts",
+            "  - Python environment defaults for local .venv usage",
+            "  - Safe re-run support via --force to refresh templates",
         ]
     )
+    return result
 
 
 def _setup_show_help() -> None:
@@ -634,6 +680,7 @@ def _setup_show_help() -> None:
             "  --create-env    Create sample .env file",
             "  --check-auth    Check authentication status",
             "  --vscode        Setup VS Code integration",
+            "  --force         Overwrite VS Code templates when rerunning",
             "  --guided       Interactive checklist with recommended follow-ups",
         ]
     )
@@ -646,7 +693,9 @@ def _cmd_setup(args: argparse.Namespace) -> int:
     if args.check_auth:
         _setup_check_auth(auth_manager)
     if args.vscode:
-        _setup_vscode()
+        _setup_vscode(force=args.force)
+    elif args.force:
+        print("[setup] --force is currently only used with --vscode")
     if args.guided:
         run_guided_setup(auth_manager)
     if not any([args.create_env, args.check_auth, args.vscode, args.guided]):

@@ -19,6 +19,10 @@ pip install -e '.[dev,all]'
 issuesuite setup --create-env --check-auth --vscode
 ```
 
+> ℹ️  Re-run with `--force` (`issuesuite setup --vscode --force`) to refresh the shipped
+> VS Code templates if you've customised or drifted from the defaults. JSON files are
+> normalised automatically, so whitespace-only edits won't trigger drift warnings.
+
 1. Open VS Code in your project directory:
 
 ```bash
@@ -69,13 +73,17 @@ The VS Code integration provides:
 
 ### 1. **Tasks** (Ctrl+Shift+P → "Tasks: Run Task")
 
-- **IssueSuite: Agent Apply (dry-run)** - Apply `agent_updates.json` to `ISSUES.md` and run a dry-run sync (writes `issues_summary.json`)
-- **IssueSuite: Agent Apply (apply)** - Apply `agent_updates.json` and perform a real sync to GitHub (writes `issues_summary.json`)
-- **IssueSuite: Dry-run Sync** - Test your changes safely with preflight checks and save both `issues_summary.json` and `issues_plan.json`
-- **IssueSuite: Full Sync** - Apply changes to GitHub with preflight checks and emit fresh summary/plan artifacts
-- **IssueSuite: Export** - Generate JSON exports
-- **IssueSuite: Summary** - Quick roadmap overview
-- **IssueSuite: Validate** - Check configuration and issues
+- **IssueSuite: Validate** — Check configuration and specs before running heavier operations
+- **IssueSuite: Dry-run Sync** — Test your changes safely with preflight checks and save both `issues_summary.json` and `issues_plan.json`
+- **IssueSuite: Full Sync** — Apply changes to GitHub with preflight checks and emit fresh summary/plan artifacts
+- **IssueSuite: Summary** — Quick roadmap overview
+- **IssueSuite: Export** — Generate JSON exports
+- **IssueSuite: Schema Bundle** — Persist export, summary, and AI context schemas (feeds IntelliSense)
+- **IssueSuite: Projects Status** — Produce JSON + Markdown status artifacts from `Next_Steps.md`
+- **IssueSuite: Security Audit (Offline)** — Run the dependency audit with offline-safe defaults and pip-audit fallbacks
+- **IssueSuite: Agent Apply (dry-run)** — Apply `agent_updates.json` to `ISSUES.md` and run a dry-run sync (writes `issues_summary.json`)
+- **IssueSuite: Agent Apply (apply)** — Apply `agent_updates.json` and perform a real sync to GitHub (writes `issues_summary.json`)
+- **IssueSuite: Guided Setup** — Re-run the interactive checklist to confirm your workspace health
 - You can also run the `agent-apply` command from the integrated terminal to apply Copilot/agent updates to `ISSUES.md` and optionally sync.
 
 The plan JSON path is configurable via `output.plan_json` in `issue_suite.config.yaml`; the default task writes to `${workspaceFolder}/issues_plan.json`.
@@ -86,8 +94,8 @@ The plan JSON path is configurable via `output.plan_json` in `issue_suite.config
 
 ### 3. IntelliSense & Validation
 
-- YAML schema validation for `issue_suite.config.yaml`
-- JSON schema validation for exports and summaries
+- YAML schema validation for `issue_suite.config.yaml` via `.vscode/issue_suite.config.schema.json`
+- JSON schema validation for exports, summaries, and AI context once you run the Schema Bundle task
 - Markdown syntax highlighting for `ISSUES.md`
 
 ## Copilot tips

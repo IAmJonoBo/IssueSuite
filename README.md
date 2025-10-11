@@ -75,11 +75,15 @@ Generate a ready-to-run workspace with configuration, documentation, and CI work
 issuesuite init --all-extras
 ```
 
+
 This creates:
 
 - `issue_suite.config.yaml` — Configuration file
 - `ISSUES.md` — Starter issue specifications
-- `.vscode/tasks.json` — VS Code tasks for common operations
+- `.vscode/tasks.json` — Curated tasks for validation, sync, agent apply, security, and schema generation
+- `.vscode/launch.json` — Debug configurations for sync, security, guided setup, and agent apply flows
+- `.vscode/settings.json` — Python defaults plus IssueSuite schema associations
+- `.vscode/issue_suite.config.schema.json` — Local config schema powering IntelliSense in VS Code
 - `.github/workflows/` — CI workflow templates
 - `.gitignore` updates — Artifact exclusions
 
@@ -269,6 +273,21 @@ Generate a starter `.env` file:
 ```bash
 issuesuite setup --create-env
 ```
+
+Scaffold VS Code automation in an existing workspace:
+
+```bash
+issuesuite setup --vscode
+```
+
+The command writes `.vscode/tasks.json`, `.vscode/launch.json`, `.vscode/settings.json`, and `.vscode/issue_suite.config.schema.json`
+with ready-to-run defaults. The workspace settings now map YAML + JSON schemas (config, exports, summaries, AI context) so VS Code provides
+inline validation once you run the bundled "IssueSuite: Schema Bundle" task. Existing files are left untouched unless you pass `--force`
+to `issuesuite setup --vscode` or `issuesuite init --force`. When files differ from the shipped defaults, IssueSuite will flag the drift
+and offer to refresh templates with `--force` so manual customisations are never overwritten silently. Whitespace-only edits are ignored—the
+command normalises JSON before comparing—so you only see drift warnings when the underlying configuration changes.
+
+Out of the box you get VS Code tasks for validation, dry-run/full sync, summary/export, agent apply (dry-run/apply), schema bundle generation, projects status reporting, security audits, and a guided setup refresher alongside matching debug configurations.
 
 ## Offline/Hermetic Deployment
 
