@@ -47,7 +47,7 @@ jobs:
         run: python -m build
 
       - name: Generate SBOM for distribution artifacts
-        uses: anchore/sbom-action@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0
+        uses: anchore/sbom-action@aa0e114b2e19480f157109b9922bda359bd98b90 # v0
         with:
           path: dist
           artifact-name: issuesuite-sbom
