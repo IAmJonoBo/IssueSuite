@@ -77,7 +77,7 @@ optional-dependencies.dev = [
   "pytest>=8",
   "pytest-asyncio>=1.2",
   "pytest-cov>=4.1",
-  "ruff==0.14",
+  "ruff==0.14.3",
   "twine>=6.2",
   "types-jsonschema>=4.23.0.20240813",
   "types-psutil>=7.0.0.20250822",
